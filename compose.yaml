@@ -3,7 +3,6 @@
     build:
       context: .
       dockerfile: docker/worker.Dockerfile
-    environment:
-      WORKER_ID: local-dev
-      PYTHONUNBUFFERED: "1"
+    env_file:
+      - .env
     restart: unless-stopped
