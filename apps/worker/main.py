@@ -2,6 +2,7 @@
 import time
 
 from job import Job
+from job_queue import job_queue
 
 worker_id = os.getenv("WORKER_ID", "local-dev")
 
@@ -12,9 +13,15 @@ job = Job(
     payload={"message": "Hello"}
 )
 
+job_queue.put(job)
+
 print(f"Worker started: {worker_id}", flush=True)
-print(f"Job created: {job}", flush=True)
 
 while True:
-    print("Worker is alive.", flush=True)
+    current_job = job_queue.get()
+
+    print(f"Worker picked up job: {current_job}", flush=True)
+
+    job_queue.task_done()
+
     time.sleep(10)
