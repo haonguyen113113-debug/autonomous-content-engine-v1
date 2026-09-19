@@ -10,7 +10,7 @@ The system is designed to remain transferable across machines. The development m
 
 ## Current milestone
 
-M0.1 — Reproducible Project Skeleton
+M2.2 — Local Job Queue
 
 ## Core principles
 
