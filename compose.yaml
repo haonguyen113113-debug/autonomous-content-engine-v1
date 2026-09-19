@@ -1,0 +1,9 @@
+﻿services:
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    environment:
+      WORKER_ID: local-dev
+      PYTHONUNBUFFERED: "1"
+    restart: unless-stopped
