@@ -353,29 +353,6 @@ Examples:
 
 Do not equate “the pipeline runs” with “the system creates value.”
 
-## 17. Project A / Project B relationship
-
-Project A is the primary learning laboratory for building autonomous-system engineering capability.
-
-Project B is a separate practical/profit laboratory and a deliberate stress test of Project A's abstractions.
-
-Project B should:
-
-* expose architectural weaknesses early
-* validate whether abstractions survive a real operating environment
-* surface missing autonomy requirements
-* test category/audience/channel/value/distribution/economic assumptions
-
-Lessons from Project B should be fed back into Project A before A reaches the same stage.
-
-Project B must not become a hidden dependency of Project A, and Project A's learning objectives must not be sacrificed for B's speed.
-
-Operating model:
-
-* develop and operate A and B in parallel
-* use B as an adversarial reality check
-* harden A using validated lessons from B
-* preserve A as the place where the user understands and builds the underlying system
 
 ## 18. Long-term north star
 
