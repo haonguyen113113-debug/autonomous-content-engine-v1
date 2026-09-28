@@ -1,0 +1,48 @@
+{
+  "market": "VN",
+  "language": "vi",
+  "categories": [
+    "SOCCER",
+    "SOCCER_EUROPE",
+    "SOCCER_INTERNATIONAL",
+    "SOCCER_VIETNAM"
+  ],
+  "competition_scope": [
+    "global",
+    "continental",
+    "regional",
+    "domestic",
+    "national"
+  ],
+  "asset_types": [
+    "image",
+    "video"
+  ],
+  "subject_types": [
+    "player",
+    "team",
+    "national_team",
+    "competition",
+    "stadium",
+    "manager",
+    "official",
+    "match",
+    "tactical_diagram",
+    "generic_soccer"
+  ],
+  "purpose_codes": [
+    "establishing_visual",
+    "player_focus",
+    "team_identity",
+    "competition_identity",
+    "match_context",
+    "tactical_context",
+    "data_visual",
+    "broll",
+    "thumbnail",
+    "transition",
+    "background",
+    "map_or_location",
+    "quote_or_statement"
+  ]
+}
