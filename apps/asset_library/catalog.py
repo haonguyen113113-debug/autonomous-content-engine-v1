@@ -91,6 +91,9 @@ CREATE INDEX IF NOT EXISTS idx_entity_sources_entity ON entity_sources(entity_id
 
 def init_entity_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(ENTITY_SCHEMA)
+    from .player_identity import init_player_identity_schema, init_player_identity_migrations
+    init_player_identity_schema(conn)
+    init_player_identity_migrations(conn)
 
 
 def upsert_entity(conn: sqlite3.Connection, record: EntityRecord) -> None:
@@ -127,16 +130,41 @@ def add_alias(conn: sqlite3.Connection, entity_id: str, alias: str, language_cod
     )
 
 
-def add_external_ref(conn: sqlite3.Connection, entity_id: str, provider: str, external_id: str, source_url: str | None = None) -> None:
+def add_external_ref(
+    conn: sqlite3.Connection,
+    entity_id: str,
+    provider: str,
+    external_id: str,
+    source_url: str | None = None,
+    *,
+    source_name: str | None = None,
+    verification_state: str = 'unverified',
+) -> None:
+    from .player_identity import VALID_VERIFICATION_STATES
+    if verification_state not in VALID_VERIFICATION_STATES:
+        raise ValueError(f'Unsupported verification_state: {verification_state}')
+    if verification_state == 'verified' and (not source_name or not source_url):
+        raise ValueError('Verified external refs require source_name and source_url')
+    existing = conn.execute(
+        "SELECT entity_id FROM entity_external_refs WHERE provider=? AND external_id=?",
+        (provider, external_id),
+    ).fetchone()
+    if existing is not None and existing['entity_id'] != entity_id:
+        raise ValueError(
+            f"External reference conflict: {provider}:{external_id} already maps to {existing['entity_id']}"
+        )
     conn.execute(
         """
-        INSERT INTO entity_external_refs(entity_id, provider, external_id, source_url)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO entity_external_refs(
+            entity_id, provider, external_id, source_url, verification_state, source_name
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(provider, external_id) DO UPDATE SET
-            entity_id=excluded.entity_id,
-            source_url=excluded.source_url
+            source_url=excluded.source_url,
+            verification_state=excluded.verification_state,
+            source_name=excluded.source_name
         """,
-        (entity_id, provider, external_id, source_url),
+        (entity_id, provider, external_id, source_url, verification_state, source_name),
     )
 
 
