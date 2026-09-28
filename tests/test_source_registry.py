@@ -1,16 +1,20 @@
 import sqlite3
+
 import pytest
 
 from apps.asset_library.source_registry import (
     Source,
+    count_source_revisions,
     count_sources,
     ensure_source_schema,
+    get_current_source_revision,
     get_source,
+    get_source_revision,
     upsert_source,
 )
 
 
-def test_source_upsert_is_idempotent():
+def test_source_upsert_is_idempotent_and_creates_one_revision():
     conn = sqlite3.connect(":memory:")
     ensure_source_schema(conn)
 
@@ -27,7 +31,51 @@ def test_source_upsert_is_idempotent():
     upsert_source(conn, source)
 
     assert count_sources(conn) == 1
-    assert get_source(conn, "src:uefa").provider == "UEFA"
+    assert count_source_revisions(conn) == 1
+    current = get_current_source_revision(conn, "src:uefa")
+    assert current is not None
+    assert current.revision_number == 1
+    assert get_source(conn, "src:uefa").current_revision_id == current.revision_id
+
+
+def test_source_revision_preserves_previous_trust_state():
+    conn = sqlite3.connect(":memory:")
+    ensure_source_schema(conn)
+
+    upsert_source(
+        conn,
+        Source(
+            source_id="src:a",
+            provider="Example",
+            source_type="official_competition",
+            scope="football/a",
+            locator="https://example.test/source-a",
+            default_trust_tier="primary",
+        ),
+    )
+    first = get_current_source_revision(conn, "src:a")
+    assert first is not None
+
+    upsert_source(
+        conn,
+        Source(
+            source_id="src:a",
+            provider="Example",
+            source_type="official_competition",
+            scope="football/a",
+            locator="https://example.test/source-a",
+            default_trust_tier="secondary",
+        ),
+    )
+
+    second = get_current_source_revision(conn, "src:a")
+    assert second is not None
+    assert second.revision_number == 2
+    assert second.default_trust_tier == "secondary"
+
+    preserved = get_source_revision(conn, first.revision_id)
+    assert preserved.default_trust_tier == "primary"
+    assert preserved.valid_to is not None
 
 
 def test_source_locator_conflict_is_blocked():

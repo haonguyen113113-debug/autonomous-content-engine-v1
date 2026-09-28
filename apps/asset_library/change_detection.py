@@ -14,7 +14,12 @@ from .observation import (
     ensure_observation_schema,
     list_observations,
 )
-from .source_registry import TRUST_TIERS, ensure_source_schema
+from .source_registry import (
+    TRUST_TIERS,
+    ensure_source_schema,
+    get_source_revision,
+    get_source,
+)
 
 DETECTOR_VERSION = "change-detector-v0.1"
 EVENT_TYPE = "REASSESSMENT_REQUIRED"
@@ -189,21 +194,28 @@ def count_change_events(conn: sqlite3.Connection) -> int:
     return int(row[0])
 
 
-def _source_trust_rank(conn: sqlite3.Connection, source_id: str) -> int:
-    row = conn.execute(
-        """
-        SELECT default_trust_tier
-        FROM sources
-        WHERE source_id = ?
-        """,
-        (source_id,),
-    ).fetchone()
-    if row is None:
-        raise ValueError(f"missing source registry record: {source_id}")
-    tier = row[0]
-    if tier not in TRUST_TIERS:
-        raise ValueError(f"unsupported source trust tier: {tier}")
-    return TRUST_RANKS[tier]
+def _observation_trust_rank(
+    conn: sqlite3.Connection,
+    observation: Observation,
+) -> int:
+    if observation.source_revision_id:
+        revision = get_source_revision(
+            conn,
+            observation.source_revision_id,
+        )
+        if revision is None:
+            raise ValueError(
+                "missing source revision: "
+                f"{observation.source_revision_id}"
+            )
+        return TRUST_RANKS[revision.default_trust_tier]
+
+    source = get_source(conn, observation.source_id)
+    if source is None:
+        raise ValueError(
+            f"missing source registry record: {observation.source_id}"
+        )
+    return TRUST_RANKS[source.default_trust_tier]
 
 
 def _supporting_trust_rank(
@@ -212,27 +224,35 @@ def _supporting_trust_rank(
 ) -> int:
     rows = conn.execute(
         """
-        SELECT s.default_trust_tier
+        SELECT o.source_revision_id, o.source_id
         FROM belief_observations bo
         JOIN observations o
           ON o.observation_id = bo.observation_id
-        JOIN sources s
-          ON s.source_id = o.source_id
         WHERE bo.belief_id = ?
           AND bo.role = 'SUPPORT'
         """,
         (belief_id,),
     ).fetchall()
-    if not rows:
-        return 0
-    return max(
-        TRUST_RANKS[row[0]]
-        for row in rows
-        if row[0] in TRUST_RANKS
-    )
+
+    ranks: list[int] = []
+    for row in rows:
+        if row[0]:
+            revision = get_source_revision(conn, row[0])
+            if revision is not None:
+                ranks.append(TRUST_RANKS[revision.default_trust_tier])
+                continue
+        source = get_source(conn, row[1])
+        if source is not None:
+            ranks.append(TRUST_RANKS[source.default_trust_tier])
+
+    return max(ranks, default=0)
 
 
-def _scope_id(subject_type: str, subject_id: str, field: str) -> str:
+def _scope_id(
+    subject_type: str,
+    subject_id: str,
+    field: str,
+) -> str:
     return f"{subject_type}:{subject_id}:{field}"
 
 
@@ -297,22 +317,10 @@ def _is_after_cursor(
     return current_key > cursor_key
 
 
-def _timeline_sort_key(observation: Observation) -> tuple[datetime, datetime, str]:
-    recorded_at = observation.recorded_at or observation.observed_at
-    return (
-        _parse_timestamp(observation.observed_at),
-        _parse_timestamp(recorded_at),
-        observation.observation_id,
-    )
-
-
 def _previous_observation(
     observations: list[Observation],
     target: Observation,
 ) -> Observation | None:
-    # Change detection processes evidence in recorded order. A late-recorded
-    # observation may describe an earlier observed_at timestamp, but it is
-    # still new evidence arriving after the detector's cursor.
     ordered = sorted(
         observations,
         key=lambda observation: (
@@ -344,8 +352,6 @@ def _build_reason_codes(
         reasons.add("VALUE_CHANGE")
 
     if belief is None:
-        # There is no current Belief to disagree with yet. A difference from
-        # prior evidence is still captured by VALUE_CHANGE.
         pass
     else:
         if canonical_json(belief.current_value) != canonical_json(
@@ -361,8 +367,14 @@ def _build_reason_codes(
             and canonical_json(belief.current_value)
             == canonical_json(observation.value)
         ):
-            new_rank = _source_trust_rank(conn, observation.source_id)
-            existing_rank = _supporting_trust_rank(conn, belief.belief_id)
+            new_rank = _observation_trust_rank(
+                conn,
+                observation,
+            )
+            existing_rank = _supporting_trust_rank(
+                conn,
+                belief.belief_id,
+            )
             if new_rank > existing_rank:
                 reasons.add("EVIDENCE_UPDATE")
 
@@ -412,7 +424,10 @@ def detect_changes(
     created_events: list[ChangeEvent] = []
 
     for observation in new_observations:
-        previous = _previous_observation(observations, observation)
+        previous = _previous_observation(
+            observations,
+            observation,
+        )
         belief = get_current_belief(
             conn,
             subject_type,
@@ -443,11 +458,17 @@ def detect_changes(
                 event_type=EVENT_TYPE,
                 reason_codes=reasons,
                 previous_observation_id=(
-                    previous.observation_id if previous else None
+                    previous.observation_id
+                    if previous
+                    else None
                 ),
-                previous_value=previous.value if previous else None,
+                previous_value=(
+                    previous.value if previous else None
+                ),
                 observed_value=observation.value,
-                current_belief_id=belief.belief_id if belief else None,
+                current_belief_id=(
+                    belief.belief_id if belief else None
+                ),
                 current_belief_value=(
                     belief.current_value if belief else None
                 ),
@@ -495,7 +516,11 @@ def detect_changes(
             )
             created_events.append(event)
 
-        _save_cursor(conn, scope_id, observation)
+        _save_cursor(
+            conn,
+            scope_id,
+            observation,
+        )
 
     conn.commit()
     return created_events
