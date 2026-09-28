@@ -323,6 +323,8 @@ def test_multiple_new_observations_are_processed_once_in_recorded_order():
     assert len(list_change_events(conn, "player", "player:1", "club")) == 3
 
     assert detect_changes(conn, "player", "player:1", "club") == []
+
+
 def test_value_change_is_reassessment_not_world_state_assertion():
     conn = setup_db()
     add_source(conn, "src:primary", "Official", "primary")
