@@ -378,22 +378,26 @@ def resolve_belief(
         if source_meta[observation.source_id][1]
     ]
 
-    latest_observed = max(
-        observations,
-        key=lambda item: _parse_timestamp(item.observed_at),
-    )
-    age = as_of_dt - _parse_timestamp(latest_observed.observed_at)
-
     if not active:
+        latest_observed = max(
+            observations,
+            key=lambda item: _parse_timestamp(item.observed_at),
+        )
         status = "UNCERTAIN"
         current_value = latest_observed.value
         confidence = 0.0
-        valid_from = latest_observed.effective_from or latest_observed.observed_at
+        valid_from = (
+            latest_observed.effective_from
+            or latest_observed.observed_at
+        )
         valid_to = latest_observed.effective_to
         resolution_reason = (
             "No currently applicable observation has an active source."
         )
-        evidence = [(obs.observation_id, "COMPETING") for obs in observations]
+        evidence = [
+            (obs.observation_id, "COMPETING")
+            for obs in observations
+        ]
     else:
         grouped: dict[str, list[Observation]] = {}
         for observation in active:
@@ -430,35 +434,17 @@ def resolve_belief(
             second_tier = source_meta[second_observation.source_id][0]
             conflicted = (
                 TRUST_RANKS[winning_tier] == TRUST_RANKS[second_tier]
-                and _parse_timestamp(winning_observation.observed_at)
+                and _parse_timestamp(
+                    winning_observation.observed_at
+                )
                 == _parse_timestamp(second_observation.observed_at)
             )
 
-        if stale_after_days is not None and age > timedelta(
-            days=stale_after_days
-        ):
-            status = "STALE"
-            current_value = winning_observation.value
-            confidence = TRUST_RANKS[winning_tier] / max(TRUST_RANKS.values())
-            valid_from = (
-                winning_observation.effective_from
-                or winning_observation.observed_at
-            )
-            valid_to = winning_observation.effective_to
-            resolution_reason = (
-                f"Latest observation is {age.days} day(s) old, "
-                f"exceeding stale_after_days={stale_after_days}."
-            )
-            evidence = [
-                (
-                    observation.observation_id,
-                    "SUPPORT"
-                    if canonical_json(observation.value) == winning_value_key
-                    else "CONFLICT",
-                )
-                for observation in active
-            ]
-        elif conflicted:
+        winning_age = as_of_dt - _parse_timestamp(
+            winning_observation.observed_at
+        )
+
+        if conflicted:
             status = "CONFLICTED"
             current_value = None
             confidence = 0.0
@@ -472,10 +458,38 @@ def resolve_belief(
                 (observation.observation_id, "COMPETING")
                 for observation in active
             ]
+        elif stale_after_days is not None and winning_age > timedelta(
+            days=stale_after_days
+        ):
+            status = "STALE"
+            current_value = winning_observation.value
+            confidence = (
+                TRUST_RANKS[winning_tier] / max(TRUST_RANKS.values())
+            )
+            valid_from = (
+                winning_observation.effective_from
+                or winning_observation.observed_at
+            )
+            valid_to = winning_observation.effective_to
+            resolution_reason = (
+                f"Latest winning observation is {winning_age.days} day(s) old, "
+                f"exceeding stale_after_days={stale_after_days}."
+            )
+            evidence = [
+                (
+                    observation.observation_id,
+                    "SUPPORT"
+                    if canonical_json(observation.value) == winning_value_key
+                    else "CONFLICT",
+                )
+                for observation in active
+            ]
         else:
             status = "RESOLVED"
             current_value = winning_observation.value
-            confidence = TRUST_RANKS[winning_tier] / max(TRUST_RANKS.values())
+            confidence = (
+                TRUST_RANKS[winning_tier] / max(TRUST_RANKS.values())
+            )
             valid_from = (
                 winning_observation.effective_from
                 or winning_observation.observed_at

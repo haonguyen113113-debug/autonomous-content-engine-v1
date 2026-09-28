@@ -225,3 +225,59 @@ def test_resolver_marks_old_evidence_stale_when_requested():
     assert belief.status == "STALE"
     assert belief.current_value == {"entity_id": "club:arsenal"}
     assert belief.confidence == 1.0
+
+
+def test_staleness_uses_latest_applicable_winning_observation():
+    conn = setup_db()
+    add_source(conn, "src:primary", "Official", "primary")
+    add_source(conn, "src:secondary", "Secondary", "secondary")
+
+    add_observation(
+        conn,
+        "obs:old",
+        "src:primary",
+        "club:arsenal",
+        "2026-09-01T09:00:00+00:00",
+    )
+    add_observation(
+        conn,
+        "obs:future",
+        "src:secondary",
+        "club:liverpool",
+        "2026-10-01T09:00:00+00:00",
+    )
+
+    belief = resolve_belief(
+        conn,
+        "player",
+        "player:1",
+        "club",
+        as_of="2026-09-20T09:00:00+00:00",
+        stale_after_days=7,
+    )
+
+    assert belief.status == "STALE"
+    assert belief.current_value == {"entity_id": "club:arsenal"}
+
+
+def test_conflict_takes_precedence_over_staleness():
+    conn = setup_db()
+    add_source(conn, "src:a", "Official A", "primary")
+    add_source(conn, "src:b", "Official B", "primary")
+
+    timestamp = "2026-09-01T09:00:00+00:00"
+    add_observation(conn, "obs:a", "src:a", "club:arsenal", timestamp)
+    add_observation(conn, "obs:b", "src:b", "club:liverpool", timestamp)
+
+    belief = resolve_belief(
+        conn,
+        "player",
+        "player:1",
+        "club",
+        as_of="2026-09-20T09:00:00+00:00",
+        stale_after_days=7,
+    )
+
+    assert belief.status == "CONFLICTED"
+    assert belief.current_value is None
+    assert belief.confidence == 0.0
