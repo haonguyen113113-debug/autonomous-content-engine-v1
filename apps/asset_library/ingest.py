@@ -98,36 +98,40 @@ def ingest_one(
             )
         shutil.copy2(path, destination)
 
-        record = AssetRecord(
-            asset_id=asset_id,
-            original_name=path.name,
-            stored_path=destination.relative_to(
-                library_root.parent.parent.parent
-            ).as_posix(),
-            asset_type=asset_type,
-            mime_type=mime_type,
-            size_bytes=path.stat().st_size,
-            sha256=digest,
-            source_type=source_type,
-            source_url=source_url,
-            creator=creator,
-            license_type=license_type,
-            rights_state=rights_state,
-            lifecycle_state="ingested",
-            market_code=sidecar.get("market_code"),
-            category_code=sidecar.get("category_code"),
-            subject_type=sidecar.get("subject_type"),
-            subject_id=sidecar.get("subject_id"),
-            competition_code=sidecar.get("competition_code"),
-            purpose_code=sidecar.get("purpose_code"),
-            metadata=metadata,
-            source_id=source_id,
-            source_revision_id=source_revision_id,
-        )
-        from .registry import upsert_asset
-        upsert_asset(conn, record)
-        conn.commit()
-        return f"ingested:{asset_id}"
+        try:
+            record = AssetRecord(
+                asset_id=asset_id,
+                original_name=path.name,
+                stored_path=destination.relative_to(
+                    library_root.parent.parent.parent
+                ).as_posix(),
+                asset_type=asset_type,
+                mime_type=mime_type,
+                size_bytes=path.stat().st_size,
+                sha256=digest,
+                source_type=source_type,
+                source_url=source_url,
+                creator=creator,
+                license_type=license_type,
+                rights_state=rights_state,
+                lifecycle_state="ingested",
+                market_code=sidecar.get("market_code"),
+                category_code=sidecar.get("category_code"),
+                subject_type=sidecar.get("subject_type"),
+                subject_id=sidecar.get("subject_id"),
+                competition_code=sidecar.get("competition_code"),
+                purpose_code=sidecar.get("purpose_code"),
+                metadata=metadata,
+                source_id=source_id,
+                source_revision_id=source_revision_id,
+            )
+            from .registry import upsert_asset
+            upsert_asset(conn, record)
+            conn.commit()
+            return f"ingested:{asset_id}"
+        except Exception:
+            destination.unlink(missing_ok=True)
+            raise
     finally:
         conn.close()
 

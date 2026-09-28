@@ -108,9 +108,6 @@ def connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    ensure_asset_schema(conn)
-    from .catalog import init_entity_schema
-    init_entity_schema(conn)
     from .database import initialize_database
     initialize_database(conn)
     return conn

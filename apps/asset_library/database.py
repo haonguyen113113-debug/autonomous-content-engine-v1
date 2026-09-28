@@ -89,8 +89,6 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         migrations[version](conn)
         _record_version(conn, version)
 
-    _migration_3(conn)
-
 
 def get_schema_version(conn: sqlite3.Connection) -> int:
     _ensure_migration_table(conn)

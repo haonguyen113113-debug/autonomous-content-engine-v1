@@ -168,18 +168,27 @@ def upsert_observation(
     ):
         raise ValueError("content_hash does not match observation value")
 
-    current_revision = get_current_source_revision(
+    recorded = observation.recorded_at or utc_now()
+    existing = _existing_observation(
         conn,
-        observation.source_id,
+        observation.observation_id,
     )
-    source_revision_id = (
-        observation.source_revision_id
-        or (
+
+    if observation.source_revision_id is not None:
+        source_revision_id = observation.source_revision_id
+    elif existing is not None:
+        source_revision_id = existing[2]
+    else:
+        current_revision = get_current_source_revision(
+            conn,
+            observation.source_id,
+        )
+        source_revision_id = (
             current_revision.revision_id
             if current_revision is not None
             else None
         )
-    )
+
     if source_revision_id is None:
         raise ValueError(
             f"source has no registry revision: {observation.source_id}"
@@ -190,12 +199,6 @@ def upsert_observation(
         raise ValueError(
             "source_revision_id does not belong to observation.source_id"
         )
-
-    recorded = observation.recorded_at or utc_now()
-    existing = _existing_observation(
-        conn,
-        observation.observation_id,
-    )
 
     value_json = canonical_json(observation.value)
 
