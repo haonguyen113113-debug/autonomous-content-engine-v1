@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import sqlite3
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def utc_now() -> str:
@@ -29,10 +29,7 @@ def _current_version(conn: sqlite3.Connection) -> int:
     return int(row[0])
 
 
-def _record_version(
-    conn: sqlite3.Connection,
-    version: int,
-) -> None:
+def _record_version(conn: sqlite3.Connection, version: int) -> None:
     conn.execute(
         """
         INSERT OR IGNORE INTO schema_migrations(version, applied_at)
@@ -44,7 +41,6 @@ def _record_version(
 
 
 def _migration_1(conn: sqlite3.Connection) -> None:
-    # Baseline integrated foundation schema.
     from .registry import ensure_asset_schema
     from .catalog import init_entity_schema
     from .source_registry import ensure_source_schema
@@ -63,11 +59,6 @@ def _migration_1(conn: sqlite3.Connection) -> None:
 
 
 def _migration_2(conn: sqlite3.Connection) -> None:
-    # Foundation hardening:
-    # - source revisions
-    # - immutable observations
-    # - provenance link to source revisions
-    # - generic asset schema no longer requires taxonomy tables
     from .registry import ensure_asset_schema
     from .source_registry import ensure_source_schema
     from .observation import ensure_observation_schema
@@ -77,9 +68,13 @@ def _migration_2(conn: sqlite3.Connection) -> None:
     ensure_asset_schema(conn)
 
 
-def initialize_database(
-    conn: sqlite3.Connection,
-) -> None:
+def _migration_3(conn: sqlite3.Connection) -> None:
+    from .resolution_orchestrator import ensure_resolution_schema
+
+    ensure_resolution_schema(conn)
+
+
+def initialize_database(conn: sqlite3.Connection) -> None:
     conn.row_factory = sqlite3.Row
     _ensure_migration_table(conn)
     current = _current_version(conn)
@@ -87,15 +82,14 @@ def initialize_database(
     migrations = {
         1: _migration_1,
         2: _migration_2,
+        3: _migration_3,
     }
 
     for version in range(current + 1, SCHEMA_VERSION + 1):
         migrations[version](conn)
         _record_version(conn, version)
 
-    # Also ensure idempotent schema state when connecting to a database whose
-    # migration table already claims the latest version.
-    _migration_2(conn)
+    _migration_3(conn)
 
 
 def get_schema_version(conn: sqlite3.Connection) -> int:
