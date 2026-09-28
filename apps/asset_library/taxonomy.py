@@ -14,8 +14,7 @@ CATEGORIES = [
     {"category_code": "SOCCER_VIETNAM", "market_code": "VN", "name": "Vietnamese Football", "parent_category_code": "SOCCER", "priority": 5},
 ]
 
-# tier: 1 = global/most important, 2 = major continental/international, 3 = major domestic/other priority.
-# priority is an internal retrieval/coverage priority, not a quality ranking.
+# tier and priority are domain-pack retrieval metadata, not core asset semantics.
 COMPETITIONS = [
     {"code": "FIFA_WORLD_CUP", "category": "SOCCER_INTERNATIONAL", "name": "FIFA World Cup", "scope": "global", "region": "global", "tier": 1, "priority": 10},
     {"code": "FIFA_CLUB_WC", "category": "SOCCER_INTERNATIONAL", "name": "FIFA Club World Cup", "scope": "global", "region": "global", "tier": 1, "priority": 20},
@@ -72,3 +71,42 @@ SUBJECT_TYPES = [
     "tactical_diagram",
     "generic_soccer",
 ]
+
+
+def ensure_taxonomy_schema(conn) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS markets (
+            market_code TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            language_code TEXT NOT NULL,
+            priority INTEGER NOT NULL DEFAULT 100,
+            lifecycle_state TEXT NOT NULL DEFAULT 'active'
+        );
+
+        CREATE TABLE IF NOT EXISTS categories (
+            category_code TEXT PRIMARY KEY,
+            market_code TEXT,
+            name TEXT NOT NULL,
+            parent_category_code TEXT,
+            priority INTEGER NOT NULL DEFAULT 100,
+            lifecycle_state TEXT NOT NULL DEFAULT 'active',
+            FOREIGN KEY(market_code) REFERENCES markets(market_code),
+            FOREIGN KEY(parent_category_code) REFERENCES categories(category_code)
+        );
+
+        CREATE TABLE IF NOT EXISTS competitions (
+            competition_code TEXT PRIMARY KEY,
+            category_code TEXT,
+            name TEXT NOT NULL,
+            scope TEXT NOT NULL,
+            region TEXT,
+            tier INTEGER NOT NULL,
+            priority INTEGER NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            notes TEXT,
+            FOREIGN KEY(category_code) REFERENCES categories(category_code)
+        );
+        """
+    )
+    conn.commit()

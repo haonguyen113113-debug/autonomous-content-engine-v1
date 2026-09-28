@@ -31,42 +31,14 @@ class AssetRecord:
     competition_code: str | None
     purpose_code: str | None
     metadata: dict[str, Any]
+    source_id: str | None = None
+    source_revision_id: str | None = None
 
 
+# Core asset schema. Market/category/competition taxonomy tables are deliberately
+# owned by domain packs, not by this generic registry.
 SCHEMA = """
 PRAGMA foreign_keys = ON;
-
-CREATE TABLE IF NOT EXISTS markets (
-    market_code TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    language_code TEXT NOT NULL,
-    priority INTEGER NOT NULL DEFAULT 100,
-    lifecycle_state TEXT NOT NULL DEFAULT 'active'
-);
-
-CREATE TABLE IF NOT EXISTS categories (
-    category_code TEXT PRIMARY KEY,
-    market_code TEXT,
-    name TEXT NOT NULL,
-    parent_category_code TEXT,
-    priority INTEGER NOT NULL DEFAULT 100,
-    lifecycle_state TEXT NOT NULL DEFAULT 'active',
-    FOREIGN KEY(market_code) REFERENCES markets(market_code),
-    FOREIGN KEY(parent_category_code) REFERENCES categories(category_code)
-);
-
-CREATE TABLE IF NOT EXISTS competitions (
-    competition_code TEXT PRIMARY KEY,
-    category_code TEXT,
-    name TEXT NOT NULL,
-    scope TEXT NOT NULL,
-    region TEXT,
-    tier INTEGER NOT NULL,
-    priority INTEGER NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1,
-    notes TEXT,
-    FOREIGN KEY(category_code) REFERENCES categories(category_code)
-);
 
 CREATE TABLE IF NOT EXISTS assets (
     asset_id TEXT PRIMARY KEY,
@@ -89,10 +61,9 @@ CREATE TABLE IF NOT EXISTS assets (
     competition_code TEXT,
     purpose_code TEXT,
     metadata_json TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(market_code) REFERENCES markets(market_code),
-    FOREIGN KEY(category_code) REFERENCES categories(category_code),
-    FOREIGN KEY(competition_code) REFERENCES competitions(competition_code)
+    source_id TEXT,
+    source_revision_id TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type);
@@ -102,7 +73,34 @@ CREATE INDEX IF NOT EXISTS idx_assets_category ON assets(category_code);
 CREATE INDEX IF NOT EXISTS idx_assets_competition ON assets(competition_code);
 CREATE INDEX IF NOT EXISTS idx_assets_subject ON assets(subject_type, subject_id);
 CREATE INDEX IF NOT EXISTS idx_assets_purpose ON assets(purpose_code);
+CREATE INDEX IF NOT EXISTS idx_assets_source_revision
+ON assets(source_revision_id);
 """
+
+
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {
+        row[1]
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+
+
+def ensure_asset_schema(conn: sqlite3.Connection) -> None:
+    conn.executescript(SCHEMA)
+    columns = _table_columns(conn, "assets")
+    if "source_id" not in columns:
+        conn.execute("ALTER TABLE assets ADD COLUMN source_id TEXT")
+    if "source_revision_id" not in columns:
+        conn.execute(
+            "ALTER TABLE assets ADD COLUMN source_revision_id TEXT"
+        )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_assets_source_revision
+        ON assets(source_revision_id)
+        """
+    )
+    conn.commit()
 
 
 def connect(db_path: Path) -> sqlite3.Connection:
@@ -110,9 +108,11 @@ def connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.executescript(SCHEMA)
+    ensure_asset_schema(conn)
     from .catalog import init_entity_schema
     init_entity_schema(conn)
+    from .database import initialize_database
+    initialize_database(conn)
     return conn
 
 
@@ -126,7 +126,10 @@ def file_sha256(path: Path, chunk_size: int = 1024 * 1024) -> str:
 
 def infer_asset_type(path: Path) -> str:
     ext = path.suffix.lower()
-    if ext in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".svg"}:
+    if ext in {
+        ".jpg", ".jpeg", ".png", ".webp", ".gif",
+        ".bmp", ".tif", ".tiff", ".svg",
+    }:
         return "image"
     if ext in {".mp4", ".mov", ".mkv", ".webm", ".avi"}:
         return "video"
@@ -144,34 +147,69 @@ def read_sidecar(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(sidecar.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"Invalid provenance sidecar: {sidecar}: {exc}") from exc
+        raise ValueError(
+            f"Invalid provenance sidecar: {sidecar}: {exc}"
+        ) from exc
     if not isinstance(data, dict):
-        raise ValueError(f"Provenance sidecar must be an object: {sidecar}")
+        raise ValueError(
+            f"Provenance sidecar must be an object: {sidecar}"
+        )
     return data
 
 
-def technical_metadata(path: Path, asset_type: str, mime_type: str | None) -> dict[str, Any]:
+def technical_metadata(
+    path: Path,
+    asset_type: str,
+    mime_type: str | None,
+) -> dict[str, Any]:
     metadata: dict[str, Any] = {"extension": path.suffix.lower()}
     if asset_type == "image":
         try:
             from PIL import Image
 
             with Image.open(path) as image:
-                metadata.update({"width": image.width, "height": image.height, "format": image.format})
+                metadata.update(
+                    {
+                        "width": image.width,
+                        "height": image.height,
+                        "format": image.format,
+                    }
+                )
         except Exception as exc:
             metadata["technical_metadata_error"] = str(exc)
     return metadata
 
 
-def upsert_asset(conn: sqlite3.Connection, record: AssetRecord) -> None:
+def upsert_asset(
+    conn: sqlite3.Connection,
+    record: AssetRecord,
+) -> None:
+    if record.source_revision_id is not None:
+        from .source_registry import get_source_revision
+        revision = get_source_revision(
+            conn,
+            record.source_revision_id,
+        )
+        if revision is None:
+            raise ValueError(
+                f"unknown source_revision_id: {record.source_revision_id}"
+            )
+        if record.source_id is not None and revision.source_id != record.source_id:
+            raise ValueError(
+                "source_revision_id does not belong to source_id"
+            )
+
     conn.execute(
         """
         INSERT INTO assets (
-            asset_id, original_name, stored_path, asset_type, mime_type, size_bytes,
-            sha256, source_type, source_url, creator, license_type, rights_state,
-            lifecycle_state, market_code, category_code, subject_type, subject_id,
-            competition_code, purpose_code, metadata_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            asset_id, original_name, stored_path, asset_type, mime_type,
+            size_bytes, sha256, source_type, source_url, creator,
+            license_type, rights_state, lifecycle_state,
+            market_code, category_code, subject_type, subject_id,
+            competition_code, purpose_code, metadata_json,
+            source_id, source_revision_id
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             record.asset_id,
@@ -193,6 +231,12 @@ def upsert_asset(conn: sqlite3.Connection, record: AssetRecord) -> None:
             record.subject_id,
             record.competition_code,
             record.purpose_code,
-            json.dumps(record.metadata, ensure_ascii=False, sort_keys=True),
+            json.dumps(
+                record.metadata,
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            record.source_id,
+            record.source_revision_id,
         ),
     )

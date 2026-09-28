@@ -8,7 +8,11 @@ import sqlite3
 from typing import Any
 
 from .observation import Observation, canonical_json, list_observations
-from .source_registry import TRUST_TIERS
+from .source_registry import (
+    TRUST_TIERS,
+    get_source_revision,
+    get_source,
+)
 
 RESOLVER_VERSION = "belief-resolver-v0.1"
 BELIEF_STATUSES = {"RESOLVED", "CONFLICTED", "UNCERTAIN", "STALE"}
@@ -44,7 +48,9 @@ def _observation_sort_key(
 
 
 def _belief_id(signature: dict[str, Any]) -> str:
-    digest = hashlib.sha256(canonical_json(signature).encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(
+        canonical_json(signature).encode("utf-8")
+    ).hexdigest()
     return f"belief:{digest[:24]}"
 
 
@@ -235,24 +241,32 @@ def list_belief_observations(
 
 def _source_state(
     conn: sqlite3.Connection,
-    source_id: str,
+    observation: Observation,
 ) -> tuple[str, bool]:
-    row = conn.execute(
-        """
-        SELECT default_trust_tier, active
-        FROM sources
-        WHERE source_id = ?
-        """,
-        (source_id,),
-    ).fetchone()
-    if row is None:
-        raise ValueError(f"missing source registry record: {source_id}")
-    trust_tier = row[0]
-    if trust_tier not in TRUST_TIERS:
-        raise ValueError(
-            f"unsupported source trust tier for {source_id}: {trust_tier}"
+    if observation.source_revision_id:
+        revision = get_source_revision(
+            conn,
+            observation.source_revision_id,
         )
-    return trust_tier, bool(row[1])
+        if revision is None:
+            raise ValueError(
+                "missing source revision: "
+                f"{observation.source_revision_id}"
+            )
+        if revision.source_id != observation.source_id:
+            raise ValueError(
+                "source revision does not match observation source"
+            )
+        return revision.default_trust_tier, revision.active
+
+    # Backward-compatibility fallback for legacy observations created before
+    # source revisions existed. Hardened observations always carry a revision.
+    source = get_source(conn, observation.source_id)
+    if source is None:
+        raise ValueError(
+            f"missing source registry record: {observation.source_id}"
+        )
+    return source.default_trust_tier, source.active
 
 
 def _applicable(observation: Observation, as_of: datetime) -> bool:
@@ -362,9 +376,9 @@ def resolve_belief(
 
     source_meta: dict[str, tuple[str, bool]] = {}
     for observation in observations:
-        source_meta[observation.source_id] = _source_state(
+        source_meta[observation.observation_id] = _source_state(
             conn,
-            observation.source_id,
+            observation,
         )
 
     applicable = [
@@ -375,7 +389,7 @@ def resolve_belief(
     active = [
         observation
         for observation in applicable
-        if source_meta[observation.source_id][1]
+        if source_meta[observation.observation_id][1]
     ]
 
     if not active:
@@ -392,7 +406,8 @@ def resolve_belief(
         )
         valid_to = latest_observed.effective_to
         resolution_reason = (
-            "No currently applicable observation has an active source."
+            "No currently applicable observation has an active source "
+            "revision."
         )
         evidence = [
             (obs.observation_id, "COMPETING")
@@ -412,7 +427,7 @@ def resolve_belief(
                 group,
                 key=lambda item: _observation_sort_key(
                     item,
-                    source_meta[item.source_id][0],
+                    source_meta[item.observation_id][0],
                 ),
             )
             best_by_value.append((best, value_key))
@@ -420,24 +435,30 @@ def resolve_belief(
         best_by_value.sort(
             key=lambda item: _observation_sort_key(
                 item[0],
-                source_meta[item[0].source_id][0],
+                source_meta[item[0].observation_id][0],
             ),
             reverse=True,
         )
 
         winning_observation, winning_value_key = best_by_value[0]
-        winning_tier = source_meta[winning_observation.source_id][0]
+        winning_tier = source_meta[
+            winning_observation.observation_id
+        ][0]
 
         conflicted = False
         if len(best_by_value) > 1:
             second_observation, _ = best_by_value[1]
-            second_tier = source_meta[second_observation.source_id][0]
+            second_tier = source_meta[
+                second_observation.observation_id
+            ][0]
             conflicted = (
                 TRUST_RANKS[winning_tier] == TRUST_RANKS[second_tier]
                 and _parse_timestamp(
                     winning_observation.observed_at
                 )
-                == _parse_timestamp(second_observation.observed_at)
+                == _parse_timestamp(
+                    second_observation.observed_at
+                )
             )
 
         winning_age = as_of_dt - _parse_timestamp(
@@ -479,7 +500,8 @@ def resolve_belief(
                 (
                     observation.observation_id,
                     "SUPPORT"
-                    if canonical_json(observation.value) == winning_value_key
+                    if canonical_json(observation.value)
+                    == winning_value_key
                     else "CONFLICT",
                 )
                 for observation in active
@@ -504,7 +526,8 @@ def resolve_belief(
                 (
                     observation.observation_id,
                     "SUPPORT"
-                    if canonical_json(observation.value) == winning_value_key
+                    if canonical_json(observation.value)
+                    == winning_value_key
                     else "CONFLICT",
                 )
                 for observation in active
@@ -555,7 +578,10 @@ def resolve_belief(
             valid_from=current.valid_from,
             valid_to=current.valid_to,
             resolver_version=current.resolver_version,
-            evidence=list_belief_observations(conn, current.belief_id),
+            evidence=list_belief_observations(
+                conn,
+                current.belief_id,
+            ),
         )
         if current_signature == signature:
             return current
