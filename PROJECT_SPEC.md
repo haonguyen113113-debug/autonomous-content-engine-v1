@@ -37,6 +37,44 @@ The same core should be able to operate:
 
 Vietnam is an important initial proving ground, not a permanent architectural constraint.
 
+### 2.1 Core engine vs domain packs
+
+The system must distinguish **mechanism** from **domain knowledge**.
+
+The reusable core engine owns generic mechanisms such as:
+
+* resource requests
+* asset search and retrieval
+* ranking/matching
+* reuse-first selection
+* discovery and acquisition
+* deduplication and hashing
+* technical metadata extraction
+* provenance tracking
+* rights/lifecycle state
+* source registration
+* observation history
+* belief resolution
+* quality gates
+* storage/indexing interfaces
+* orchestration and state handling
+
+A **domain pack** supplies category-specific knowledge and rules without forking the core engine. A domain pack may contain:
+
+* taxonomy and category definitions
+* entity types and relationships
+* aliases and naming rules
+* source universe and source metadata
+* retrieval/search rules
+* resource requirements and purpose profiles
+* quality profiles
+* domain-specific rights or compliance constraints
+* adapter configuration for external sources where required
+
+A new category should therefore reuse the same Asset Library Engine and normally require only a new domain pack. A category-specific adapter may be added when an external provider, API, media format, or data model is genuinely different, but that adapter must plug into the existing generic interfaces rather than create a parallel library implementation.
+
+**Soccer is the first proving domain, not the architectural boundary.** It is intentionally used to validate the generic mechanism before expanding to additional categories.
+
 ## 3. Portfolio and focus model
 
 The engine must not freely change category every day.
@@ -163,7 +201,38 @@ Relevant dimensions may include:
 
 Scores should retain the component evidence/reasons that produced them.
 
-## 8. Routing and distribution
+## 8. Asset Library and resource acquisition
+
+The Asset Library is production infrastructure, not a passive file folder.
+
+Whenever an artifact or production workflow requires a resource, it should issue a domain-agnostic resource request to the Asset Library Engine. The library should follow a **reuse-first** strategy:
+
+**resource requirement → search existing library → validate suitability → reuse**
+
+Only when suitable inventory is missing, insufficient, stale, or invalid should the system continue:
+
+**resource requirement → external discovery → candidate acquisition → provenance capture → rights verification → quality gate → register → reuse**
+
+Every newly accepted external resource should become reusable library inventory rather than remaining tied only to the task that triggered its acquisition.
+
+The core resource request should remain generic enough to support multiple categories, for example:
+
+* asset type
+* subject/entity
+* purpose
+* quality constraints
+* temporal constraints
+* market/language constraints
+* rights constraints
+* format constraints
+
+The Asset Library must not decide what the business should create. Upstream market, audience, opportunity, research, or artifact-composition layers determine the requirement. The Asset Library determines how to satisfy that requirement from reusable inventory or approved external acquisition paths.
+
+The system must support category expansion without rebuilding the library. Category-specific behavior belongs in domain packs and replaceable adapters; generic acquisition, registration, provenance, rights, quality, indexing, and reuse mechanisms remain shared.
+
+External acquisition must remain auditable. The system should preserve the source, locator, acquisition time, provenance, rights state, quality result, and relationship to the resulting registered asset.
+
+## 9. Routing and distribution
 
 Content generation must remain separate from routing and distribution.
 
@@ -177,7 +246,7 @@ Platform adapters must remain replaceable.
 
 The engine should support multiple destinations per channel and market where appropriate.
 
-## 9. Automation and autonomy contract
+## 10. Automation and autonomy contract
 
 After the engine is booted, required accounts are linked/authorized, and required tools/capabilities are provisioned, normal operation must be zero-touch at the individual-task level.
 
@@ -220,7 +289,7 @@ Human intervention should occur only for:
 
 The system must never depend on per-item manual publishing.
 
-## 10. Measurement and economic truth
+## 11. Measurement and economic truth
 
 The system must distinguish:
 
@@ -249,7 +318,7 @@ Secondary metrics:
 * contribution margin
 * realized payout
 
-## 11. Learning and reallocation
+## 12. Learning and reallocation
 
 The learning system should update:
 
@@ -269,7 +338,7 @@ The system must be capable of deciding both:
 
 Frequent change is not a goal. Sufficient observation and statistical signal should precede major portfolio decisions.
 
-## 12. Quality and safety gates
+## 13. Quality and safety gates
 
 The system must distinguish structural QA from semantic/value QA.
 
@@ -292,7 +361,7 @@ Critical failures must block publishing.
 
 QA must be allowed to reject an artifact and trigger regeneration or an alternative path.
 
-## 13. Data and provenance
+## 14. Data and provenance
 
 Every important artifact should be traceable to:
 
@@ -314,7 +383,7 @@ Every important artifact should be traceable to:
 
 Secrets, credentials, cookies, tokens, and private keys must never be committed to Git.
 
-## 14. Portability requirement
+## 15. Portability requirement
 
 A replacement PC must be able to run the same project with minimal machine-specific configuration.
 
@@ -329,13 +398,13 @@ No business logic may depend on:
 
 Persistent state, configuration, workflows, and provenance must be portable.
 
-## 15. Cost target
+## 16. Cost target
 
 Prefer open-source software, local inference, local rendering, free tiers, and usage-based services only where they materially improve economics.
 
 The engine must not assume paid AI APIs as a foundational dependency.
 
-## 16. Development and validation strategy
+## 17. Development and validation strategy
 
 Prove small vertical slices before expanding.
 
@@ -343,7 +412,9 @@ Every major architectural abstraction should be validated with a real behavior t
 
 Examples:
 
-* a new category can be introduced through configuration without rewriting the core engine
+* a new category can be introduced through a domain pack without rewriting the core engine
+* a new category can reuse the Asset Library Engine without rebuilding the library
+* missing category resources can be acquired externally, pass provenance/rights/quality gates, and become reusable inventory
 * a new market/language can use the same core
 * a new channel can be created from a theme configuration
 * an artifact can be routed to the appropriate channel without generator changes
@@ -354,11 +425,10 @@ Examples:
 Do not equate “the pipeline runs” with “the system creates value.”
 
 
-## 18. Long-term north star
+## 19. Long-term north star
 
 The long-term system should be capable of operating a portfolio rather than merely generating content:
 
 **Market → Category Portfolio → Audience → Themes → Channel Portfolio → Opportunities → Value → Routing → Autonomous Distribution → Measurement → Economic Feedback → Learning → Portfolio Reallocation**
 
 Success means the user acts primarily as owner/administrator and reality verifier, not as the day-to-day operator of the business.
-
