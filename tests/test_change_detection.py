@@ -323,3 +323,60 @@ def test_multiple_new_observations_are_processed_once_in_recorded_order():
     assert len(list_change_events(conn, "player", "player:1", "club")) == 3
 
     assert detect_changes(conn, "player", "player:1", "club") == []
+def test_value_change_is_reassessment_not_world_state_assertion():
+    conn = setup_db()
+    add_source(conn, "src:primary", "Official", "primary")
+
+    add_observation(
+        conn,
+        "obs:1",
+        "src:primary",
+        "club:arsenal",
+        "2026-09-01T09:00:00+00:00",
+        recorded_at="2026-09-01T09:01:00+00:00",
+    )
+    detect_changes(conn, "player", "player:1", "club")
+
+    add_observation(
+        conn,
+        "obs:2",
+        "src:primary",
+        "club:liverpool",
+        "2026-09-02T09:00:00+00:00",
+        recorded_at="2026-09-02T09:01:00+00:00",
+    )
+
+    events = detect_changes(conn, "player", "player:1", "club")
+
+    assert len(events) == 1
+    assert events[0].event_type == "REASSESSMENT_REQUIRED"
+    assert "VALUE_CHANGE" in events[0].reason_codes
+    assert events[0].previous_value != events[0].observed_value
+
+
+def test_time_passage_alone_does_not_emit_event():
+    conn = setup_db()
+    add_source(conn, "src:primary", "Official", "primary")
+
+    add_observation(
+        conn,
+        "obs:1",
+        "src:primary",
+        "club:arsenal",
+        "2026-09-01T09:00:00+00:00",
+        recorded_at="2026-09-01T09:01:00+00:00",
+    )
+
+    first = detect_changes(conn, "player", "player:1", "club")
+    assert len(first) == 1
+
+    resolve_belief(
+        conn,
+        "player",
+        "player:1",
+        "club",
+        as_of="2026-09-10T09:00:00+00:00",
+        stale_after_days=7,
+    )
+
+    assert detect_changes(conn, "player", "player:1", "club") == []

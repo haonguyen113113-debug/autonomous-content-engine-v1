@@ -23,6 +23,18 @@ from .source_registry import (
 
 DETECTOR_VERSION = "change-detector-v0.1"
 EVENT_TYPE = "REASSESSMENT_REQUIRED"
+# Semantic contract:
+# - Change Detection classifies evidence that requires reassessment.
+# - VALUE_CHANGE means the new observation differs from the previous
+#   observation; it does not assert that the real-world state changed.
+# - BELIEF_MISMATCH means the new observation disagrees with the current
+#   belief.
+# - EVIDENCE_UPDATE means the value is unchanged but the new evidence has
+#   a stronger trust tier than the evidence supporting the current belief.
+# - BELIEF_STATUS_REQUIRES_REASSESSMENT means the current belief is no
+#   longer in a resolved state.
+# - Passing time alone does not emit a ChangeEvent. A new observation is
+#   required for the detector to evaluate new evidence.
 REASON_CODES = {
     "INITIAL_OBSERVATION",
     "VALUE_CHANGE",
