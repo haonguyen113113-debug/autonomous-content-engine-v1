@@ -1,0 +1,723 @@
+{
+  "dataset_version": "2026-09-28",
+  "source": {
+    "name": "Premier League and UEFA current 2026/27 team lists",
+    "url": "see relationship sources",
+    "retrieved_at": "2026-09-28"
+  },
+  "records": [
+    {
+      "entity_id": "club:bournemouth",
+      "entity_type": "club",
+      "canonical_name": "AFC Bournemouth",
+      "slug": "afc-bournemouth",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:arsenal",
+      "entity_type": "club",
+      "canonical_name": "Arsenal",
+      "slug": "arsenal",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:aston-villa",
+      "entity_type": "club",
+      "canonical_name": "Aston Villa",
+      "slug": "aston-villa",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:brentford",
+      "entity_type": "club",
+      "canonical_name": "Brentford",
+      "slug": "brentford",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:brighton",
+      "entity_type": "club",
+      "canonical_name": "Brighton & Hove Albion",
+      "slug": "brighton-hove-albion",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:chelsea",
+      "entity_type": "club",
+      "canonical_name": "Chelsea",
+      "slug": "chelsea",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:coventry-city",
+      "entity_type": "club",
+      "canonical_name": "Coventry City",
+      "slug": "coventry-city",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:crystal-palace",
+      "entity_type": "club",
+      "canonical_name": "Crystal Palace",
+      "slug": "crystal-palace",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:everton",
+      "entity_type": "club",
+      "canonical_name": "Everton",
+      "slug": "everton",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:fulham",
+      "entity_type": "club",
+      "canonical_name": "Fulham",
+      "slug": "fulham",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:hull-city",
+      "entity_type": "club",
+      "canonical_name": "Hull City",
+      "slug": "hull-city",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:ipswich-town",
+      "entity_type": "club",
+      "canonical_name": "Ipswich Town",
+      "slug": "ipswich-town",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:leeds-united",
+      "entity_type": "club",
+      "canonical_name": "Leeds United",
+      "slug": "leeds-united",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:liverpool",
+      "entity_type": "club",
+      "canonical_name": "Liverpool",
+      "slug": "liverpool",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:manchester-city",
+      "entity_type": "club",
+      "canonical_name": "Manchester City",
+      "slug": "manchester-city",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      },
+      "aliases": [
+        {
+          "alias": "Man City",
+          "language_code": "en",
+          "alias_type": "source_short"
+        }
+      ]
+    },
+    {
+      "entity_id": "club:manchester-united",
+      "entity_type": "club",
+      "canonical_name": "Manchester United",
+      "slug": "manchester-united",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      },
+      "aliases": [
+        {
+          "alias": "Man United",
+          "language_code": "en",
+          "alias_type": "source_short"
+        }
+      ]
+    },
+    {
+      "entity_id": "club:newcastle-united",
+      "entity_type": "club",
+      "canonical_name": "Newcastle United",
+      "slug": "newcastle-united",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:nottingham-forest",
+      "entity_type": "club",
+      "canonical_name": "Nottingham Forest",
+      "slug": "nottingham-forest",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:sunderland",
+      "entity_type": "club",
+      "canonical_name": "Sunderland",
+      "slug": "sunderland",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:tottenham-hotspur",
+      "entity_type": "club",
+      "canonical_name": "Tottenham Hotspur",
+      "slug": "tottenham-hotspur",
+      "country_code": "GB",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:aek-athens",
+      "entity_type": "club",
+      "canonical_name": "AEK Athens",
+      "slug": "aek-athens",
+      "country_code": "GR",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:atletico-madrid",
+      "entity_type": "club",
+      "canonical_name": "Atlético de Madrid",
+      "slug": "atletico-de-madrid",
+      "country_code": "ES",
+      "metadata": {
+        "football_entity_scope": "club"
+      },
+      "aliases": [
+        {
+          "alias": "Atleti",
+          "language_code": "en",
+          "alias_type": "source_short"
+        }
+      ]
+    },
+    {
+      "entity_id": "club:barcelona",
+      "entity_type": "club",
+      "canonical_name": "Barcelona",
+      "slug": "barcelona",
+      "country_code": "ES",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:bayern-munchen",
+      "entity_type": "club",
+      "canonical_name": "Bayern München",
+      "slug": "bayern-munchen",
+      "country_code": "DE",
+      "metadata": {
+        "football_entity_scope": "club"
+      },
+      "aliases": [
+        {
+          "alias": "Bayern München",
+          "language_code": "de",
+          "alias_type": "source"
+        }
+      ]
+    },
+    {
+      "entity_id": "club:bodo-glimt",
+      "entity_type": "club",
+      "canonical_name": "Bodø/Glimt",
+      "slug": "bodo-glimt",
+      "country_code": "NO",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:borussia-dortmund",
+      "entity_type": "club",
+      "canonical_name": "Borussia Dortmund",
+      "slug": "borussia-dortmund",
+      "country_code": "DE",
+      "metadata": {
+        "football_entity_scope": "club"
+      },
+      "aliases": [
+        {
+          "alias": "B. Dortmund",
+          "language_code": "en",
+          "alias_type": "source_short"
+        }
+      ]
+    },
+    {
+      "entity_id": "club:club-brugge",
+      "entity_type": "club",
+      "canonical_name": "Club Brugge",
+      "slug": "club-brugge",
+      "country_code": "BE",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:como",
+      "entity_type": "club",
+      "canonical_name": "Como",
+      "slug": "como",
+      "country_code": "IT",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:fenerbahce",
+      "entity_type": "club",
+      "canonical_name": "Fenerbahçe",
+      "slug": "fenerbahce",
+      "country_code": "TR",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:feyenoord",
+      "entity_type": "club",
+      "canonical_name": "Feyenoord",
+      "slug": "feyenoord",
+      "country_code": "NL",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:galatasaray",
+      "entity_type": "club",
+      "canonical_name": "Galatasaray",
+      "slug": "galatasaray",
+      "country_code": "TR",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:inter",
+      "entity_type": "club",
+      "canonical_name": "Inter",
+      "slug": "inter",
+      "country_code": "IT",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:lask",
+      "entity_type": "club",
+      "canonical_name": "LASK",
+      "slug": "lask",
+      "country_code": "AT",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:rb-leipzig",
+      "entity_type": "club",
+      "canonical_name": "RB Leipzig",
+      "slug": "rb-leipzig",
+      "country_code": "DE",
+      "metadata": {
+        "football_entity_scope": "club"
+      },
+      "aliases": [
+        {
+          "alias": "Leipzig",
+          "language_code": "en",
+          "alias_type": "source_short"
+        }
+      ]
+    },
+    {
+      "entity_id": "club:lens",
+      "entity_type": "club",
+      "canonical_name": "Lens",
+      "slug": "lens",
+      "country_code": "FR",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:lille",
+      "entity_type": "club",
+      "canonical_name": "Lille",
+      "slug": "lille",
+      "country_code": "FR",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:napoli",
+      "entity_type": "club",
+      "canonical_name": "Napoli",
+      "slug": "napoli",
+      "country_code": "IT",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:paris-saint-germain",
+      "entity_type": "club",
+      "canonical_name": "Paris Saint-Germain",
+      "slug": "paris-saint-germain",
+      "country_code": "FR",
+      "metadata": {
+        "football_entity_scope": "club"
+      },
+      "aliases": [
+        {
+          "alias": "Paris",
+          "language_code": "en",
+          "alias_type": "source_short"
+        }
+      ]
+    },
+    {
+      "entity_id": "club:porto",
+      "entity_type": "club",
+      "canonical_name": "Porto",
+      "slug": "porto",
+      "country_code": "PT",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:psv",
+      "entity_type": "club",
+      "canonical_name": "PSV",
+      "slug": "psv",
+      "country_code": "NL",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:real-betis",
+      "entity_type": "club",
+      "canonical_name": "Real Betis",
+      "slug": "real-betis",
+      "country_code": "ES",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:real-madrid",
+      "entity_type": "club",
+      "canonical_name": "Real Madrid",
+      "slug": "real-madrid",
+      "country_code": "ES",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:roma",
+      "entity_type": "club",
+      "canonical_name": "Roma",
+      "slug": "roma",
+      "country_code": "IT",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:sabah",
+      "entity_type": "club",
+      "canonical_name": "Sabah",
+      "slug": "sabah",
+      "country_code": "AZ",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:shakhtar-donetsk",
+      "entity_type": "club",
+      "canonical_name": "Shakhtar Donetsk",
+      "slug": "shakhtar-donetsk",
+      "country_code": "UA",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:slavia-praha",
+      "entity_type": "club",
+      "canonical_name": "Slavia Praha",
+      "slug": "slavia-praha",
+      "country_code": "CZ",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:slovan-bratislava",
+      "entity_type": "club",
+      "canonical_name": "Slovan Bratislava",
+      "slug": "slovan-bratislava",
+      "country_code": "SK",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:sporting-cp",
+      "entity_type": "club",
+      "canonical_name": "Sporting CP",
+      "slug": "sporting-cp",
+      "country_code": "PT",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:stuttgart",
+      "entity_type": "club",
+      "canonical_name": "Stuttgart",
+      "slug": "stuttgart",
+      "country_code": "DE",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:viking",
+      "entity_type": "club",
+      "canonical_name": "Viking",
+      "slug": "viking",
+      "country_code": "NO",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:villarreal",
+      "entity_type": "club",
+      "canonical_name": "Villarreal",
+      "slug": "villarreal",
+      "country_code": "ES",
+      "metadata": {
+        "football_entity_scope": "club"
+      }
+    },
+    {
+      "entity_id": "club:bac-ninh",
+      "entity_type": "club",
+      "canonical_name": "Bắc Ninh",
+      "slug": "bac-ninh",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:cong-an-ha-noi",
+      "entity_type": "club",
+      "canonical_name": "Công an Hà Nội",
+      "slug": "cong-an-ha-noi",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:cong-an-ho-chi-minh-city",
+      "entity_type": "club",
+      "canonical_name": "Công an TP. Hồ Chí Minh",
+      "slug": "cong-an-tp-ho-chi-minh",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:dong-a-thanh-hoa",
+      "entity_type": "club",
+      "canonical_name": "Đông Á Thanh Hóa",
+      "slug": "dong-a-thanh-hoa",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:hanoi",
+      "entity_type": "club",
+      "canonical_name": "Hà Nội",
+      "slug": "ha-noi",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:haiphong",
+      "entity_type": "club",
+      "canonical_name": "Hải Phòng",
+      "slug": "hai-phong",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:hoang-anh-gia-lai",
+      "entity_type": "club",
+      "canonical_name": "Hoàng Anh Gia Lai",
+      "slug": "hoang-anh-gia-lai",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:hong-linh-ha-tinh",
+      "entity_type": "club",
+      "canonical_name": "Hồng Lĩnh Hà Tĩnh",
+      "slug": "hong-linh-ha-tinh",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:ninh-binh",
+      "entity_type": "club",
+      "canonical_name": "Ninh Bình",
+      "slug": "ninh-binh",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:shb-da-nang",
+      "entity_type": "club",
+      "canonical_name": "SHB Đà Nẵng",
+      "slug": "shb-da-nang",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:song-lam-nghe-an",
+      "entity_type": "club",
+      "canonical_name": "Sông Lam Nghệ An",
+      "slug": "song-lam-nghe-an",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:thep-xanh-nam-dinh",
+      "entity_type": "club",
+      "canonical_name": "Thép Xanh Nam Định",
+      "slug": "thep-xanh-nam-dinh",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:the-cong-viettel",
+      "entity_type": "club",
+      "canonical_name": "Thể Công – Viettel",
+      "slug": "the-cong-viettel",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    },
+    {
+      "entity_id": "club:truong-tuoi-dong-nai",
+      "entity_type": "club",
+      "canonical_name": "Trường Tươi Đồng Nai",
+      "slug": "truong-tuoi-dong-nai",
+      "country_code": "VN",
+      "metadata": {
+        "football_entity_scope": "club",
+        "market_priority": "VN"
+      }
+    }
+  ]
+}

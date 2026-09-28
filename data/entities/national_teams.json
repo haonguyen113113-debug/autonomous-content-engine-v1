@@ -1,0 +1,26 @@
+{
+  "dataset_version": "2026-09-28",
+  "source": {
+    "name": "Vietnam Football Federation",
+    "url": "https://vff.org.vn/",
+    "retrieved_at": "2026-09-28",
+    "notes": "Identity seed only. This manifest does not assert a current tournament roster or competition participation."
+  },
+  "records": [
+    {
+      "entity_id": "national-team:vietnam-men",
+      "entity_type": "national_team",
+      "canonical_name": "Vietnam Men's National Team",
+      "slug": "vietnam-men-national-team",
+      "country_code": "VN",
+      "metadata": {
+        "federation": "VFF",
+        "language_code": "vi"
+      },
+      "aliases": [
+        {"alias": "Đội tuyển Việt Nam", "language_code": "vi", "alias_type": "common"},
+        {"alias": "Vietnam", "language_code": "en", "alias_type": "common"}
+      ]
+    }
+  ]
+}

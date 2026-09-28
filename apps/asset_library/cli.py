@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .entity_seed import seed_entity_catalog
 from .ingest import ingest_inbox
 from .registry import connect
 from .seed import seed_taxonomy
@@ -10,7 +11,7 @@ from .seed import seed_taxonomy
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Asset Library foundation")
-    parser.add_argument("command", choices=["seed", "ingest", "list", "list-competitions"])
+    parser.add_argument("command", choices=["seed", "seed-entities", "ingest", "list", "list-competitions", "list-entities"])
     parser.add_argument("--root", default=".")
     args = parser.parse_args()
 
@@ -20,6 +21,11 @@ def main() -> None:
     if args.command == "seed":
         seed_taxonomy(db_path)
         print("taxonomy seeded")
+        return
+
+    if args.command == "seed-entities":
+        result = seed_entity_catalog(root)
+        print(result)
         return
 
     if args.command == "ingest":
@@ -38,11 +44,18 @@ def main() -> None:
                 FROM assets ORDER BY created_at
                 """
             ).fetchall()
-        else:
+        elif args.command == "list-competitions":
             rows = conn.execute(
                 """
                 SELECT competition_code, name, category_code, scope, region, tier, priority
                 FROM competitions ORDER BY category_code, priority
+                """
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT entity_id, entity_type, canonical_name, slug, country_code, status
+                FROM entities ORDER BY entity_type, canonical_name
                 """
             ).fetchall()
         for row in rows:

@@ -72,6 +72,20 @@ CREATE INDEX IF NOT EXISTS idx_external_refs_provider ON entity_external_refs(pr
 CREATE INDEX IF NOT EXISTS idx_relationship_subject ON entity_relationships(subject_entity_id);
 CREATE INDEX IF NOT EXISTS idx_relationship_object ON entity_relationships(object_entity_id);
 CREATE INDEX IF NOT EXISTS idx_asset_entities_entity ON asset_entities(entity_id);
+
+CREATE TABLE IF NOT EXISTS entity_sources (
+    source_record_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_id TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    retrieved_at TEXT NOT NULL,
+    dataset_version TEXT,
+    notes TEXT,
+    UNIQUE(entity_id, source_name, source_url, dataset_version),
+    FOREIGN KEY(entity_id) REFERENCES entities(entity_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_entity_sources_entity ON entity_sources(entity_id);
 """
 
 

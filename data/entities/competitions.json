@@ -1,0 +1,48 @@
+{
+  "dataset_version": "2026-09-28",
+  "source": {
+    "name": "UEFA / Premier League / VPF current competition records",
+    "url": "see per-record source_url metadata",
+    "retrieved_at": "2026-09-28",
+    "notes": "Competition entities are stable internal identities; season participation is represented separately as relationships."
+  },
+  "records": [
+    {
+      "entity_id": "competition:premier-league",
+      "entity_type": "competition",
+      "canonical_name": "Premier League",
+      "slug": "premier-league",
+      "country_code": "GB",
+      "metadata": {
+        "competition_code": "PREMIER_LEAGUE",
+        "coverage_priority": 10,
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "entity_id": "competition:uefa-champions-league",
+      "entity_type": "competition",
+      "canonical_name": "UEFA Champions League",
+      "slug": "uefa-champions-league",
+      "country_code": null,
+      "metadata": {
+        "competition_code": "UEFA_CHAMPIONS_LEAGUE",
+        "coverage_priority": 10,
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "entity_id": "competition:v-league-1",
+      "entity_type": "competition",
+      "canonical_name": "LPBank V.League 1",
+      "slug": "v-league-1",
+      "country_code": "VN",
+      "metadata": {
+        "competition_code": "V_LEAGUE_1",
+        "season": "2026/27",
+        "coverage_priority": 5,
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    }
+  ]
+}

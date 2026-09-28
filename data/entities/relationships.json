@@ -1,0 +1,780 @@
+{
+  "dataset_version": "2026-09-28",
+  "source": {
+    "name": "2026/27 competition participation snapshots",
+    "url": "see relationship metadata source_url per record",
+    "retrieved_at": "2026-09-28"
+  },
+  "records": [
+    {
+      "subject_entity_id": "club:bournemouth",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:arsenal",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:aston-villa",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:brentford",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:brighton",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:chelsea",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:coventry-city",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:crystal-palace",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:everton",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:fulham",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:hull-city",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:ipswich-town",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:leeds-united",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:liverpool",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:manchester-city",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:manchester-united",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:newcastle-united",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:nottingham-forest",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:sunderland",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:tottenham-hotspur",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:premier-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.premierleague.com/en/news/4365156"
+      }
+    },
+    {
+      "subject_entity_id": "club:aek-athens",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:arsenal",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:aston-villa",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:atletico-madrid",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:barcelona",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:bayern-munchen",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:bodo-glimt",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:borussia-dortmund",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:club-brugge",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:como",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:fenerbahce",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:feyenoord",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:galatasaray",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:inter",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:lask",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:rb-leipzig",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:lens",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:lille",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:liverpool",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:manchester-city",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:manchester-united",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:napoli",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:paris-saint-germain",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:porto",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:psv",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:real-betis",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:real-madrid",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:roma",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:sabah",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:shakhtar-donetsk",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:slavia-praha",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:slovan-bratislava",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:sporting-cp",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:stuttgart",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:viking",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:villarreal",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:uefa-champions-league",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://www.uefa.com/uefachampionsleague/news/02a8-2171a88881a0-c70193b972c6-1000--meet-the-2026-27-champions-league-league-phase-teams/"
+      }
+    },
+    {
+      "subject_entity_id": "club:bac-ninh",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:cong-an-ha-noi",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:cong-an-ho-chi-minh-city",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:dong-a-thanh-hoa",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:hanoi",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:haiphong",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:hoang-anh-gia-lai",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:hong-linh-ha-tinh",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:ninh-binh",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:shb-da-nang",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:song-lam-nghe-an",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:thep-xanh-nam-dinh",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:the-cong-viettel",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    },
+    {
+      "subject_entity_id": "club:truong-tuoi-dong-nai",
+      "relation_type": "participates_in",
+      "object_entity_id": "competition:v-league-1",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-06-30",
+      "metadata": {
+        "season": "2026/27",
+        "source_url": "https://vpf.vn/tin-tuc/tin-vleague/thong-cao-bao-chi-le-boc-tham-xep-lich-thi-dau-cac-giai-bong-da-chuyen-nghiep-quoc-gia-2026-27/"
+      }
+    }
+  ]
+}
