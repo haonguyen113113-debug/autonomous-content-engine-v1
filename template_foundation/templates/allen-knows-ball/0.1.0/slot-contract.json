@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "owner_template": "allen-knows-ball.shortform-analyst@0.1.0",
+  "goal": "The template defines fixed visual/audio personality. These slots describe variable football media only and are not stored with the template in the Asset Library.",
+  "resolution_rule": "Resolve the two match-visual alternatives as a group: use one approved real visual only when it materially explains the point; otherwise use the authored pitch-board inside this package.",
+  "approval_rule": "A discovery candidate is not an asset selection. The channel owner chooses whether it may be saved and whether it may be used for the stated content.",
+  "slots": [
+    {
+      "slot_id": "match-still",
+      "resource_type": "image",
+      "purpose": "match_analysis_evidence",
+      "required": false,
+      "selection_group": "match_visual",
+      "context_rule": "Exact fixture, player, or play under discussion. Never substitute a visually similar but unrelated match.",
+      "quality_constraints": {
+        "min_width": 1080,
+        "min_height": 1080,
+        "aspect_ratio": "portrait or crop-safe landscape"
+      },
+      "rights_state": "verified",
+      "lifecycle_state": "active",
+      "requires_owner_use_decision": true,
+      "fallback": "authored pitch-board diagram"
+    },
+    {
+      "slot_id": "match-clip",
+      "resource_type": "video",
+      "purpose": "match_analysis_evidence",
+      "required": false,
+      "selection_group": "match_visual",
+      "context_rule": "Exact match moment and timestamp. Do not use unlicensed broadcast footage.",
+      "quality_constraints": {
+        "min_width": 1080,
+        "minimum_usable_duration_seconds": 2
+      },
+      "rights_state": "verified",
+      "lifecycle_state": "active",
+      "requires_owner_use_decision": true,
+      "fallback": "authored pitch-board diagram"
+    },
+    {
+      "slot_id": "player-portrait",
+      "resource_type": "image",
+      "purpose": "player_context",
+      "required": false,
+      "context_rule": "Must depict the named player and be current enough for the content context.",
+      "quality_constraints": {
+        "min_width": 1080,
+        "aspect_ratio": "portrait or crop-safe landscape"
+      },
+      "rights_state": "verified",
+      "lifecycle_state": "active",
+      "requires_owner_use_decision": true,
+      "fallback": "name and role shown as typography; do not synthesize a likeness"
+    }
+  ],
+  "never_request_from_asset_library": [
+    "channel wordmark",
+    "bundled fonts",
+    "pitch-grid background",
+    "tactical line-draw effect",
+    "title and caption layout",
+    "intro or outro animation"
+  ]
+}

@@ -53,6 +53,10 @@ def ingest_one(
             asset_type,
             mime_type,
         )
+        sidecar_metadata = sidecar.get("metadata", {})
+        if not isinstance(sidecar_metadata, dict):
+            raise ValueError("Provenance sidecar metadata must be an object")
+        metadata.update(sidecar_metadata)
         metadata["ingest_source"] = "local_inbox"
         metadata["provenance_sidecar"] = bool(sidecar)
 
@@ -62,6 +66,9 @@ def ingest_one(
         license_type = sidecar.get("license_type")
         rights_state = str(
             sidecar.get("rights_state", "unverified")
+        )
+        lifecycle_state = str(
+            sidecar.get("lifecycle_state", "ingested")
         )
 
         source_id = sidecar.get("source_id")
@@ -114,7 +121,7 @@ def ingest_one(
                 creator=creator,
                 license_type=license_type,
                 rights_state=rights_state,
-                lifecycle_state="ingested",
+                lifecycle_state=lifecycle_state,
                 market_code=sidecar.get("market_code"),
                 category_code=sidecar.get("category_code"),
                 subject_type=sidecar.get("subject_type"),

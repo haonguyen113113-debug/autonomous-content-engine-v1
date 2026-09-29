@@ -19,6 +19,8 @@ class ResourceRequirement:
     temporal_constraints: Mapping[str, Any] = field(default_factory=dict)
     market_constraints: Mapping[str, Any] = field(default_factory=dict)
     format_constraints: Mapping[str, Any] = field(default_factory=dict)
+    discovery_query: str | None = None
+    content_objective: str | None = None
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f6f3" />
+    <title>Autonomous Content Engine</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#overview" aria-label="Engine overview">
+          <span class="brand-mark">A</span>
+          <span class="brand-copy"><strong>Autonomous</strong><small>CONTENT ENGINE</small></span>
+        </a>
+
+        <div class="workspace-label">WORKSPACE</div>
+        <nav class="primary-nav" aria-label="Primary navigation">
+          <button class="nav-item active" data-view="overview"><span class="nav-icon">◫</span>Overview</button>
+          <button class="nav-item" data-view="library"><span class="nav-icon">▤</span>Asset library<span class="nav-badge" id="nav-asset-count">—</span></button>
+          <button class="nav-item" data-view="workflows"><span class="nav-icon">⌘</span>Workflows</button>
+          <button class="nav-item" data-view="templates"><span class="nav-icon">T</span>Templates</button>
+          <button class="nav-item" data-view="sources"><span class="nav-icon">◎</span>Sources</button>
+          <button class="nav-item" data-view="runs"><span class="nav-icon">◷</span>Runs &amp; queue</button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="connection-card">
+            <span class="connection-dot"></span>
+            <span><strong>Local engine</strong><small>Connected to this workspace</small></span>
+          </div>
+          <div class="user-card"><span class="avatar">H</span><span><strong>Owner</strong><small>Local operator</small></span><span class="more">···</span></div>
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <div class="breadcrumbs"><span>Workspace</span><span class="crumb-sep">/</span><strong id="breadcrumb-current">Overview</strong></div>
+          <div class="topbar-actions"><span class="environment-pill"><i></i>LOCAL DEVELOPMENT</span><button class="icon-button" title="Notifications" aria-label="Notifications">♧</button></div>
+        </header>
+
+        <section class="view active" id="view-overview">
+          <div class="page-heading">
+            <div><div class="eyebrow">ENGINE CONTROL</div><h1>Overview</h1><p class="page-subtitle">A live view of your content operations and reusable resources.</p></div>
+            <button class="button button-secondary" id="refresh-overview"><span>↻</span> Refresh data</button>
+          </div>
+
+          <div class="welcome-banner">
+            <div class="welcome-copy"><div class="banner-label"><span class="banner-dot"></span> ENGINE WORKSPACE</div><h2>Build the workflow, one real run at a time.</h2><p>Start with a content resource need. The library checks what is already available before the engine looks elsewhere.</p><button class="button button-light" data-go="library">Open asset library <span>→</span></button></div>
+            <div class="banner-graphic" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit-core">A</div><span class="orbit-node node-one">✦</span><span class="orbit-node node-two">▤</span><span class="orbit-node node-three">⌘</span></div>
+          </div>
+
+          <div class="section-heading"><div><div class="eyebrow">SYSTEM SNAPSHOT</div><h2>Asset library</h2></div><button class="text-button" data-go="library">View library <span>→</span></button></div>
+          <div class="metric-grid">
+            <article class="metric-card"><div class="metric-top"><span>Total assets</span><span class="metric-icon icon-violet">▤</span></div><strong id="metric-total">—</strong><small>Registered in this workspace</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Rights verified</span><span class="metric-icon icon-green">✓</span></div><strong id="metric-verified">—</strong><small>Ready for eligible reuse</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Active inventory</span><span class="metric-icon icon-blue">◉</span></div><strong id="metric-active">—</strong><small>Available for evaluation</small></article>
+            <article class="metric-card metric-card-accent"><div class="metric-top"><span>Next workflow</span><span class="metric-icon icon-orange">↗</span></div><strong class="metric-word">Resource check</strong><small>Evaluate a need against inventory</small></article>
+          </div>
+
+          <div class="section-heading section-heading-spaced"><div><div class="eyebrow">OPERATIONAL FLOW</div><h2>Connected capabilities</h2></div></div>
+          <div class="flow-grid">
+            <article class="flow-card flow-live"><div class="flow-icon">▤</div><div class="flow-state">AVAILABLE</div><h3>Asset inventory check</h3><p>Match a resource requirement against registered assets, rights, lifecycle, and context.</p><button class="text-button" data-go="library">Open tool <span>→</span></button></article>
+            <article class="flow-card flow-live"><div class="flow-icon">⌕</div><div class="flow-state">AVAILABLE · IMAGES</div><h3>Web discovery &amp; approval</h3><p>Search across Openverse image collections. Review provider, source, and license data before deciding whether to save an image.</p><button class="text-button" data-go="library">Open tool <span>→</span></button></article>
+            <article class="flow-card"><div class="flow-icon muted-icon">✦</div><div class="flow-state state-next">NEXT CONNECTION</div><h3>Content workflow</h3><p>Turn a content objective into resource needs, production steps, and a reviewable result.</p><span class="coming-note">Not connected yet</span></article>
+          </div>
+        </section>
+
+        <section class="view" id="view-library">
+          <div class="page-heading"><div><div class="eyebrow">RESOURCE OPERATIONS</div><h1>Asset library</h1><p class="page-subtitle">Check whether the existing inventory can satisfy a content resource need.</p></div><button class="button button-secondary" id="refresh-library"><span>↻</span> Refresh</button></div>
+          <div class="library-layout">
+            <section class="panel request-panel">
+              <div class="panel-heading"><div><div class="eyebrow">STEP 01</div><h2>Describe a resource need</h2><p>Evaluate local inventory first. This check never downloads or changes assets.</p></div><span class="step-number">01</span></div>
+              <form id="requirement-form">
+                <label>Content objective <span class="required-mark">*</span><textarea name="content_objective" required rows="3" placeholder="What should this content help its audience do or understand?"></textarea></label>
+                <label>Requirement name <span class="required-mark">*</span><input name="requirement_id" required placeholder="e.g. campaign:hero-image" value="" /></label>
+                <div class="form-row"><label>Resource type <span class="required-mark">*</span><select name="resource_type" required><option value="image">Image</option><option value="video">Video</option><option value="audio">Audio</option><option value="font">Font</option><option value="other">Other</option></select></label><label>Purpose<input name="purpose" placeholder="e.g. hero_image" /></label></div>
+                <div class="form-row"><label>Entity ID<input name="entity_id" placeholder="Optional library entity ID" /></label><label>Context<input name="context" placeholder="e.g. campaign:launch" /></label></div>
+                <label>Discovery keywords<input name="discovery_query" placeholder="Search terms used only if the library has a gap" /></label>
+                <div class="form-row"><label>Rights requirement<select name="rights_state"><option value="verified">Verified</option><option value="">Any state</option></select></label><label>Lifecycle requirement<select name="lifecycle_state"><option value="active">Active</option><option value="">Any state</option></select></label></div>
+                <details class="advanced-options"><summary>Additional constraints</summary><p>Specific quality, format, market, and temporal constraints will be carried into the resource request contract as the workflow grows.</p></details>
+                <button class="button button-primary submit-button" type="submit"><span>⌕</span> Check library inventory</button>
+              </form>
+              <div class="evaluation-result" id="evaluation-result" aria-live="polite" hidden></div>
+            </section>
+
+            <aside class="panel flow-aside"><div class="eyebrow">WHAT HAPPENS NEXT</div><h2>Reuse first. You decide on anything new.</h2><ol class="step-list"><li class="step-done"><span>1</span><div><strong>Check existing assets</strong><small>Compare type, purpose, subject, rights, lifecycle, and context.</small></div></li><li class="step-current"><span>2</span><div><strong>Review the result</strong><small>See whether an asset is ready, needs verification, or is missing.</small></div></li><li><span>3</span><div><strong>Discover web candidates</strong><small>Search Openverse across multiple image providers, with Wikimedia Commons as a fallback.</small></div></li><li><span>4</span><div><strong>Approve, then save or use</strong><small>No external candidate is acquired or used without your decision.</small></div></li></ol><div class="privacy-note"><span>ⓘ</span><p>The inventory check is read-only. An <code>ACQUIRE</code> result lets you search external collections; nothing downloads until you select a save action.</p></div></aside>
+          </div>
+
+          <section class="panel inventory-panel"><div class="panel-heading inventory-heading"><div><div class="eyebrow">REGISTERED RESOURCES</div><h2>Current inventory</h2><p>Latest assets stored in the local library database.</p></div><div class="inventory-count" id="inventory-count">— assets</div></div><div class="table-wrap"><table><thead><tr><th>Asset</th><th>Type</th><th>Purpose</th><th>Rights</th><th>License</th><th>Source</th><th>Lifecycle</th><th>Added</th><th>Review</th></tr></thead><tbody id="asset-rows"><tr><td colspan="9" class="empty-cell">Loading library inventory…</td></tr></tbody></table></div></section>
+        </section>
+
+        <section class="view" id="view-templates">
+          <div class="page-heading"><div><div class="eyebrow">CHANNEL IDENTITY &middot; TEMPLATE FOUNDATION</div><h1>Allen Knows Ball</h1><p class="page-subtitle">A fixed, versioned visual and editorial system for Vietnamese soccer content.</p></div><span class="environment-pill template-draft-pill" id="template-draft-status">DRAFT FOR OWNER AUDIT</span></div>
+          <div class="template-summary-grid">
+            <article class="panel template-summary-card"><div class="eyebrow">CHANNEL PROMISE</div><h2 id="template-tagline">B&#243;ng &#273;&#225;, nh&#236;n th&#234;m m&#7897;t nh&#7883;p.</h2><p id="template-promise">One clear football read, supported by evidence and delivered in Allen&#39;s own voice.</p></article>
+            <article class="panel template-summary-card"><div class="eyebrow">LOCKED PACKAGE</div><h2 id="template-version">v0.1.0 / 9:16 / vi-VN</h2><p>Fonts, identity, opening, timing, transitions, and effects are fixed in this package version. They do not belong to the Asset Library.</p></article>
+            <article class="panel template-summary-card"><div class="eyebrow">ASSET LIBRARY BOUNDARY</div><h2>Media fills typed slots</h2><p>Match images and footage stay in the library. The template describes where approved media may appear, while its visual system remains fixed.</p></article>
+          </div>
+          <section class="panel template-preview-panel"><div class="template-preview-heading"><div><div class="eyebrow">PARALLEL TEMPLATE PACKAGES</div><h2>One channel identity. Two production formats.</h2><p>Short form stays portrait and fast; long form adds chapters, deeper evidence, source cards, and sustained 16:9 analysis.</p></div><a class="button button-secondary" href="/template-foundation/preview.html" target="_blank" rel="noopener noreferrer">Open short preview &rarr;</a></div><div class="template-format-grid"><article><span>SHORT FORM</span><strong>9:16 · 30–58 seconds</strong><p>Three existing soccer story forms. Preserved.</p></article><article><span>LONG FORM</span><strong>16:9 · 8–20 minutes</strong><p>Tactical deep dive or player-role study, with a chapter map and explicit production timeline.</p></article></div><iframe class="template-preview-frame" src="/template-foundation/preview.html" title="Allen Knows Ball short-form visual template preview" loading="lazy"></iframe><p class="template-draft-note">Both packages are drafts for owner audit. The production timeline is specified; the renderer still needs to be connected to execute it.</p></section>
+        </section>
+
+        <section class="view" id="view-workflows">
+          <div class="page-heading"><div><div class="eyebrow">ENGINE PIPELINES &middot; SOCCER / VI-VN</div><h1>Create a video</h1><p class="page-subtitle">Topic &rarr; script draft &rarr; asset check &rarr; owner review &rarr; voice &amp; render.</p></div><span class="environment-pill" id="workflow-runtime-status">LOCAL ENGINE</span></div>
+          <div class="workflow-layout">
+            <section class="panel workflow-intake">
+              <div class="eyebrow">01 &middot; CONTENT BRIEF</div><h2>What should Allen explain?</h2>
+              <form id="content-draft-form" class="content-draft-form">
+                <label>Video topic <span class="required-mark">*</span><textarea name="topic" required minlength="4" maxlength="500" placeholder="e.g. Vì sao khoảng trống sau lưng hậu vệ biên liên tục bị khai thác?" lang="vi"></textarea></label>
+                <div class="form-row"><label>Content target<select name="content_type"><option value="short">Short form · 9:16 · ~30–58 seconds</option><option value="long">Long form · 16:9 · ~8–20 minutes</option></select></label></div>
+                <div class="form-row"><label>Story form<select name="story_form" id="story-form-select"><option value="one-moment-one-read">Một tình huống, một góc nhìn</option><option value="explain-the-pattern">Giải thích một ý chiến thuật</option><option value="player-role-read">Cầu thủ và vai trò</option></select></label></div>
+                <label>Evidence &amp; source notes <span class="optional-mark">Optional for a first outline</span><textarea name="evidence" class="evidence-input" placeholder="Dán link/tên nguồn, ngày, quan sát hoặc số liệu đã kiểm tra. Mỗi dòng là một mẩu evidence." lang="vi"></textarea></label>
+                <p class="form-helper">Factual match claims need evidence. The draft marks unsupported details for research instead of inventing them. Script requests stay on this machine via local Ollama when configured.</p>
+                <button class="button button-primary" type="submit">Draft script &amp; check assets <span>&rarr;</span></button>
+              </form>
+            </section>
+            <section class="panel workflow-stages"><div class="eyebrow">FIXED CHANNEL FOUNDATION</div><h2>One connected production path</h2>
+              <ol class="workflow-step-list"><li class="step-current"><span>01</span><div><strong>Topic &amp; script</strong><small>Vietnamese, one football read</small></div></li><li><span>02</span><div><strong>Asset Library</strong><small>Reuse first; search only for gaps</small></div></li><li><span>03</span><div><strong>Allen’s voice</strong><small>Local Vietnamese TTS voice profile</small></div></li><li><span>04</span><div><strong>Template &amp; render</strong><small>Opening, captions, motion, ending</small></div></li><li><span>05</span><div><strong>Owner audit</strong><small>Approve each asset and final video</small></div></li></ol>
+              <div class="runtime-note"><strong id="voice-profile-heading">Voice sample not set up</strong><span>Chọn bản ghi giọng của bạn (WAV, MP3, FLAC; tối đa 50 MB). Tệp chỉ lưu trong thư mục runtime bị loại khỏi Git; xử lý giọng chạy trên máy này.</span><form id="voice-profile-form" class="voice-profile-form"><input type="file" name="voice_file" accept="audio/wav,audio/mpeg,audio/flac,.wav,.mp3,.flac" required><button class="button button-secondary button-small" type="submit">Save voice locally</button></form><small id="voice-runtime-note">Voice preview becomes available when the local VieNeu runtime is installed.</small></div>
+            </section>
+          </div>
+          <section class="panel script-result-panel" id="script-result-panel" hidden><div class="script-result-heading"><div><div class="eyebrow">DRAFT OUTPUT</div><h2 id="draft-status-heading">Script and asset check</h2></div><span class="status-pill status-muted" id="draft-mode-pill"></span></div><p class="form-helper">Review and edit the Vietnamese narration. Resolve every research marker and verify factual claims before approving the script for TTS.</p><div id="draft-timeline" class="draft-timeline" hidden></div><div id="script-segments" class="script-segments"></div><label class="evidence-verification"><input id="evidence-verified" type="checkbox"><span>I reviewed the narration and verified its factual evidence. Any unsupported claims are removed or marked for research.</span></label><div class="voice-preview-actions"><button class="button button-secondary" id="approve-script" type="button">Approve reviewed script</button><span id="script-review-status" role="status"></span></div><div id="draft-evidence-note" class="draft-evidence-note"></div><div class="asset-check-summary" id="draft-asset-check"></div><div class="voice-preview-actions"><button class="button button-primary" id="create-voice-preview" type="button" disabled>Create local voice preview</button><span id="voice-preview-status" role="status"></span><audio id="voice-preview-audio" controls hidden></audio></div></section>
+        </section>
+
+        <section class="view" id="view-sources"><div class="page-heading"><div><div class="eyebrow">EVIDENCE &amp; PROVENANCE</div><h1>Sources</h1><p class="page-subtitle">Registered sources and extracted evidence will appear here when the perception boundary is connected to the library workflow.</p></div></div><div class="empty-state panel"><div class="empty-illustration">◎</div><div class="eyebrow">NOT CONNECTED</div><h2>Source intake is not part of this UI slice yet</h2><p>The new perception boundary can characterize and extract from raw HTML or JSON. Source retrieval, persisted evidence, and approval actions still need to be wired into an engine run.</p></div></section>
+
+        <section class="view" id="view-runs"><div class="page-heading"><div><div class="eyebrow">EXECUTION</div><h1>Runs &amp; queue</h1><p class="page-subtitle">Track engine jobs, decisions, and human review points.</p></div></div><div class="empty-state panel"><div class="empty-illustration">◷</div><div class="eyebrow">NOT CONNECTED</div><h2>No persistent workflow runs to display</h2><p>The current worker is not connected to the Asset Library workflow. Run history will become useful once these steps share persistent execution state.</p></div></section>
+
+        <footer class="page-footer"><span>Autonomous Content Engine v1</span><span>Local-first · Human-reviewed acquisition</span></footer>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>\n

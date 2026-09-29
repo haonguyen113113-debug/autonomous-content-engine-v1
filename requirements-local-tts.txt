@@ -1,0 +1,2 @@
+# Optional local voice-cloning runtime. Install into runtime/tts-venv.
+vieneu==3.8.3

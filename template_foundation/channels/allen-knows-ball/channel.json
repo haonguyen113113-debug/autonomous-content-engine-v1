@@ -1,0 +1,43 @@
+{
+  "channel_id": "allen-knows-ball",
+  "display_name": "Allen Knows Ball",
+  "name_assessment": {
+    "status": "keep",
+    "note": "Natural as an informal sports-slang brand: “know” ball signals football knowledge. Keep title case; do not add “the” or “his”."
+  },
+  "category": "soccer",
+  "market": "VN",
+  "language": "vi-VN",
+  "audience": "Vietnamese-speaking football followers who want a clear, memorable explanation of what happened and why it matters.",
+  "coverage_priorities": [
+    "UEFA Champions League",
+    "Premier League",
+    "LPBank V.League 1",
+    "Vietnam men's national team"
+  ],
+  "brand_promise": "Mỗi video đưa ra một góc nhìn bóng đá rõ ràng, có lý do và có bằng chứng.",
+  "tagline": "Bóng đá, nhìn thêm một nhịp.",
+  "host_pov": "First person, recognizably Allen. Speak as a fan who can explain the game, not as a broadcaster or club spokesperson.",
+  "personality": [
+    "tactically curious",
+    "confident but not absolute",
+    "playful in small doses",
+    "direct",
+    "fair to opposing viewpoints"
+  ],
+  "voice_rules": {
+    "default_register": "Conversational Vietnamese; use “mình” for the host and address viewers naturally.",
+    "jargon": "Explain a necessary tactical term in Vietnamese the first time it appears. Keep widely used names such as pressing only when they make the idea clearer.",
+    "humor": "One dry or playful line at most; never let a joke replace the explanation.",
+    "claims": "Separate observable fact from interpretation. Attribute statistics, quotes, and disputed claims.",
+    "avoid": [
+      "rage-bait",
+      "club-war framing",
+      "fake certainty",
+      "transfer rumours without strong sourcing",
+      "generic “follow for more” filler",
+      "borrowed club color identities"
+    ]
+  },
+  "status": "draft"
+}

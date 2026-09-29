@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "foundation_id": "ace-template-foundation",
+  "status": "draft",
+  "release_policy": "Released packages are immutable and pinned to each run. Draft packages are preview-only.",
+  "channels": [
+    {
+      "channel_id": "allen-knows-ball",
+      "path": "channels/allen-knows-ball/channel.json",
+      "status": "draft"
+    }
+  ],
+  "templates": [
+    {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.1.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.1.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.1.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.1.0"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "lock_mode": "locked",
+  "palette": {
+    "ink": "#101814",
+    "deep_pitch": "#123A2D",
+    "pitch_line": "#477565",
+    "chalk": "#F4F3E9",
+    "muted": "#AAB9B0",
+    "signal_lime": "#D1F36A",
+    "signal_orange": "#F2A15A",
+    "warning_red": "#F06E61"
+  },
+  "typography": {
+    "display": {
+      "family": "Be Vietnam Pro",
+      "weights": [
+        600,
+        700
+      ],
+      "use": "Vietnamese hooks, short titles, captions and narration text."
+    },
+    "latin_auxiliary": {
+      "family": "Barlow Condensed",
+      "weights": [
+        600,
+        700
+      ],
+      "use": "English wordmark, short Latin labels, score and time figures only."
+    },
+    "body": {
+      "family": "Be Vietnam Pro",
+      "weights": [
+        400,
+        600,
+        700
+      ],
+      "use": "Vietnamese narration captions, evidence labels and source credit."
+    },
+    "rules": [
+      "Sentence case for Vietnamese headlines.",
+      "Use condensed display face only for short labels and numbers.",
+      "Keep Vietnamese diacritics intact; never synthesize bold for body copy.",
+      "Captions use no more than two lines and a dark translucent backing."
+    ]
+  },
+  "layout": {
+    "safe_area_percent": {
+      "top": 9,
+      "bottom": 13,
+      "left": 7,
+      "right": 7
+    },
+    "host_share": "Host remains visually present in hook and takeaway; tactical evidence gets the largest frame only when needed.",
+    "caption_anchor": "lower-third above platform controls",
+    "evidence_card": "one claim or statistic per card; include competition/date/source when relevant"
+  },
+  "motion": {
+    "default_easing": "quick ease-out",
+    "transition_duration_seconds": [
+      0.18,
+      0.32
+    ],
+    "max_signature_transitions_per_video": 2,
+    "micro_motion": "Small, purposeful line-draws and number emphasis only."
+  },
+  "audio": {
+    "narration": "Primary and intelligible; music and effects duck under speech.",
+    "signature_cue": "Original two-note, dry percussive/electronic mark; no stock broadcast whistle or copied club anthem.",
+    "music": "Optional low-energy bed; never required and never louder than speech."
+  },
+  "prohibited_effects": [
+    "glitch",
+    "screen shake",
+    "rapid flashing",
+    "fake live broadcast lower-thirds",
+    "fake scoreboard branding",
+    "unlicensed club crests",
+    "uncited stat graphics"
+  ]
+}

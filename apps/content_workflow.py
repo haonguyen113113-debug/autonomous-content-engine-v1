@@ -1,0 +1,467 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, asdict
+import json
+import os
+from pathlib import Path
+import uuid
+from datetime import datetime, timezone
+import unicodedata
+from urllib.error import URLError
+from urllib.request import Request, urlopen
+from typing import Any
+
+from template_foundation import resolve_template
+from apps.asset_library.asset_intelligence import ResourceRequirement
+from apps.asset_library.discovery import DiscoveryError, search_image_candidates
+from apps.asset_library.resource_workflow import evaluate_library_requirement
+from apps.asset_library.registry import connect
+
+
+TEMPLATE_IDS = {
+    "short": "allen-knows-ball.shortform-analyst",
+        "long": "allen-knows-ball.longform-analyst",
+}
+
+
+@dataclass(frozen=True)
+class ScriptDraft:
+    topic: str
+    story_form: str
+    locale: str
+    duration_target_seconds: int
+    status: str
+    segments: tuple[dict[str, Any], ...]
+    evidence: tuple[str, ...]
+    evidence_needed: tuple[str, ...]
+    generation_mode: str
+    voiceover_ready: bool = False
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def _local_env(root: Path) -> dict[str, str]:
+    values = dict(os.environ)
+    env_file = root / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            values.setdefault(key.strip(), value.strip().strip("\"'"))
+    values.setdefault("LLM_MODEL", "qwen3.5:2b")
+    return values
+
+
+def _normalise(value: str) -> str:
+    return unicodedata.normalize("NFC", value).strip()
+
+
+def _normalize_timeline_events(items: Any, segment_start: int, segment_duration: int) -> list[dict[str, Any]]:
+    if not isinstance(items, list):
+        return []
+    allowed = {
+        "item_type": {"caption", "stat_card", "tactical_diagram", "media", "lower_third", "chapter_card", "source_card"},
+        "enter": {"cut", "fade", "slide", "draw"},
+        "exit": {"cut", "fade", "wipe"},
+        "transition_in": {"clean_cut", "chalk_line_wipe"},
+        "effect": {"none", "freeze_and_trace", "number_pop", "pitch_grid"},
+    }
+    events: list[dict[str, Any]] = []
+    for index, item in enumerate(items[:80]):
+        if not isinstance(item, dict):
+            continue
+        try:
+            start = max(0, min(int(item.get("start_offset_seconds", 0)), segment_duration - 1))
+            end = max(start + 1, min(int(item.get("end_offset_seconds", segment_duration)), segment_duration))
+        except (TypeError, ValueError):
+            continue
+        clean: dict[str, Any] = {
+            "item_id": _normalise(str(item.get("item_id", f"event-{index + 1}")))[:80],
+            "item_type": item.get("item_type") if item.get("item_type") in allowed["item_type"] else "caption",
+            "text": _normalise(str(item.get("text", "")))[:1000],
+            "start_seconds": segment_start + start,
+            "end_seconds": segment_start + end,
+        }
+        for key, fallback in (("enter", "cut"), ("exit", "cut"), ("transition_in", "clean_cut"), ("effect", "none")):
+            clean[key] = item.get(key) if item.get(key) in allowed[key] else fallback
+        evidence_ref = item.get("evidence_ref")
+        clean["evidence_ref"] = _normalise(str(evidence_ref))[:250] if evidence_ref else None
+        events.append(clean)
+    return events
+
+
+def _add_production_timeline(
+    segments: list[dict[str, Any]],
+    total_duration: int,
+    timeline: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    normalized: list[dict[str, Any]] = []
+    cursor = 0
+    chapters = timeline.get("chapters", [])
+    raw_durations = []
+    for segment in segments:
+        try:
+            raw_durations.append(max(1, int(segment.get("duration_seconds", 1))))
+        except (TypeError, ValueError):
+            raw_durations.append(1)
+    raw_total = sum(raw_durations) or 1
+    scaled_durations = [max(1, round(total_duration * duration / raw_total)) for duration in raw_durations]
+    if scaled_durations:
+        scaled_durations[-1] = max(1, scaled_durations[-1] + total_duration - sum(scaled_durations))
+    for index, raw in enumerate(segments):
+        segment = dict(raw)
+        duration = scaled_durations[index]
+        segment["duration_seconds"] = duration
+        segment["start_seconds"] = cursor
+        segment["end_seconds"] = cursor + duration
+        segment["chapter_id"] = segment.get("chapter_id") or (chapters[min(index, len(chapters) - 1)].get("id") if chapters else f"chapter-{index + 1}")
+        source_duration = raw_durations[index]
+        raw_events = segment.get("timeline_events")
+        if isinstance(raw_events, list):
+            raw_events = [
+                {
+                    **event,
+                    "start_offset_seconds": round(int(event.get("start_offset_seconds", 0)) * duration / source_duration),
+                    "end_offset_seconds": round(int(event.get("end_offset_seconds", source_duration)) * duration / source_duration),
+                }
+                for event in raw_events
+                if isinstance(event, dict)
+            ]
+        segment["timeline_events"] = _normalize_timeline_events(raw_events, cursor, duration)
+        normalized.append(segment)
+        cursor += duration
+
+    # Place deterministic editorial chapter markers over the segment timeline. These
+    # are fixed template events; the model only supplies per-beat overlays.
+    chapter_events = []
+    for chapter in chapters:
+        ranges = chapter.get("range_percent", [0, 100])
+        start = min(total_duration - 1, max(0, round(total_duration * float(ranges[0]) / 100)))
+        end = min(total_duration, max(start + 1, round(total_duration * float(ranges[1]) / 100)))
+        chapter_events.append({
+            "item_id": chapter["id"],
+            "item_type": "chapter_card",
+            "text": chapter.get("purpose", chapter["id"]),
+            "start_seconds": start,
+            "end_seconds": min(total_duration, start + 2),
+            "enter": "fade" if start else "cut",
+            "exit": "cut",
+            "transition_in": "clean_cut",
+            "effect": "none",
+            "evidence_ref": None,
+        })
+    return normalized, chapter_events
+
+
+def _ollama_draft(
+    env: dict[str, str],
+    topic: str,
+    form: dict[str, Any],
+    evidence: list[str],
+    content_type: str,
+) -> dict[str, Any] | None:
+    model = env.get("LLM_MODEL", "").strip() or "qwen3.5:2b"
+    provider = env.get("LLM_PROVIDER", "ollama").strip().lower()
+    if provider != "ollama" or not model:
+        return None
+
+    base_url = env.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+    system = (
+        f"You write {content_type}-form Vietnamese soccer-analysis video scripts for Allen Knows Ball. "
+        "Sound conversational, specific, calm, and human; avoid broadcast clichés and forced CTAs. "
+        "Only state football facts supported by supplied evidence. Never invent match details, "
+        "statistics, quotes, or sources. Return only a JSON object with a segments array; "
+        "each segment has id, narration, visual, and evidence_refs. Include asset_needs as a list "
+        "of only variable real media that materially improves this exact topic; each need has "
+        "resource_type (image or video), purpose (match_analysis_evidence or player_context), "
+        "quantity (1-3), query, exact_context, and reason. Use an empty list when the locked "
+        "authored pitch-board is enough. If evidence is insufficient, "
+        "write a clear [CẦN NGUỒN] placeholder instead of an assertion. "
+        "For every segment also return timeline_events: a list of on-screen items. "
+        "Each event has item_id, item_type (caption, stat_card, tactical_diagram, media, lower_third), "
+        "text, start_offset_seconds, end_offset_seconds, enter (cut, fade, slide, draw), exit "
+        "(cut, fade, wipe), transition_in (clean_cut, chalk_line_wipe), effect (none, freeze_and_trace, "
+        "number_pop, pitch_grid), and evidence_ref. Offsets are relative to the segment start; "
+        "all intervals must stay within that segment duration. Also return duration_seconds per segment, "
+        "and keep the total close to the target. Use fixed package intro/outro behavior."
+    )
+    request_body = {
+        "model": model,
+        "stream": False,
+        "format": "json",
+        "messages": [
+            {"role": "system", "content": system},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "locale": "vi-VN",
+                        "topic": topic,
+                        "story_form": form,
+                        "evidence": evidence,
+                        "duration_target_seconds": form["target_seconds"],
+                        "content_type": content_type,
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        ],
+        "options": {
+            "temperature": 0.35,
+            "num_ctx": 4096,
+            "num_predict": 8192 if content_type == "long" else 4096,
+            "low_vram": True,
+        },
+        "keep_alive": 0,
+    }
+    request = Request(
+        f"{base_url}/api/chat",
+        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        # The first local model call may need several minutes to load weights on
+        # CPU-only machines. Keep this synchronous MVP bounded, but avoid silently
+        # falling back before cold-start inference can complete.
+        with urlopen(request, timeout=1800 if content_type == "long" else 900) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        body = json.loads(result["message"]["content"])
+        segments = body.get("segments")
+        if not isinstance(segments, list) or not segments:
+            return None
+        cleaned = []
+        for item in segments:
+            if not isinstance(item, dict):
+                continue
+            narration = item.get("narration")
+            if not isinstance(narration, str) or not narration.strip():
+                continue
+            cleaned.append(
+                {
+                    "id": str(item.get("id", f"beat-{len(cleaned) + 1}")),
+                    "narration": _normalise(narration),
+                    "visual": _normalise(str(item.get("visual", "Host analysis"))),
+                    "evidence_refs": item.get("evidence_refs", []),
+                    "duration_seconds": max(1, min(int(item.get("duration_seconds", 8)), 900)),
+                    "timeline_events": item.get("timeline_events", []),
+                }
+            )
+        asset_needs = []
+        for item in body.get("asset_needs", [])[:3]:
+            if not isinstance(item, dict):
+                continue
+            resource_type = item.get("resource_type")
+            purpose = item.get("purpose")
+            if resource_type not in {"image", "video"} or purpose not in {
+                "match_analysis_evidence", "player_context"
+            }:
+                continue
+            query = _normalise(str(item.get("query", "")))[:250]
+            if not query:
+                continue
+            try:
+                quantity = max(1, min(int(item.get("quantity", 1)), 3))
+            except (TypeError, ValueError):
+                quantity = 1
+            asset_needs.append(
+                {
+                    "requirement_id": f"variable-media-{len(asset_needs) + 1}",
+                    "resource_type": resource_type,
+                    "purpose": purpose,
+                    "quantity": quantity,
+                    "discovery_query": query,
+                    "context": _normalise(str(item.get("exact_context", ""))) or None,
+                    "reason": _normalise(str(item.get("reason", ""))),
+                }
+            )
+        if not cleaned:
+            return None
+        return {"segments": cleaned, "asset_needs": asset_needs}
+    except (URLError, TimeoutError, OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def create_script_draft(
+    root: Path,
+    topic: str,
+    story_form_id: str,
+    evidence_text: str = "",
+    content_type: str = "short",
+) -> dict[str, Any]:
+    topic = _normalise(topic)
+    if len(topic) < 4 or len(topic) > 500:
+        raise ValueError("Chủ đề cần dài từ 4 đến 500 ký tự.")
+
+    content_type = content_type.strip().lower()
+    template_id = TEMPLATE_IDS.get(content_type)
+    if template_id is None:
+        raise ValueError("Content type must be either short or long.")
+    package = resolve_template(root, template_id, allow_draft=True)
+    forms = package.story_forms.get("forms", [])
+    form = next((item for item in forms if item.get("id") == story_form_id), None)
+    if form is None:
+        raise ValueError("Không tìm thấy story form trong Template Foundation.")
+
+    evidence = [
+        _normalise(line)
+        for line in evidence_text.splitlines()
+        if _normalise(line)
+    ][:12]
+    generated = _ollama_draft(_local_env(root), topic, form, evidence, content_type)
+    asset_needs: list[dict[str, Any]] = []
+    chapter_events: list[dict[str, Any]] = []
+    if generated:
+        segments = generated["segments"]
+        asset_needs = generated["asset_needs"]
+        mode = "local_ollama"
+    else:
+        arc = form.get("arc", [])
+        segments = [
+            {
+                "id": f"beat-{index + 1}",
+                "narration": (
+                    f"{topic}{'' if topic.endswith(('?', '!', '…', '.')) else '?'} Đây là câu hỏi cần trả lời trước."
+                    if index == 0
+                    else "[CẦN NGUỒN] Thêm một quan sát cụ thể hoặc nguồn có ngày tháng."
+                    if index < len(arc) - 1
+                    else "[KẾT LUẬN CỦA ALLEN] Một góc nhìn ngắn gọn, có giới hạn rõ ràng."
+                ),
+                "visual": (
+                    "Allen mở đầu trực diện"
+                    if index == 0
+                    else "Bảng chiến thuật thuộc Template Foundation"
+                    if index < len(arc) - 1
+                    else "Allen chốt ý và wordmark cố định"
+                ),
+                    "evidence_refs": [],
+                    "duration_seconds": max(1, int(form.get("target_seconds", 45)) // max(1, len(arc))),
+                    "timeline_events": [],
+            }
+            for index, _ in enumerate(arc)
+        ]
+        mode = "outline_fallback"
+
+    total_duration = int(form.get("target_seconds", 45))
+    segments, chapter_events = _add_production_timeline(segments, total_duration, package.timeline)
+
+    factual_segments = [
+        item for item in segments if "[CẦN NGUỒN]" in item["narration"]
+    ]
+    evidence_needed = (
+        ("Nguồn và ngày cho từng tình huống/trận đấu được nhắc tới",)
+        if not evidence
+        else ("Đối chiếu từng nhận định với nguồn gốc và thời điểm của nó",)
+        if factual_segments
+        else ()
+    )
+    draft = ScriptDraft(
+        topic=topic,
+        story_form=story_form_id,
+        locale=package.manifest.get("locale", "vi-VN"),
+        duration_target_seconds=total_duration,
+        status="NEEDS_OWNER_REVIEW" if not evidence_needed else "NEEDS_EVIDENCE",
+        segments=tuple(segments),
+        evidence=tuple(evidence),
+        evidence_needed=evidence_needed,
+        generation_mode=mode,
+    )
+    result = draft.as_dict()
+    result["asset_needs"] = asset_needs
+    result["asset_need_reason"] = (
+        "Model selected variable media for this story."
+        if asset_needs
+        else "The fixed host framing and tactical board cover the visuals; no variable library media was requested."
+    )
+    result["content_type"] = content_type
+    result["template_id"] = template_id
+    result["template_version"] = package.manifest["version"]
+    result["timeline"] = package.timeline
+    result["chapter_events"] = chapter_events
+    result["timeline_events"] = [event for segment in segments for event in segment["timeline_events"]] + chapter_events
+    return result
+
+
+def run_content_agent(
+    root: Path,
+    db_path: Path,
+    topic: str,
+    story_form_id: str,
+    evidence_text: str = "",
+    content_type: str = "short",
+) -> dict[str, Any]:
+    """Run the bounded local agent and stop before owner-controlled actions."""
+    from apps.voice_tts import voice_profile_status
+
+    draft = create_script_draft(root, topic, story_form_id, evidence_text, content_type)
+    checks: list[dict[str, Any]] = []
+    conn = connect(db_path)
+    try:
+        for need in draft["asset_needs"]:
+            requirement = ResourceRequirement(
+                requirement_id=need["requirement_id"],
+                resource_type=need["resource_type"],
+                purpose=need["purpose"],
+                context=need["context"],
+                rights_state="verified",
+                lifecycle_state="active",
+                discovery_query=need["discovery_query"],
+                content_objective=draft["topic"],
+            )
+            evaluation = evaluate_library_requirement(conn, requirement)
+            quantity = int(need["quantity"])
+            eligible_count = len(evaluation.eligible_assets)
+            candidates = []
+            discovery_error = None
+            if eligible_count < quantity and requirement.resource_type == "image":
+                try:
+                    candidates = [
+                        asdict(item)
+                        for item in search_image_candidates(
+                            requirement.discovery_query or draft["topic"], limit=12
+                        )
+                    ]
+                except DiscoveryError as error:
+                    discovery_error = str(error)
+            checks.append(
+                {
+                    "need": need,
+                    "requirement": asdict(requirement),
+                    "evaluation": asdict(evaluation),
+                    "required_count": quantity,
+                    "eligible_count": eligible_count,
+                    "shortfall": max(0, quantity - eligible_count),
+                    "web_candidates": candidates,
+                    "candidate_status": "SUGGESTIONS_ONLY" if candidates else "NO_CANDIDATES",
+                    "discovery_error": discovery_error,
+                }
+            )
+    finally:
+        conn.close()
+
+    run_id = uuid.uuid4().hex[:12]
+    run = {
+        "run_id": run_id,
+        "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "status": "WAITING_FOR_OWNER_REVIEW",
+        "steps": [
+            {"id": "script", "status": draft["status"], "local_model": draft["generation_mode"]},
+            {"id": "asset_needs", "status": "ASSESSED", "count": len(draft["asset_needs"])},
+            {"id": "library", "status": "ASSESSED_AND_DISCOVERY_OFFERED", "count": len(checks)},
+            {"id": "owner_checkpoint", "status": "WAITING"},
+        ],
+        "draft": draft,
+        "asset_checks": checks,
+        "human_approval_required": True,
+        "no_assets_saved_or_selected": True,
+        "voice_status": voice_profile_status(root),
+    }
+    runs_dir = root / "runtime/runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    (runs_dir / f"{run_id}.json").write_text(
+        json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return run

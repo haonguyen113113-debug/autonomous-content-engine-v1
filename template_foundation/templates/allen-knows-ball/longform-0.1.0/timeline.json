@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "content_type": "long",
+  "target_duration_seconds": 720,
+  "minimum_duration_seconds": 480,
+  "maximum_duration_seconds": 1200,
+  "chapters": [
+    {"id":"cold_open","range_percent":[0,3],"purpose":"Open on the football question or surprising evidence; spoken hook starts at frame 0.","visual":"Host, one restrained tactical marker, no separate logo bumper."},
+    {"id":"thesis_and_roadmap","range_percent":[3,8],"purpose":"State the bounded thesis and what evidence will be examined.","visual":"Host framing with a clean chapter roadmap."},
+    {"id":"context_and_scope","range_percent":[8,17],"purpose":"Establish competition, teams/player, date, tactical context, and limits of the episode.","visual":"Context card and source/date labels."},
+    {"id":"tactical_setup","range_percent":[17,30],"purpose":"Explain the structure and mechanisms needed to understand the selected moments.","visual":"Authored pitch-board diagrams; reveal one relationship at a time."},
+    {"id":"evidence_walkthrough","range_percent":[30,57],"purpose":"Present multiple dated observations or match sequences in a reasoned order.","visual":"Approved exact-context media only where available; otherwise authored diagrams with source cards."},
+    {"id":"mechanism_and_implications","range_percent":[57,76],"purpose":"Connect the evidence to the tactical explanation and its consequences.","visual":"Host analysis intercut with board traces and restrained sourced data cards."},
+    {"id":"counter_reading","range_percent":[76,88],"purpose":"Test the thesis against a counterexample, alternative reading, or uncertainty.","visual":"Return to host; label the limits clearly."},
+    {"id":"conclusion","range_percent":[88,97],"purpose":"Summarize what the evidence supports and give Allen's bounded conclusion.","visual":"Host close; one-sentence synthesis."},
+    {"id":"signature_close","range_percent":[97,100],"purpose":"Short fixed channel sign-off and wordmark.","visual":"Locked mark and tagline; no forced generic CTA."}
+  ],
+  "timeline_event_schema": {
+    "required": ["item_id","item_type","start_seconds","end_seconds","enter","exit","transition_in","effect","evidence_ref"],
+    "item_type": ["caption","stat_card","tactical_diagram","media","lower_third","chapter_card","source_card"],
+    "enter": ["cut","fade","slide","draw"],
+    "exit": ["cut","fade","wipe"],
+    "transition_in": ["clean_cut","chalk_line_wipe"],
+    "effect": ["none","freeze_and_trace","number_pop","pitch_grid"],
+    "timebase": "Absolute seconds from video start. start_seconds inclusive; end_seconds exclusive. Every event must end after it starts and stay within total duration.",
+    "caption_rule": "Captions align to narration phrase boundaries, appear only during speech, use at most two lines, and include separate start and end times."
+  },
+  "transitions": [
+    {"id":"clean_cut","use":"Default between argument beats and chapter content."},
+    {"id":"chalk_line_wipe","use":"Reveal a tactical diagram or move between evidence blocks; use sparingly, no more than one per chapter."}
+  ],
+  "effects": [
+    {"id":"freeze_and_trace","use":"Trace one or two tactical runs on approved exact-context footage or authored board graphics."},
+    {"id":"number_pop","use":"Emphasize one sourced statistic with its source/date visible."},
+    {"id":"pitch_grid","use":"Subtle background geometry, not an unlicensed club or competition identity."}
+  ],
+  "opening":"Spoken football question begins immediately; identity mark may animate alongside for no more than 0.6 seconds.",
+  "ending":"Conclusion belongs to Allen; resolve into fixed mark and tagline with restrained signature sound cue."
+}

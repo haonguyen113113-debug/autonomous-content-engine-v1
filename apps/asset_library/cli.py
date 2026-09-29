@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import json
+from dataclasses import asdict
 from pathlib import Path
 
+from .asset_intelligence import ResourceRequirement
 from .entity_seed import seed_entity_catalog
 from .ingest import ingest_inbox
 from .registry import connect
+from .resource_workflow import evaluate_library_requirement
 from .seed import seed_taxonomy
 from .taxonomy import ensure_taxonomy_schema
 
@@ -21,9 +25,14 @@ def main() -> None:
             "list",
             "list-competitions",
             "list-entities",
+            "evaluate-requirement",
         ],
     )
     parser.add_argument("--root", default=".")
+    parser.add_argument(
+        "--requirement-file",
+        help="JSON file containing a ResourceRequirement",
+    )
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
@@ -42,6 +51,29 @@ def main() -> None:
     if args.command == "ingest":
         for result in ingest_inbox(root):
             print(result)
+        return
+
+    if args.command == "evaluate-requirement":
+        if not args.requirement_file:
+            parser.error(
+                "evaluate-requirement requires --requirement-file"
+            )
+        requirement_data = json.loads(
+            Path(args.requirement_file).read_text(encoding="utf-8")
+        )
+        requirement = ResourceRequirement(**requirement_data)
+        conn = connect(db_path)
+        try:
+            result = evaluate_library_requirement(conn, requirement)
+            print(
+                json.dumps(
+                    asdict(result),
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+        finally:
+            conn.close()
         return
 
     conn = connect(db_path)

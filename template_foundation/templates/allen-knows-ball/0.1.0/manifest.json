@@ -1,0 +1,53 @@
+{
+  "template_id": "allen-knows-ball.shortform-analyst",
+  "channel_id": "allen-knows-ball",
+  "version": "0.1.0",
+  "status": "draft",
+  "description": "A creator-led Vietnamese soccer analysis foundation for short vertical video.",
+  "market": "VN",
+  "locale": "vi-VN",
+  "category": "soccer",
+  "content_owner": "Allen Knows Ball",
+  "output": {
+    "media_type": "video",
+    "aspect_ratio": "9:16",
+    "width": 1080,
+    "height": 1920,
+    "frame_rate": 30,
+    "color_space": "SDR Rec.709",
+    "audio_sample_rate_hz": 48000
+  },
+  "duration_seconds": {
+    "target": 45,
+    "minimum": 30,
+    "maximum": 58
+  },
+  "primary_publishing_shape": "Short-form vertical video; platform publishing and platform-specific adaptations are not configured in this package.",
+  "renderer_requirement": "A renderer must use Be Vietnam Pro for all Vietnamese text and reserve Barlow Condensed for the English wordmark and short Latin labels.",
+  "font_resources": [
+    "resources/fonts/BeVietnamPro-Regular.ttf",
+    "resources/fonts/BeVietnamPro-SemiBold.ttf",
+    "resources/fonts/BeVietnamPro-Bold.ttf",
+    "resources/fonts/BarlowCondensed-SemiBold.ttf",
+    "resources/fonts/BarlowCondensed-Bold.ttf"
+  ],
+  "required_input_slots": [
+    "hook",
+    "match_or_topic",
+    "one_core_claim",
+    "evidence",
+    "host_analysis",
+    "takeaway"
+  ],
+  "fixed_components": [
+    "visual_identity",
+    "typography",
+    "opening_behavior",
+    "closing_behavior",
+    "transition_set",
+    "effect_set",
+    "sound_cue_spec"
+  ],
+  "change_policy": "No per-content edits to locked design. Changes require a new package version and explicit owner review.",
+  "slot_contract": "slot-contract.json"
+}

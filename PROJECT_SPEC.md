@@ -211,7 +211,9 @@ Whenever an artifact or production workflow requires a resource, it should issue
 
 Only when suitable inventory is missing, insufficient, stale, or invalid should the system continue:
 
-**resource requirement → external discovery → candidate acquisition → provenance capture → rights verification → quality gate → register → reuse**
+**resource requirement → external discovery → candidate presentation → user approval → candidate acquisition → provenance capture → rights verification → quality gate → register → reuse**
+
+For externally discovered assets, discovery returns candidate options for the user to review. The system must not download, register, or use a candidate until the user explicitly approves that candidate and its intended use. A library evaluation of `ACQUIRE` means “inventory is insufficient; offer discovery,” not authorization to acquire an asset.
 
 Every newly accepted external resource should become reusable library inventory rather than remaining tied only to the task that triggered its acquisition.
 
@@ -248,7 +250,7 @@ The engine should support multiple destinations per channel and market where app
 
 ## 10. Automation and autonomy contract
 
-After the engine is booted, required accounts are linked/authorized, and required tools/capabilities are provisioned, normal operation must be zero-touch at the individual-task level.
+After the engine is booted, required accounts are linked/authorized, and required tools/capabilities are provisioned, normal operation should be zero-touch at the individual-task level except for explicit approval gates such as external asset selection in Section 8.
 
 Human actions are intentionally limited to:
 
@@ -257,6 +259,7 @@ Human actions are intentionally limited to:
 3. Provision required tools/plugins/services/capabilities for the engine.
 4. Periodically perform reality checks against actual platform state/feedback.
 5. Verify actual monthly payouts/payments reached the designated account.
+6. Approve or reject externally discovered asset candidates when a workflow requests a human decision before saving or using them.
 
 Routine operational work must be automated, including:
 

@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "owner_template": "allen-knows-ball.longform-analyst@0.1.0",
+  "goal": "Long-form variable football media only. Channel identity, fonts, graphics, source cards, and authored tactical boards belong to this template foundation, not Asset Library.",
+  "approval_rule": "A discovery candidate is only a suggestion. Allen chooses whether it is saved and whether it may be used in the stated episode.",
+  "slots": [
+    {"slot_id":"exact-match-still","resource_type":"image","purpose":"match_analysis_evidence","required":false,"context_rule":"Exact named match, player, and moment. Do not substitute visually similar material.","rights_state":"verified","lifecycle_state":"active","requires_owner_use_decision":true,"fallback":"Authored tactical board with source/date label."},
+    {"slot_id":"player-portrait","resource_type":"image","purpose":"player_context","required":false,"context_rule":"Must depict the named player and fit the season/context under discussion.","rights_state":"verified","lifecycle_state":"active","requires_owner_use_decision":true,"fallback":"Name and role in typography; do not synthesize a likeness."},
+    {"slot_id":"user-supplied-match-footage","resource_type":"video","purpose":"match_analysis_evidence","required":false,"context_rule":"Exact match and timestamp; rights clearance must be documented by the owner.","rights_state":"verified","lifecycle_state":"active","requires_owner_use_decision":true,"fallback":"Authored tactical board. External image discovery does not supply video."}
+  ],
+  "never_request_from_asset_library": ["channel wordmark and fonts","chapter-card design","authored pitch-board diagrams","caption, title, and source-card layouts","opening or ending behavior","transitions and effects"]
+}
