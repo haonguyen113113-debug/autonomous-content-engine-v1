@@ -86,20 +86,27 @@ def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
 
 
 def ensure_asset_schema(conn: sqlite3.Connection) -> None:
-    conn.executescript(SCHEMA)
+    table_schema, index_schema = SCHEMA.split(
+        "\nCREATE INDEX IF NOT EXISTS idx_assets_type",
+        1,
+    )
+
+    conn.executescript(table_schema)
+
     columns = _table_columns(conn, "assets")
+
     if "source_id" not in columns:
         conn.execute("ALTER TABLE assets ADD COLUMN source_id TEXT")
+
     if "source_revision_id" not in columns:
         conn.execute(
             "ALTER TABLE assets ADD COLUMN source_revision_id TEXT"
         )
-    conn.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_assets_source_revision
-        ON assets(source_revision_id)
-        """
+
+    conn.executescript(
+        "CREATE INDEX IF NOT EXISTS idx_assets_type" + index_schema
     )
+
     conn.commit()
 
 
