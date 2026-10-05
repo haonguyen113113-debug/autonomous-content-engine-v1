@@ -63,7 +63,7 @@ A new major version is appropriate when the authored structure or slot contract 
 
 ## Minimal first slice
 
-Start with one portrait short-video template and one horizontal adaptation only if the same authored system can support it cleanly. Define the package contract, create a single released visual system with an opening, title/body treatment, two transitions, a closing, and a small approved effect set. Add preview and package validation before connecting a renderer. Do not add automatic template generation, a marketplace, per-channel personalization logic, or learning-based style mutation at this stage.
+The first FFmpeg renderer slice is connected to the workflow for silent visual previews in both portrait and landscape. Continue by validating package compatibility, filling approved variable-media slots, aligning narration and captions to the timeline, and executing the declared transitions/effects. Keep template release and owner approval separate from rendering. Do not add automatic template generation, a marketplace, per-channel personalization logic, or learning-based style mutation at this stage.
 
 ## Deliberately separate from current Asset Library work
 
@@ -73,4 +73,4 @@ The current integration phase completes resource checking, multi-provider image 
 
 The first proving category is Soccer for a Vietnamese-speaking audience. The package lives under `template_foundation/`, outside the Asset Library code and runtime records. `Allen Knows Ball` is retained as the channel name: in casual sports slang, “knows ball” means the host understands the game. The Vietnamese audience promise is “Bóng đá, nhìn thêm một nhịp.”
 
-The v0.1.0 package is a draft for owner audit, not a production release. It fixes the channel identity, Vietnamese voice rules, bundled fonts, palette, motion/effect limits, a 45-second portrait-video rhythm, and three closed soccer story forms. `slot-contract.json` defines only variable match/player media needs. The package's loader refuses draft packages by default; preview code must opt into draft resolution. No run is yet connected to a video renderer.
+The v0.1.0 short package and longform-0.1.0 package are drafts for owner audit, not production releases. They fix the channel identity, Vietnamese voice rules, bundled fonts, palette, motion/effect limits, format-specific rhythms, and soccer story forms. `slot-contract.json` defines only variable match/player media needs. The package loader refuses draft packages by default; this local preview renderer explicitly resolves drafts for owner review. Workflow runs can now produce silent template previews, while full-run assembly remains gated on owner review of script and voice.

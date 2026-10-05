@@ -25,6 +25,7 @@ from apps.asset_library.discovery import (
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.voice_tts import save_voice_reference, synthesize_voice_preview, voice_profile_status
+from apps.video_renderer import render_full_run, render_template_preview
 from template_foundation import resolve_template
 
 
@@ -97,6 +98,28 @@ def _approve_script(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
     run["status"] = "SCRIPT_APPROVED"
     run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {"status": run["status"], "run_id": run_id}
+
+
+def _approve_voice_preview(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    if payload.get("voice_audited") is not True:
+        raise ValueError("Confirm that you listened to the generated voice preview.")
+    run_path = root / "runtime/runs" / f"{run_id}.json"
+    if not run_path.is_file():
+        raise ValueError("Production run was not found.")
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    if not run.get("script_owner_approved") or not run.get("voice_preview"):
+        raise ValueError("Approve the script and generate its voice preview first.")
+    voice_root = (root / "runtime/voice").resolve()
+    voice_file = (voice_root / str(run["voice_preview"].get("path", ""))).resolve()
+    if not voice_file.is_file() or voice_file.parent != voice_root:
+        raise ValueError("The local voice preview file is missing from this workspace.")
+    run["voice_preview_audited"] = True
+    run["voice_preview_audited_at"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {"status": "VOICE_PREVIEW_APPROVED", "run_id": run_id}
 
 
 def _overview(db_path: Path) -> dict[str, Any]:
@@ -259,8 +282,9 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
             if path == "/api/voice/status":
                 self._send_json(voice_profile_status(db_path.parent.parent))
                 return
-            if path == "/api/voice-preview/voice-preview.wav":
-                voice_file = (db_path.parent.parent / "runtime/voice/voice-preview.wav").resolve()
+            voice_match = re.fullmatch(r"/api/voice-preview/([a-f0-9]{12}-voice-preview\.wav)", path)
+            if voice_match:
+                voice_file = (db_path.parent.parent / "runtime/voice" / voice_match.group(1)).resolve()
                 voice_root = (db_path.parent.parent / "runtime/voice").resolve()
                 if voice_root not in voice_file.parents or not voice_file.is_file():
                     self._send_json({"error": "Voice preview not found."}, HTTPStatus.NOT_FOUND)
@@ -272,6 +296,53 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
                 self.wfile.write(body)
+                return
+            render_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/(template-preview\.mp4|full-render\.mp4)", path)
+            if render_match:
+                run_id, filename = render_match.groups()
+                video_file = (db_path.parent.parent / "runtime/renders" / run_id / filename).resolve()
+                render_root = (db_path.parent.parent / "runtime/renders").resolve()
+                if render_root not in video_file.parents or not video_file.is_file():
+                    self._send_json({"error": "Rendered video not found."}, HTTPStatus.NOT_FOUND)
+                    return
+                size = video_file.stat().st_size
+                range_header = self.headers.get("Range")
+                start, end = 0, size - 1
+                if range_header and re.fullmatch(r"bytes=\d*-\d*", range_header):
+                    raw_start, raw_end = range_header.removeprefix("bytes=").split("-", 1)
+                    if raw_start:
+                        start = int(raw_start)
+                    if raw_end:
+                        end = min(end, int(raw_end))
+                    if start > end or start >= size:
+                        self.send_error(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                        return
+                    self.send_response(HTTPStatus.PARTIAL_CONTENT)
+                    self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                else:
+                    self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "video/mp4")
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Length", str(end - start + 1))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                with video_file.open("rb") as stream:
+                    stream.seek(start)
+                    remaining = end - start + 1
+                    while remaining:
+                        block = stream.read(min(1024 * 1024, remaining))
+                        if not block:
+                            break
+                        self.wfile.write(block)
+                        remaining -= len(block)
+                return
+            report_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/report", path)
+            if report_match:
+                report_path = db_path.parent.parent / "runtime/renders" / report_match.group(1) / "render-report.json"
+                if not report_path.is_file():
+                    self._send_json({"error": "Render report not found."}, HTTPStatus.NOT_FOUND)
+                else:
+                    self._send_json(json.loads(report_path.read_text(encoding="utf-8")))
                 return
             if path == "/api/overview":
                 try:
@@ -389,6 +460,9 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 "/api/assets/review-rights",
                 "/api/content/agent-runs",
                 "/api/content/script-review",
+                "/api/content/voice-review",
+                "/api/content/render-preview",
+                "/api/content/render-full",
             }:
                 self._send_json(
                     {"error": "Not found."},
@@ -434,6 +508,18 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     self._send_json(_approve_script(db_path.parent.parent, payload))
                     return
 
+                if path == "/api/content/voice-review":
+                    self._send_json(_approve_voice_preview(db_path.parent.parent, payload))
+                    return
+
+                if path == "/api/content/render-preview":
+                    self._send_json(render_template_preview(db_path.parent.parent, str(payload.get("run_id", ""))))
+                    return
+
+                if path == "/api/content/render-full":
+                    self._send_json(render_full_run(db_path.parent.parent, str(payload.get("run_id", ""))))
+                    return
+
                 if path == "/api/assets/approve-candidate":
                     requirement_data = payload.get("requirement")
                     if not isinstance(requirement_data, dict):
@@ -475,6 +561,10 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     {"error": str(error)},
                     HTTPStatus.BAD_GATEWAY,
                 )
+            except RuntimeError as error:
+                self._send_json({"error": str(error)}, HTTPStatus.SERVICE_UNAVAILABLE)
+            except OSError as error:
+                self._send_json({"error": f"Local render I/O failed: {error}"}, HTTPStatus.SERVICE_UNAVAILABLE)
             except Exception:
                 self._send_json(
                     {"error": "Could not evaluate this resource request."},

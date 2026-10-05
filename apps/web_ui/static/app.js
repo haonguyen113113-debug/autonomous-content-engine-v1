@@ -371,9 +371,17 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
     document.getElementById("evidence-verified").checked = false;
     document.getElementById("approve-script").disabled = false;
     document.getElementById("create-voice-preview").disabled = true;
+    document.getElementById("render-template-preview").disabled = false;
+    document.getElementById("render-full-video").disabled = true;
+    document.getElementById("voice-preview-audited").checked = false;
+    document.getElementById("voice-preview-audited").disabled = true;
+    document.getElementById("render-preview-result").hidden = true;
+    document.getElementById("render-full-result").hidden = true;
     document.getElementById("script-review-status").textContent = "";
     document.getElementById("voice-preview-status").textContent = "";
     document.getElementById("voice-preview-audio").hidden = true;
+    document.getElementById("render-preview-status").textContent = "";
+    document.getElementById("render-full-status").textContent = "";
     document.getElementById("draft-status-heading").textContent = `${draft.content_type.toUpperCase()} · ${draft.duration_target_seconds}s · ${draft.status.replaceAll("_", " ")} · run ${result.run_id}`;
     document.getElementById("script-segments").innerHTML = draft.segments.map((segment, index) => `
       <article class="script-segment" data-segment-id="${escapeHtml(segment.id)}"><div class="script-segment-top"><span>${String(index + 1).padStart(2, "0")}</span><strong>${escapeHtml(segment.id.replaceAll("-", " "))}</strong><small>${escapeHtml(segment.start_seconds)}–${escapeHtml(segment.end_seconds)} sec · ${escapeHtml(segment.duration_seconds)} sec</small></div>
@@ -468,6 +476,7 @@ if (voicePreviewButton) voicePreviewButton.addEventListener("click", async () =>
     if (!response.ok) throw new Error(result.error || "Could not generate the local voice preview.");
     audio.src = result.audio_url;
     audio.hidden = false;
+    document.getElementById("voice-preview-audited").disabled = false;
     await audio.play();
     status.textContent = "Preview generated locally. Listen for pronunciation, pace, and tone.";
   } catch (error) {
@@ -476,6 +485,79 @@ if (voicePreviewButton) voicePreviewButton.addEventListener("click", async () =>
     voicePreviewButton.disabled = false;
   }
 });
+
+const voiceAuditCheckbox = document.getElementById("voice-preview-audited");
+if (voiceAuditCheckbox) voiceAuditCheckbox.addEventListener("change", async () => {
+  const fullRenderButton = document.getElementById("render-full-video");
+  if (!voiceAuditCheckbox.checked) {
+    fullRenderButton.disabled = true;
+    return;
+  }
+  voiceAuditCheckbox.disabled = true;
+  const status = document.getElementById("render-full-status");
+  status.textContent = "Recording local voice review…";
+  try {
+    const response = await fetch("/api/content/voice-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ run_id: currentRunId, voice_audited: true }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not record voice review.");
+    fullRenderButton.disabled = false;
+    status.textContent = "Voice preview review recorded. Full rendering is available.";
+  } catch (error) {
+    voiceAuditCheckbox.checked = false;
+    status.textContent = error.message || "Could not record voice review.";
+  } finally {
+    voiceAuditCheckbox.disabled = false;
+  }
+});
+
+async function renderVideo(endpoint, button, status, resultPanel, video, isPreview) {
+  if (!currentRunId) return showToast("Create a script draft first.");
+  button.disabled = true;
+  status.textContent = "Rendering locally with FFmpeg…";
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ run_id: currentRunId }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not render the video.");
+    video.src = `${result.video_url}?v=${Date.now()}`;
+    resultPanel.hidden = false;
+    if (isPreview) {
+      const report = result.report;
+      document.getElementById("render-quality-report").innerHTML = `
+        <div class="render-report-heading"><strong>Visual render report</strong><a href="/api/render/${escapeHtml(currentRunId)}/report" target="_blank" rel="noopener noreferrer">Open JSON</a></div>
+        <div class="render-report-grid">${report.quality_checks.map((check) => `<div class="render-check"><span class="render-check-status ${escapeHtml(check.status.toLowerCase().replaceAll(" ", "-"))}">${escapeHtml(check.status)}</span><strong>${escapeHtml(check.criterion)}</strong><small>${escapeHtml(check.detail)}</small></div>`).join("")}</div>
+        <p class="render-limitations">${report.limitations.map(escapeHtml).join(" ")}</p>`;
+    }
+    status.textContent = isPreview ? "Preview ready. Play it here, then audit the checks below." : "Full video rendered. Review the output before treating it as complete.";
+  } catch (error) {
+    status.textContent = error.message || "Render did not complete.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+const renderPreviewButton = document.getElementById("render-template-preview");
+if (renderPreviewButton) renderPreviewButton.addEventListener("click", () => renderVideo(
+  "/api/content/render-preview", renderPreviewButton,
+  document.getElementById("render-preview-status"),
+  document.getElementById("render-preview-result"),
+  document.getElementById("render-preview-video"), true,
+));
+
+const renderFullButton = document.getElementById("render-full-video");
+if (renderFullButton) renderFullButton.addEventListener("click", () => renderVideo(
+  "/api/content/render-full", renderFullButton,
+  document.getElementById("render-full-status"),
+  document.getElementById("render-full-result"),
+  document.getElementById("render-full-video-player"), false,
+));
 
 const approveScriptButton = document.getElementById("approve-script");
 if (approveScriptButton) approveScriptButton.addEventListener("click", async () => {

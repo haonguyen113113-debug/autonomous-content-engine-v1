@@ -10,7 +10,7 @@ The system is designed to remain transferable across machines. The development m
 
 ## Current milestone
 
-Integration phase — Content resource needs flow through the Asset Library UI
+Rendering integration — local FFmpeg visual previews work in the UI for short and long templates; full-run assembly is wired behind script and voice review.
 
 The first connected slice accepts a generic resource requirement and checks it
 against the persisted library. For example:
@@ -56,7 +56,16 @@ renderer responsibility. Every script and asset remains subject to owner review.
 
 The long-form foundation specifies beat timing, absolute overlay in/out points,
 transitions, effects, chapters, evidence references, and source cards. The renderer
-that executes those instructions is still a separate integration milestone.
+is now connected for an initial visual composition slice. In Workflows, create a
+draft and choose **Render 18-second template preview** to inspect its framing,
+Vietnamese typography, palette, and opening/body/ending rhythm. The preview is
+silent and is saved under ignored `runtime/renders/<run-id>/` with a JSON quality
+report. A full-run render requires owner approval of the script and an audited
+local voice preview. The current renderer does not yet place selected football
+media, align captions to phrase timing, or execute all declared transitions and
+effects; those checks are explicitly marked partial or not assessed in the report.
+Install FFmpeg and make `ffmpeg` and `ffprobe` available on `PATH`, or set
+`FFMPEG_PATH` to the executable location.
 See [the transferable runtime guide](docs/transferable-runtime.md) for installing
 Ollama, recreating the optional local TTS runtime, and keeping per-PC data out of Git.
 

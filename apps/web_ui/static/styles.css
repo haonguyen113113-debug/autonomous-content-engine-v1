@@ -175,6 +175,21 @@ button { cursor: pointer; }
 .template-format-grid article span { color:#769078; font-size:9px; font-weight:700; letter-spacing:1px; }
 .template-format-grid article strong { color:#35483a; font-size:13px; }
 .template-format-grid article p { color:#7e8a80; font-size:10px; }
+.render-result { margin-top: 14px; padding: 12px; border: 1px solid #e0e8e1; border-radius: 10px; background: #f8faf7; }
+.render-result[hidden] { display: none; }
+.render-result video { width: 100%; max-height: 760px; display: block; object-fit: contain; background: #101814; border-radius: 7px; }
+.render-quality-report { margin-top: 12px; }
+.render-report-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; color: #394c3f; font-size: 11px; }
+.render-report-heading a { color: #52745f; font-size: 9px; }
+.render-report-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.render-check { display: grid; gap: 4px; align-content: start; padding: 9px; border: 1px solid #e2e9e3; border-radius: 7px; background: #fff; }
+.render-check-status { width: fit-content; padding: 3px 5px; border-radius: 4px; color: #58695e; background: #edf1ed; font-size: 7px; font-weight: 800; letter-spacing: .4px; }
+.render-check-status.pass { color: #276a49; background: #e5f2e8; }
+.render-check-status.partial { color: #8a641e; background: #fff2d8; }
+.render-check-status.not-assessed { color: #6c7280; background: #edf0f3; }
+.render-check strong { color: #48584e; font-size: 9px; }
+.render-check small, .render-limitations { color: #7d8981; font-size: 8px; line-height: 1.5; }
+.render-limitations { margin: 10px 0 0; }
 @media(max-width:620px){.template-format-grid{grid-template-columns:1fr;}}
 @media (max-width: 900px) { .workflow-layout { grid-template-columns: 1fr; } }
-@media (max-width: 620px) { .script-segments { grid-template-columns: 1fr; }.workflow-intake, .workflow-stages, .script-result-panel { padding: 15px; } }
+@media (max-width: 620px) { .script-segments, .render-report-grid { grid-template-columns: 1fr; }.workflow-intake, .workflow-stages, .script-result-panel { padding: 15px; } }

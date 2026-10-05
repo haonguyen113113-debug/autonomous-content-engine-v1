@@ -21,8 +21,7 @@ engine; do not copy credentials or personal voice recordings into Git.
    using a larger machine. Model weights remain in the machine's Ollama store.
 
 The engine sends script prompts only to the configured local Ollama endpoint.
-Its bounded workflow generates script drafts and asset-need suggestions; it does
-not render video.
+Its bounded workflow generates script drafts and asset-need suggestions.
 
 ## Optional local voice preview
 
@@ -53,9 +52,19 @@ content, local run records, and voice data are not part of the source repository
 Plan a separate approved backup/export path if those operational records need to
 move between PCs.
 
-## Video renderer boundary
+## Local video renderer
 
-Template timelines specify the visuals, event intervals, transitions, and effects
-that a renderer should execute. The renderer is a separate workflow component and
-is not included in the current implementation. Model installation does not provide
-video editing or rendering capability.
+Install the local FFmpeg runtime with `winget install --id Gyan.FFmpeg.Shared --exact`;
+make `ffmpeg` and `ffprobe` available on `PATH`, or set the machine-specific
+`FFMPEG_PATH` in `.env`. The Workflows page can render an 18-second silent visual
+template preview without voice/media, then emit an MP4 and a quality report under
+ignored `runtime/renders/`. Full-run rendering is gated on owner script approval
+and an owner-audited local voice preview. Voice reference recordings, voice outputs,
+rendered videos, and run records remain per-machine runtime data and are not
+committed to Git.
+
+The first renderer slice validates the output container, target aspect ratio,
+Vietnamese font, palette, and basic composition. It does not yet place selected
+Asset Library football media, align captions to phrase timing, or execute the
+complete declared transition/effect set. The JSON report identifies each such
+limit so a preview is not mistaken for a production-ready video.

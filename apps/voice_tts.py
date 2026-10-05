@@ -104,7 +104,7 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     reference = root / VOICE_DIR / profile["reference_file"]
     output_dir = root / VOICE_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_name = "voice-preview.wav"
+    output_name = f"{run_id}-voice-preview.wav"
     worker = root / "apps/tts_preview_worker.py"
     child_env = dict(os.environ)
     child_env["HF_HUB_DISABLE_TELEMETRY"] = "1"
