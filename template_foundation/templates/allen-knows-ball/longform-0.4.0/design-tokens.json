@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "lock_mode": "locked",
+  "palette": {
+    "ink": "#111721",
+    "deep_pitch": "#173C38",
+    "pitch_line": "#638C83",
+    "chalk": "#F0EBDD",
+    "muted": "#A9B2AA",
+    "signal_lime": "#E8C75A",
+    "signal_orange": "#F07862",
+    "warning_red": "#C9504A",
+    "team_home": "#42C7B2",
+    "team_away": "#F07862"
+  },
+  "typography": {
+    "display": {
+      "family": "Be Vietnam Pro",
+      "weights": [
+        600,
+        700
+      ],
+      "use": "Vietnamese hooks, short titles, captions and narration text."
+    },
+    "latin_auxiliary": {
+      "family": "Barlow Condensed",
+      "weights": [
+        600,
+        700
+      ],
+      "use": "Chapter numerals, short Latin labels and time figures only."
+    },
+    "body": {
+      "family": "Be Vietnam Pro",
+      "weights": [
+        400,
+        600,
+        700
+      ],
+      "use": "Vietnamese narration captions, evidence labels and source credit."
+    },
+    "rules": [
+      "Sentence case for Vietnamese headlines.",
+      "Use condensed display face only for the English wordmark and short Latin labels.",
+      "Keep Vietnamese diacritics intact; never synthesize bold for body copy.",
+      "On-screen copy is sparse and explanatory; do not transcribe the narration."
+    ]
+  },
+  "layout": {
+    "safe_area_percent": {
+      "top": 9,
+      "bottom": 13,
+      "left": 7,
+      "right": 7
+    },
+    "host_share": "Narrative is carried by voice. Visual evidence owns the frame when it clarifies the point.",
+    "caption_anchor": "No persistent subtitles; use the frame for authored diagrams or approved media.",
+    "evidence_card": "One sourced claim when needed; match diagrams and media remain the visual focus.",
+    "visual_signature": "Match dossier: stable midnight-ink and warm-paper identity, contextual team colors, adaptable pitch tint, editorial chapter marks, and multiple evidence-specific graphics. No generic dashboard card."
+  },
+  "motion": {
+    "default_easing": "Smooth ease-in-out with a decisive stop.",
+    "transition_duration_seconds": [
+      0.2,
+      0.36
+    ],
+    "max_signature_transitions_per_video": 2,
+    "micro_motion": "Use one eased ball movement per authored pass; stop at the receiver. Change visual mode with the story: field evidence, tactical plate, and a quiet chapter card. No looping motion."
+  },
+  "audio": {
+    "narration": "Primary and intelligible; music and effects duck under speech.",
+    "signature_cue": "Original two-note, dry percussive/electronic mark; no stock broadcast whistle or copied club anthem.",
+    "music": "Optional low-energy bed; never required and never louder than speech."
+  },
+  "prohibited_effects": [
+    "glitch",
+    "screen shake",
+    "rapid flashing",
+    "fake live broadcast lower-thirds",
+    "fake scoreboard branding",
+    "unlicensed club crests",
+    "uncited stat graphics"
+  ],
+  "research_basis": {
+    "Tifo_Football": "Use illustration and animation to make one complex idea legible; do not copy its hand-drawn character style.",
+    "Independent_ACFC": "Pair a clear analysis claim with a match or player focal point and tactical context.",
+    "Premier_League_Breakdown": "Color-code the subject, movement path, and target zone so overlays explain the evidence.",
+    "adaptation": "An original Vietnamese-first editorial dossier: warm restrained accents, chapter numbering, asymmetrical evidence layout, real approved media slots, and simple authored tactical plates."
+  },
+  "version": "0.4.0"
+}

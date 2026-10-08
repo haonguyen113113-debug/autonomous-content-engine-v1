@@ -1,0 +1,53 @@
+{
+  "template_id": "allen-knows-ball.shortform-analyst",
+  "channel_id": "allen-knows-ball",
+  "version": "0.7.0",
+  "status": "draft",
+  "description": "Three purpose-built football evidence graphics: head-to-head statline, plotted data chart, and archival source note; each adapts to portrait 9:16.",
+  "market": "VN",
+  "locale": "vi-VN",
+  "category": "soccer",
+  "content_owner": "Allen Knows Ball",
+  "output": {
+    "media_type": "video",
+    "aspect_ratio": "9:16",
+    "width": 1080,
+    "height": 1920,
+    "frame_rate": 30,
+    "color_space": "SDR Rec.709",
+    "audio_sample_rate_hz": 48000
+  },
+  "duration_seconds": {
+    "target": 45,
+    "minimum": 30,
+    "maximum": 58
+  },
+  "primary_publishing_shape": "Short-form vertical video; platform publishing and platform-specific adaptations are not configured in this package.",
+  "renderer_requirement": "Use large expressive Vietnamese hooks, condensed numeric display type, tactile but purposeful pitch marks, layered color and restrained kinetic motion. Select tactical, statline, source, and chart plates by story beat; omit subtitles and use only reviewed evidence. Keep statline, chart, and source graphics on their own compositions: head-to-head split scoreboard; labeled zero-baseline chart; archival pull-quote source note.",
+  "font_resources": [
+    "resources/fonts/BeVietnamPro-Regular.ttf",
+    "resources/fonts/BeVietnamPro-SemiBold.ttf",
+    "resources/fonts/BeVietnamPro-Bold.ttf",
+    "resources/fonts/BarlowCondensed-SemiBold.ttf",
+    "resources/fonts/BarlowCondensed-Bold.ttf"
+  ],
+  "required_input_slots": [
+    "hook",
+    "match_or_topic",
+    "one_core_claim",
+    "evidence",
+    "host_analysis",
+    "takeaway"
+  ],
+  "fixed_components": [
+    "visual_identity",
+    "typography",
+    "opening_behavior",
+    "closing_behavior",
+    "transition_set",
+    "effect_set",
+    "sound_cue_spec"
+  ],
+  "change_policy": "No per-content edits to locked design. Changes require a new package version and explicit owner review.",
+  "slot_contract": "slot-contract.json"
+}

@@ -20,6 +20,9 @@ class TemplatePackage:
     timeline: dict[str, Any]
     story_forms: dict[str, Any]
     slots: dict[str, Any]
+    visual_modes: dict[str, Any]
+    graphic_templates: dict[str, Any]
+    color_systems: dict[str, Any]
     licenses: dict[str, Any]
 
 
@@ -31,6 +34,10 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise TemplateFoundationError(f"Template package file must contain an object: {path.name}")
     return value
+
+
+def _read_optional_json(path: Path) -> dict[str, Any]:
+    return _read_json(path) if path.is_file() else {}
 
 
 def resolve_template(
@@ -80,5 +87,8 @@ def resolve_template(
         timeline=_read_json(package_root / "timeline.json"),
         story_forms=_read_json(package_root / "story-forms.json"),
         slots=_read_json(package_root / "slot-contract.json"),
+        visual_modes=_read_optional_json(package_root / "visual-modes.json"),
+        graphic_templates=_read_optional_json(package_root / "graphic-templates.json"),
+        color_systems=_read_optional_json(package_root / "color-systems.json"),
         licenses=_read_json(package_root / "LICENSES.json"),
     )

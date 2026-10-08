@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "template_version": "0.5.0",
+  "selection_rule": "Select a graphic by the evidence task for each story beat. Tactical diagrams are one option, never the default for every beat.",
+  "layouts": [
+    {"id": "tactical_explainer", "purpose": "Explain a tactical mechanism or space.", "required_data": ["tactical_diagram"], "limits": {"one_primary_vector": true}},
+    {"id": "statline_scorecard", "purpose": "Compare up to five sourced team or player metrics.", "required_data": ["graphic_data.metrics", "graphic_data.source", "graphic_data.date"], "limits": {"maximum_metrics": 5, "teams": 2}},
+    {"id": "source_card", "purpose": "Give a citation visual a clear role in the narrative.", "required_data": ["graphic_data.source", "graphic_data.date", "graphic_data.claim"]},
+    {"id": "chart_comparison", "purpose": "Compare sourced numeric values with direct labels and a zero baseline.", "required_data": ["graphic_data.values", "graphic_data.source", "graphic_data.date"], "limits": {"maximum_values": 6}},
+    {"id": "chart_timeline", "purpose": "Show a sourced sequence of values over ordered match moments or dates.", "required_data": ["graphic_data.values", "graphic_data.source", "graphic_data.date"], "limits": {"maximum_values": 6}}
+  ],
+  "data_integrity": ["Only render values supplied by reviewed evidence.", "Missing source or values means omit the numeric visualization.", "Show labels and source attribution; color alone never encodes meaning.", "Radar charts require normalized comparable data and benchmark information."]
+}
+

@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "visual_system": "locked by design-tokens.json and timeline.json",
+  "forms": [
+    {
+      "id": "one-moment-one-read",
+      "label_vi": "Một tình huống, một góc nhìn",
+      "use_for": [
+        "post-match tactical moment",
+        "controversial decision with verified context"
+      ],
+      "target_seconds": 40,
+      "arc": [
+        "hook on the moment",
+        "one-sentence match context",
+        "what most viewers saw",
+        "what Allen reads differently",
+        "evidence/counterpoint",
+        "takeaway and question"
+      ],
+      "must_have": [
+        "match identity",
+        "time/source for the moment",
+        "at least one observable reason"
+      ],
+      "asset_slots": [
+        "optional rights-cleared match still or user-supplied frame"
+      ]
+    },
+    {
+      "id": "explain-the-pattern",
+      "label_vi": "Giải thích một ý chiến thuật",
+      "use_for": [
+        "evergreen tactical idea",
+        "team pattern across more than one match"
+      ],
+      "target_seconds": 50,
+      "arc": [
+        "provocative but fair question",
+        "state one pattern",
+        "show the setup",
+        "explain the mechanism",
+        "give a counterexample or limit",
+        "one-sentence takeaway"
+      ],
+      "must_have": [
+        "claim bounded to evidence",
+        "source/date for each match example"
+      ],
+      "asset_slots": [
+        "optional approved match imagery",
+        "fixed authored pitch-board overlay"
+      ]
+    },
+    {
+      "id": "player-role-read",
+      "label_vi": "Cầu thủ và vai trò",
+      "use_for": [
+        "player role or performance analysis",
+        "team structure around one player"
+      ],
+      "target_seconds": 45,
+      "arc": [
+        "clear opinion about the role",
+        "team/match context",
+        "one strength",
+        "one limitation or trade-off",
+        "why it matters next",
+        "takeaway"
+      ],
+      "must_have": [
+        "avoid judging from one statistic",
+        "distinguish role from reputation",
+        "source context"
+      ],
+      "asset_slots": [
+        "optional rights-cleared player image or clip"
+      ]
+    }
+  ],
+  "always_on_rules": [
+    "One video answers one question.",
+    "The opening is a point of view, not a loud superlative.",
+    "Use evidence before the strongest conclusion.",
+    "A sourced correction takes priority over defending an earlier take.",
+    "Do not manufacture current match visuals with an unrelated library asset."
+  ]
+}

@@ -174,9 +174,20 @@ def _ollama_draft(
         "Sound conversational, specific, calm, and human; avoid broadcast clichés and forced CTAs. "
         "Only state football facts supported by supplied evidence. Never invent match details, "
         "statistics, quotes, or sources. Return only a JSON object with a segments array; "
-        "each segment has id, narration, visual, and evidence_refs. Include asset_needs as a list "
+        "each segment has id, narration, visual, evidence_refs, and visual_mode selected from "
+        "tactical_explainer, statline_scorecard, source_card, chart_comparison, chart_timeline. "
+        "Use a data visual only when its values and source are explicitly present in supplied evidence. "
+        "For statline_scorecard include graphic_data.metrics (label, home, away). For charts include "
+        "graphic_data with headline, source, date, values (label, value), and chart_type selected from "
+        "bar, column, pie, donut, line. Use bar for ranked/category comparisons with long labels; use column "
+        "for a few discrete category comparisons; use line only for ordered observations over match time or "
+        "dates, with visual_mode chart_timeline. Use pie or donut ONLY when categories are mutually exclusive "
+        "parts of one known whole, set part_to_whole=true, and show no more than four categories; otherwise "
+        "choose bar or column. Never choose radar unless comparable normalized metrics and an explicit benchmark "
+        "are supplied. Never estimate or invent missing values, units, order, dates, or sources. Include asset_needs as a list "
         "of only variable real media that materially improves this exact topic; each need has "
-        "resource_type (image or video), purpose (match_analysis_evidence or player_context), "
+        "resource_type (image or video), purpose (match_analysis_evidence, player_context, or visual_context "
+        "for venue/atmosphere only; never represent contextual media as exact-match evidence), "
         "quantity (1-3), query, exact_context, and reason. Use an empty list when the locked "
         "authored pitch-board is enough. If evidence is insufficient, "
         "write a clear [CẦN NGUỒN] placeholder instead of an assertion. "
@@ -246,6 +257,8 @@ def _ollama_draft(
                     "narration": _normalise(narration),
                     "visual": _normalise(str(item.get("visual", "Host analysis"))),
                     "evidence_refs": item.get("evidence_refs", []),
+                    "visual_mode": item.get("visual_mode", "tactical_explainer"),
+                    "graphic_data": item.get("graphic_data", {}) if isinstance(item.get("graphic_data"), dict) else {},
                     "duration_seconds": max(1, min(int(item.get("duration_seconds", 8)), 900)),
                     "timeline_events": item.get("timeline_events", []),
                 }
@@ -257,7 +270,7 @@ def _ollama_draft(
             resource_type = item.get("resource_type")
             purpose = item.get("purpose")
             if resource_type not in {"image", "video"} or purpose not in {
-                "match_analysis_evidence", "player_context"
+                "match_analysis_evidence", "player_context", "visual_context"
             }:
                 continue
             query = _normalise(str(item.get("query", "")))[:250]
@@ -291,6 +304,7 @@ def create_script_draft(
     story_form_id: str,
     evidence_text: str = "",
     content_type: str = "short",
+    colorway: str = "match-night",
 ) -> dict[str, Any]:
     topic = _normalise(topic)
     if len(topic) < 4 or len(topic) > 500:
@@ -301,6 +315,9 @@ def create_script_draft(
     if template_id is None:
         raise ValueError("Content type must be either short or long.")
     package = resolve_template(root, template_id, allow_draft=True)
+    supported_colorways = {item.get("id") for item in package.color_systems.get("colorways", [])}
+    if colorway not in supported_colorways:
+        raise ValueError("Colorway is not included in the selected template package.")
     forms = package.story_forms.get("forms", [])
     form = next((item for item in forms if item.get("id") == story_form_id), None)
     if form is None:
@@ -379,6 +396,7 @@ def create_script_draft(
     result["content_type"] = content_type
     result["template_id"] = template_id
     result["template_version"] = package.manifest["version"]
+    result["colorway"] = colorway
     result["timeline"] = package.timeline
     result["chapter_events"] = chapter_events
     result["timeline_events"] = [event for segment in segments for event in segment["timeline_events"]] + chapter_events
@@ -392,11 +410,12 @@ def run_content_agent(
     story_form_id: str,
     evidence_text: str = "",
     content_type: str = "short",
+    colorway: str = "match-night",
 ) -> dict[str, Any]:
     """Run the bounded local agent and stop before owner-controlled actions."""
     from apps.voice_tts import voice_profile_status
 
-    draft = create_script_draft(root, topic, story_form_id, evidence_text, content_type)
+    draft = create_script_draft(root, topic, story_form_id, evidence_text, content_type, colorway)
     checks: list[dict[str, Any]] = []
     conn = connect(db_path)
     try:

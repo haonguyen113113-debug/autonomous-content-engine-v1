@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "template_version": "0.7.0",
+  "selection_rule": "Choose the mode that best proves the story beat. Do not show the tactical plate on every beat.",
+  "modes": [
+    {
+      "id": "opening_question",
+      "purpose": "Establish the episode question and stakes.",
+      "preferred_visual": "owner-approved exact-context match still or player portrait",
+      "fallback": "typographic question on an editorial colorway"
+    },
+    {
+      "id": "match_evidence",
+      "purpose": "Show the exact passage being discussed.",
+      "preferred_visual": "owner-approved still or rights-cleared clip",
+      "fallback": "source card or explicitly illustrative tactical plate"
+    },
+    {
+      "id": "tactical_explainer",
+      "purpose": "Explain a tactical structure or mechanism.",
+      "preferred_visual": "authored landscape pitch plate with context-aware team colors",
+      "fallback": "labeled diagram; no false match context"
+    },
+    {
+      "id": "statline_scorecard",
+      "purpose": "Compare a compact set of sourced team or player metrics.",
+      "preferred_visual": "split head-to-head scoreboard with mirrored team columns, large direct values, and compact paired comparison bars",
+      "fallback": "source card if values are missing"
+    },
+    {
+      "id": "source_card",
+      "purpose": "Make the evidence trail visible when the argument depends on a source.",
+      "preferred_visual": "archival paper pull-quote on an ink field with publication, date, claim, and traceable URL",
+      "fallback": "source-needed marker without factual assertion"
+    },
+    {
+      "id": "chart_comparison",
+      "purpose": "Compare numeric evidence.",
+      "preferred_visual": "light plotting sheet with labeled zero baseline, scaled horizontal marks, axis ticks, and direct value labels",
+      "fallback": "source card if data is incomplete"
+    },
+    {
+      "id": "chart_timeline",
+      "purpose": "Show a sourced measure changing across ordered match moments or dates.",
+      "preferred_visual": "light plotting sheet with a chronological line, labeled observations, event moments, and source attribution",
+      "fallback": "source card if order or values are missing"
+    },
+    {
+      "id": "conclusion",
+      "purpose": "Return to Allen's bounded reading of the evidence.",
+      "preferred_visual": "quiet branded close or approved host media",
+      "fallback": "one-sentence takeaway and fixed channel signature"
+    }
+  ],
+  "annotation_rules": [
+    "Every annotation and value must be supported by reviewed evidence.",
+    "Library discoveries require owner choice before use.",
+    "Team colors are contextual; channel wordmark, typography, and identity neutrals stay stable.",
+    "Color must be paired with labels or direct values; do not use color alone to encode meaning.",
+    "No persistent subtitles or fabricated scorebug styling."
+  ]
+}

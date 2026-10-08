@@ -63,8 +63,13 @@ and an owner-audited local voice preview. Voice reference recordings, voice outp
 rendered videos, and run records remain per-machine runtime data and are not
 committed to Git.
 
-The first renderer slice validates the output container, target aspect ratio,
-Vietnamese font, palette, and basic composition. It does not yet place selected
-Asset Library football media, align captions to phrase timing, or execute the
-complete declared transition/effect set. The JSON report identifies each such
-limit so a preview is not mistaken for a production-ready video.
+Install the renderer's Python dependency with `python -m pip install -r requirements-renderer.txt`.
+It rasterizes Vietnamese-labeled tactical boards with pitch geometry, player markers,
+directional vectors, and an animated ball.
+
+The renderer validates the output container, target aspect ratio, Vietnamese
+font, palette, full-pitch tactical markings, authored pass/run/press vectors,
+and beat-by-beat ball motion. It does not yet place selected Asset Library
+football media or execute the complete declared transition/effect set. The
+JSON report identifies each such limit so a preview is not mistaken for a
+production-ready video.

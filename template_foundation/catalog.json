@@ -19,11 +19,109 @@
       "path": "templates/allen-knows-ball/0.1.0"
     },
     {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.2.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.2.0"
+    },
+    {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.3.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.3.0"
+    },
+    {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.4.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.4.0"
+    },
+    {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.5.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.5.0"
+    },
+    {
       "template_id": "allen-knows-ball.longform-analyst",
       "channel_id": "allen-knows-ball",
       "version": "0.1.0",
       "status": "draft",
       "path": "templates/allen-knows-ball/longform-0.1.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.2.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.2.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.3.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.3.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.4.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.4.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.5.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.5.0"
+    },
+    {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.6.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.6.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.6.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.6.0"
+    },
+    {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.7.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.7.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.7.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.7.0"
+    },
+    {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.8.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.8.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.8.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.8.0"
     }
   ]
 }

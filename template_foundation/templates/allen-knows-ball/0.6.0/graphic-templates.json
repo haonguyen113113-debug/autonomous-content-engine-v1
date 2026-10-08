@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "template_version": "0.6.0",
+  "selection_rule": "Select a graphic by the evidence task for each story beat. Tactical diagrams are one option, never the default for every beat.",
+  "layouts": [
+    {
+      "id": "tactical_explainer",
+      "purpose": "Explain a shape, run, press, or available space.",
+      "required_data": [
+        "tactical_diagram"
+      ],
+      "sourcing": "The authored illustrative pitch is labeled as a diagram; match footage remains a separate approved asset."
+    },
+    {
+      "id": "statline_scorecard",
+      "purpose": "Compare a small number of sourced team or player metrics.",
+      "required_data": [
+        "graphic_data.metrics",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_metrics": 5,
+        "teams": 2
+      }
+    },
+    {
+      "id": "source_card",
+      "purpose": "Show where a claim or dataset came from and when it was published.",
+      "required_data": [
+        "graphic_data.source",
+        "graphic_data.date",
+        "graphic_data.claim"
+      ],
+      "limits": {
+        "maximum_claim_lines": 4
+      }
+    },
+    {
+      "id": "chart_comparison",
+      "purpose": "Compare numeric values with a paired, labeled horizontal bar display.",
+      "required_data": [
+        "graphic_data.values",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_values": 6,
+        "zero_baseline": true
+      }
+    },
+    {
+      "id": "chart_timeline",
+      "purpose": "Show sourced values changing across ordered match moments or dates.",
+      "required_data": [
+        "graphic_data.values",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_values": 6,
+        "ordered_labels_required": true
+      }
+    }
+  ],
+  "data_integrity": [
+    "Only render values supplied by reviewed evidence.",
+    "Missing source or values means omit the numeric visualization and use a source-needed editorial card.",
+    "Show value labels and source attribution; color alone never encodes meaning.",
+    "No radar chart unless normalized comparable data and its benchmark are explicitly provided."
+  ],
+  "previews": "Renderer-exported PNGs for statline, comparison chart and source layouts are provided in previews/; numeric content is illustrative only."
+}

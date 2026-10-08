@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "template_version": "0.3.0",
+  "selection_rule": "Choose the mode that best proves the story beat. Do not show the tactical plate on every beat.",
+  "modes": [
+    {
+      "id": "opening_question",
+      "purpose": "Establish the hook and the match or player at stake.",
+      "preferred_visual": "owner-approved exact-context match still or player portrait from Asset Library",
+      "composition": "one dominant image, one brief Vietnamese headline, restrained channel mark",
+      "fallback": "typographic question on the template's editorial backdrop"
+    },
+    {
+      "id": "match_evidence",
+      "purpose": "Show what happened in the exact passage being discussed.",
+      "preferred_visual": "owner-approved exact-context still or user-supplied rights-cleared clip",
+      "composition": "full-frame source media; one hand-placed focus marker and at most two movement annotations; source/date retained",
+      "fallback": "authored tactical plate, explicitly labeled as an illustrative diagram"
+    },
+    {
+      "id": "tactical_explainer",
+      "purpose": "Explain a shape, run, pressing trigger, or passing option that match footage alone does not make legible.",
+      "preferred_visual": "authored pitch plate in the selected aspect ratio",
+      "composition": "one focal player or space, one primary vector, sparse secondary vectors, no looping ball motion"
+    },
+    {
+      "id": "evidence_note",
+      "purpose": "Make one sourced comparison or statistic legible.",
+      "preferred_visual": "single comparison card with source and date",
+      "composition": "one finding, no decorative number cluster; omit the card if the claim has no verified source"
+    },
+    {
+      "id": "conclusion",
+      "purpose": "Return to Allen's bounded reading of the evidence.",
+      "preferred_visual": "approved host media when supplied; otherwise quiet branded close",
+      "composition": "one-sentence takeaway and fixed channel signature; no forced call to action"
+    }
+  ],
+  "annotation_rules": [
+    "Every annotation must be supported by the reviewed script and its evidence.",
+    "A discovery result is never automatically saved or used.",
+    "Do not imitate a broadcast score bug, club crest, or another channel's distinctive illustration package.",
+    "Keep narration subtitles off; add a short label only when it contributes information beyond the voice."
+  ]
+}

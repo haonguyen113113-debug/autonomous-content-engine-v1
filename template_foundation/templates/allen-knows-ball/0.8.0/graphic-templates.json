@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0",
+  "template_version": "0.8.0",
+  "selection_rule": "Select the evidence graphic and chart geometry by analytic purpose; chart types are not locked to a single layout.",
+  "layouts": [
+    {
+      "id": "tactical_explainer",
+      "purpose": "Explain a shape, run, press, or available space.",
+      "required_data": [
+        "tactical_diagram"
+      ],
+      "sourcing": "The authored illustrative pitch is labeled as a diagram; match footage remains a separate approved asset."
+    },
+    {
+      "id": "statline_scorecard",
+      "purpose": "Compare a small number of sourced team or player metrics.",
+      "required_data": [
+        "graphic_data.metrics",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_metrics": 5,
+        "teams": 2
+      }
+    },
+    {
+      "id": "source_card",
+      "purpose": "Show where a claim or dataset came from and when it was published.",
+      "required_data": [
+        "graphic_data.source",
+        "graphic_data.date",
+        "graphic_data.claim"
+      ],
+      "limits": {
+        "maximum_claim_lines": 4
+      }
+    },
+    {
+      "id": "chart_comparison",
+      "purpose": "Compare sourced numeric values using the geometry best suited to the categories and labels.",
+      "required_data": [
+        "graphic_data.values",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_values": 6,
+        "zero_baseline": true
+      },
+      "preferred_chart_types": [
+        "bar",
+        "column",
+        "pie",
+        "donut"
+      ],
+      "chart_type_rules": {
+        "bar": "Ranked values or long category labels; zero baseline required.",
+        "column": "A small set of discrete category comparisons; zero baseline required.",
+        "pie/donut": "Only mutually exclusive parts of a known whole; part_to_whole=true; two to four categories."
+      }
+    },
+    {
+      "id": "chart_timeline",
+      "purpose": "Show sourced values changing across ordered match moments or dates using a line chart.",
+      "required_data": [
+        "graphic_data.values",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_values": 6,
+        "ordered_labels_required": true
+      },
+      "preferred_chart_types": [
+        "line"
+      ]
+    }
+  ],
+  "data_integrity": [
+    "Only render values supplied by reviewed evidence.",
+    "Missing source or values means omit the numeric visualization and use a source-needed editorial card.",
+    "Show value labels and source attribution; color alone never encodes meaning.",
+    "No radar chart unless normalized comparable data and its benchmark are explicitly provided."
+  ],
+  "previews": "Renderer-exported examples in previews/ are illustrative and use no real match or citation.",
+  "layout_grammar": {
+    "statline_scorecard": {
+      "composition": "Dark split scoreboard; two teams face inward across centered metric labels.",
+      "visual_encoding": "Large paired values plus mirrored within-row strokes; labels and source remain explicit.",
+      "best_for": "A compact head-to-head of comparable team/player metrics."
+    },
+    "chart_comparison": {
+      "composition": "Warm editorial plotting sheet with restrained registration marks, takeaway-first title, and geometry selected by data meaning.",
+      "visual_encoding": "Bar: horizontal rank/comparison; column: compact discrete comparison; pie/donut: labeled parts of a verified whole. Axes and direct values are visible where applicable.",
+      "best_for": "Comparisons whose category/part-whole semantics match the selected chart type."
+    },
+    "chart_timeline": {
+      "composition": "Warm plotting sheet with a chronological line, subtle underlay, and event points.",
+      "visual_encoding": "Ordered labels, direct values, visible scale guides, and source note.",
+      "best_for": "Sourced values across ordered match moments or dates."
+    },
+    "source_card": {
+      "composition": "Archival paper insert over an ink field, with an oversized quote mark and clipped corner.",
+      "visual_encoding": "Publication and date precede the highlighted claim; URL sits in its own traceability strip.",
+      "best_for": "Giving a claim visible provenance without pretending the source is match footage."
+    }
+  },
+  "chart_type_contract": {
+    "field": "graphic_data.chart_type",
+    "options": [
+      "bar",
+      "column",
+      "pie",
+      "donut",
+      "line"
+    ],
+    "defaults": {
+      "chart_comparison": "bar",
+      "chart_timeline": "line"
+    },
+    "integrity_rules": [
+      "line requires ordered time/date observations",
+      "pie and donut require part_to_whole=true and 2-4 non-negative values",
+      "invalid pie/donut input safely falls back to a zero-based bar",
+      "radar is excluded unless normalized comparable values and benchmark are explicit"
+    ]
+  }
+}

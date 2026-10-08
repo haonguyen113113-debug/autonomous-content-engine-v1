@@ -361,6 +361,7 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
         content_type: form.get("content_type"),
         story_form: form.get("story_form"),
         evidence: String(form.get("evidence") || "").normalize("NFC"),
+        colorway: form.get("colorway"),
       }),
     });
     const result = await response.json();

@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "template_version": "0.8.0",
+  "shared_identity": [
+    "Allen Knows Ball wordmark",
+    "Be Vietnam Pro body",
+    "Barlow Condensed display",
+    "team-aware accent colors",
+    "source/date attribution"
+  ],
+  "distinct_layouts": {
+    "statline_scorecard": {
+      "surface": "Ink-dark scorecard with team-colored split header",
+      "reading_order": [
+        "teams",
+        "centered metric label",
+        "paired values",
+        "within-metric comparison cue",
+        "source/date"
+      ],
+      "avoid": "Do not wrap every row in identical tiles; preserve the mirrored head-to-head structure."
+    },
+    "chart_comparison": {
+      "surface": "Warm paper plotting canvas",
+      "reading_order": [
+        "takeaway headline",
+        "category labels",
+        "zero baseline and tick labels",
+        "scaled marks",
+        "direct values",
+        "source/date"
+      ],
+      "avoid": "Do not use scorecard panels or decorative bars without an axis."
+    },
+    "chart_timeline": {
+      "surface": "Warm paper chronological plot",
+      "reading_order": [
+        "takeaway headline",
+        "time axis",
+        "ordered line and event points",
+        "direct values",
+        "source/date"
+      ],
+      "avoid": "Do not flatten a sequence into unordered comparison bars."
+    },
+    "source_card": {
+      "surface": "Ink dossier with a clipped warm-paper citation insert",
+      "reading_order": [
+        "publisher/dataset",
+        "publication date",
+        "quoted claim",
+        "traceable URL"
+      ],
+      "avoid": "Do not style a citation like a data chart or imply a source supports claims beyond the cited statement."
+    }
+  },
+  "chart_family": {
+    "types": [
+      "bar",
+      "column",
+      "pie",
+      "donut",
+      "line"
+    ],
+    "selection": "The data question determines chart type; never render all comparisons as a single fixed chart.",
+    "part_to_whole": "Pie/donut only for an evidenced mutually exclusive whole, with 2-4 non-negative parts.",
+    "time_series": "Line only for ordered times/dates; preserve chronological order.",
+    "comparison": "Bar for ranking/long labels; columns for a small number of discrete categories.",
+    "accessibility": "Pair color with labels and direct values; expose source/date; retain a zero baseline for bars and columns."
+  }
+}

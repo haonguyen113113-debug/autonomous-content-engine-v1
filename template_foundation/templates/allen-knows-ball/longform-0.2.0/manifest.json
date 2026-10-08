@@ -1,0 +1,58 @@
+{
+  "template_id": "allen-knows-ball.longform-analyst",
+  "channel_id": "allen-knows-ball",
+  "version": "0.2.0",
+  "status": "draft",
+  "description": "A creator-led Vietnamese soccer analysis foundation for evidence-led long-form episodes.",
+  "market": "VN",
+  "locale": "vi-VN",
+  "category": "soccer",
+  "content_owner": "Allen Knows Ball",
+  "content_type": "long",
+  "output": {
+    "media_type": "video",
+    "aspect_ratio": "16:9",
+    "width": 1920,
+    "height": 1080,
+    "frame_rate": 30,
+    "color_space": "SDR Rec.709",
+    "audio_sample_rate_hz": 48000
+  },
+  "duration_seconds": {
+    "target": 720,
+    "minimum": 480,
+    "maximum": 1200
+  },
+  "primary_publishing_shape": "Long-form Vietnamese soccer analysis; platform publishing and platform-specific adaptations are not configured in this package.",
+  "renderer_requirement": "Use the bundled Vietnamese type system, tonal pitch backdrop, orientation-correct tactical geometry, numbered shirt markers, story-specific focal-player accents, and sparse on-screen copy. No persistent narration subtitles. Keep real media in approved Asset Library slots.",
+  "font_resources": [
+    "resources/fonts/BeVietnamPro-Regular.ttf",
+    "resources/fonts/BeVietnamPro-SemiBold.ttf",
+    "resources/fonts/BeVietnamPro-Bold.ttf",
+    "resources/fonts/BarlowCondensed-SemiBold.ttf",
+    "resources/fonts/BarlowCondensed-Bold.ttf"
+  ],
+  "required_input_slots": [
+    "opening_question",
+    "thesis",
+    "context_and_scope",
+    "evidence_blocks",
+    "tactical_explanation",
+    "counter_reading",
+    "conclusion",
+    "sources"
+  ],
+  "fixed_components": [
+    "visual_identity",
+    "typography",
+    "opening_behavior",
+    "closing_behavior",
+    "transition_set",
+    "effect_set",
+    "sound_cue_spec",
+    "chapter_markers",
+    "source_cards"
+  ],
+  "change_policy": "No per-content edits to locked design. Changes require a new package version and explicit owner review.",
+  "slot_contract": "slot-contract.json"
+}

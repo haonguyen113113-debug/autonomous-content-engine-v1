@@ -10,7 +10,7 @@ The `allen-knows-ball.shortform-analyst` package has three fixed story forms und
 
 ## Package status
 
-Version `0.1.0` is **draft for owner audit**. It is previewable but not production-resolvable. Change `status` to `released` in both catalog and package manifest only after the owner approves this design. Released package directories are immutable; edits create a new version.
+Short and long-form versions `0.1.0` through `0.4.0` remain available as **draft for owner audit**. Version `0.5.0` builds on the four colorways and evidence-specific graphics with expressive Vietnamese headline hierarchy, condensed display numerals, angular match annotations, tactile texture, and brief kinetic reveals. Numeric layouts use only reviewed evidence and retain visible source attribution. Version `0.5.0` is a draft preview, not production-resolvable. Released package directories are immutable; edits create a new version.
 
 `registry.resolve_template(root, template_id)` resolves released packages only. `allow_draft=True` is reserved for preview and owner review. The web UI's Templates page shows the draft label and the visual preview.
 
@@ -18,11 +18,14 @@ Version `0.1.0` is **draft for owner audit**. It is previewable but not producti
 
 - `catalog.json`: channel/template identities and lifecycle state.
 - `channels/allen-knows-ball/channel.json`: Vietnamese audience promise, host point of view, voice and editorial rules.
-- `templates/allen-knows-ball/0.1.0/design-tokens.json`: fixed palette, type, layout, motion, and audio direction.
+- `templates/allen-knows-ball/0.5.0/design-tokens.json`: Vietnamese headline roles, condensed stat numerals, motion, and touchline editorial language.
+- `templates/allen-knows-ball/0.5.0/color-systems.json`: stable identity neutrals, four selectable colorways, team color behavior, and contrast rules.
+- `graphic-templates.json`: use constraints and required evidence for tactical, statline, source, and chart layouts.
+- `visual-modes.json`: story-led rules for openings, match evidence, tactical explanation, sourced metrics, citations, charts, and conclusion; exact-context media requires owner selection.
 - `timeline.json` and `story-forms.json`: fixed production rhythm and the three soccer formats.
 - `slot-contract.json`: variable football media needs. Approved assets may fill these slots; package-owned elements are explicitly excluded from Asset Library requests.
 - `resources/`: wordmark and bundled open-licensed fonts with their OFL texts.
-- `preview.html`: locally rendered, self-contained design preview; its match scene is illustrative and contains no factual claim or match media.
+- `preview.html`: local visual review page for both aspect ratios, data graphic types, and colorways. Example numbers are explicitly labeled as illustrative; no match media is embedded.
 - `LICENSES.json`: third-party font and future match-media policy.
 
 No match footage, player likeness, club crest, competition mark, or music is included. Variable football media still goes through Asset Library provenance and the human choice gate.

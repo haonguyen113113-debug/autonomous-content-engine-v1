@@ -25,7 +25,7 @@ from apps.asset_library.discovery import (
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.voice_tts import save_voice_reference, synthesize_voice_preview, voice_profile_status
-from apps.video_renderer import render_full_run, render_template_preview
+from apps.video_renderer import render_full_run, render_template_preview, render_graphic_template_previews
 from template_foundation import resolve_template
 
 
@@ -40,6 +40,25 @@ TEMPLATE_ID = "allen-knows-ball.shortform-analyst"
 LONG_TEMPLATE_ID = "allen-knows-ball.longform-analyst"
 TEMPLATE_FILES = {
     "/template-foundation/preview.html": ("preview.html", "text/html; charset=utf-8"),
+    "/template-foundation/previews/portrait-composite.png": (
+        "previews/composite-proof.png",
+        "image/png",
+    ),
+    "/template-foundation/previews/landscape-composite.png": (
+        "previews/composite-proof.png",
+        "image/png",
+    ),
+    **{
+        f"/template-foundation/previews/{prefix}-{name}.png": (
+            f"previews/{prefix}-{name}.png", "image/png",
+        )
+        for prefix in ("short", "long")
+        for name in (
+            "statline-preview", "chart-preview", "source-preview",
+            "chart-bar-preview", "chart-column-preview", "chart-pie-preview",
+            "chart-donut-preview", "chart-line-preview",
+        )
+    },
     "/template-foundation/resources/identity/akb-mark.svg": (
         "resources/identity/akb-mark.svg",
         "image/svg+xml",
@@ -180,6 +199,9 @@ def _template_foundation(db_path: Path) -> dict[str, Any]:
             "timeline": package.timeline,
             "story_forms": package.story_forms,
             "slots": package.slots,
+            "visual_modes": package.visual_modes,
+            "graphic_templates": package.graphic_templates,
+            "color_systems": package.color_systems,
         }
     return {"channel": packages["short"]["channel"], "templates": packages}
 
@@ -380,9 +402,15 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
 
             template_file = TEMPLATE_FILES.get(path)
             if template_file:
+                template_id = (
+                    LONG_TEMPLATE_ID
+                    if path == "/template-foundation/previews/landscape-composite.png"
+                    or path.startswith("/template-foundation/previews/long-")
+                    else TEMPLATE_ID
+                )
                 package = resolve_template(
                     db_path.parent.parent,
-                    TEMPLATE_ID,
+                    template_id,
                     allow_draft=True,
                 )
                 relative_path, content_type = template_file
@@ -500,6 +528,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         str(payload.get("story_form", "")),
                         str(payload.get("evidence", "")),
                         str(payload.get("content_type", "short")),
+                        str(payload.get("colorway", "match-night")),
                     )
                     self._send_json(result, HTTPStatus.CREATED)
                     return
