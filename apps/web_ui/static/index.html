@@ -66,9 +66,9 @@
 
           <div class="section-heading"><div><div class="eyebrow">SYSTEM SNAPSHOT</div><h2>Asset library</h2></div><button class="text-button" data-go="library">View library <span>→</span></button></div>
           <div class="metric-grid">
-            <article class="metric-card"><div class="metric-top"><span>Total assets</span><span class="metric-icon icon-violet">▤</span></div><strong id="metric-total">—</strong><small>Registered in this workspace</small></article>
-            <article class="metric-card"><div class="metric-top"><span>Rights verified</span><span class="metric-icon icon-green">✓</span></div><strong id="metric-verified">—</strong><small>Ready for eligible reuse</small></article>
-            <article class="metric-card"><div class="metric-top"><span>Active inventory</span><span class="metric-icon icon-blue">◉</span></div><strong id="metric-active">—</strong><small>Available for evaluation</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Total assets</span><span class="metric-icon icon-violet">▤</span></div><strong id="metric-total">—</strong><div class="metric-chart"><svg id="spark-total" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg></div><small id="delta-total">Registered in this workspace</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Rights verified</span><span class="metric-icon icon-green">✓</span></div><strong id="metric-verified">—</strong><div class="metric-chart"><svg id="spark-verified" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg></div><small id="delta-verified">Ready for eligible reuse</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Active inventory</span><span class="metric-icon icon-blue">◉</span></div><strong id="metric-active">—</strong><div class="metric-chart"><svg id="spark-active" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg></div><small id="delta-active">Available for evaluation</small></article>
             <article class="metric-card metric-card-accent"><div class="metric-top"><span>Next workflow</span><span class="metric-icon icon-lime">↗</span></div><strong class="metric-word">Resource check</strong><small>Evaluate a need against inventory</small></article>
           </div>
 
@@ -77,6 +77,35 @@
             <article class="flow-card flow-live"><div class="flow-icon">▤</div><div class="flow-state">AVAILABLE</div><h3>Asset inventory check</h3><p>Match a resource requirement against registered assets, rights, lifecycle, and context.</p><button class="text-button" data-go="library">Open tool <span>→</span></button></article>
             <article class="flow-card flow-live"><div class="flow-icon">⌕</div><div class="flow-state">AVAILABLE · IMAGES</div><h3>Web discovery &amp; approval</h3><p>Search across Openverse image collections. Review provider, source, and license data before deciding whether to save an image.</p><button class="text-button" data-go="library">Open tool <span>→</span></button></article>
             <article class="flow-card"><div class="flow-icon muted-icon">✦</div><div class="flow-state state-next">NEXT CONNECTION</div><h3>Content workflow</h3><p>Turn a content objective into resource needs, production steps, and a reviewable result.</p><button class="text-button" data-go="workflows">Open workflow <span>→</span></button></article>
+          </div>
+
+          <div class="section-heading section-heading-spaced"><div><div class="eyebrow">TRENDS &amp; PIPELINE</div><h2>Analytics</h2></div></div>
+          <div class="chart-grid">
+            <section class="panel chart-panel chart-wide">
+              <div class="panel-heading"><div><div class="eyebrow">TREND</div><h2>Asset growth</h2><p>Registered assets per day.</p></div>
+                <div class="range-tabs" role="group" aria-label="Chart range">
+                  <button class="range-tab" type="button" data-range="7">7D</button>
+                  <button class="range-tab active" type="button" data-range="14">14D</button>
+                  <button class="range-tab" type="button" data-range="30">30D</button>
+                </div>
+              </div>
+              <div class="chart-wrap"><svg id="chart-assets" viewBox="0 0 560 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Assets per day"></svg></div>
+              <div class="chart-empty" id="chart-assets-empty" hidden>No assets registered yet.</div>
+            </section>
+            <section class="panel chart-panel">
+              <div class="panel-heading"><div><div class="eyebrow">PIPELINE</div><h2>Runs by status</h2><p>All saved engine runs.</p></div></div>
+              <div class="donut-wrap"><svg id="chart-runs" viewBox="0 0 120 120" role="img" aria-label="Runs by status"></svg><div class="donut-legend" id="runs-legend"></div></div>
+              <div class="chart-empty" id="chart-runs-empty" hidden>No runs yet — create a video draft.</div>
+            </section>
+            <section class="panel chart-panel">
+              <div class="panel-heading"><div><div class="eyebrow">RIGHTS MIX</div><h2>Top licenses</h2><p>Most common licenses in inventory.</p></div></div>
+              <div class="hbar-list" id="license-bars"></div>
+              <div class="chart-empty" id="license-empty" hidden>No license data yet.</div>
+            </section>
+            <section class="panel chart-panel chart-wide">
+              <div class="panel-heading"><div><div class="eyebrow">LATEST ACTIVITY</div><h2>Recent runs</h2><p>Newest engine runs across short and long targets.</p></div><button class="text-button" data-go="runs">View all <span>→</span></button></div>
+              <div class="table-wrap"><table><thead><tr><th>Run</th><th>Topic</th><th>Type</th><th>Status</th><th>Media</th><th>Outputs</th></tr></thead><tbody id="recent-runs-rows"><tr><td colspan="6" class="empty-cell">No runs yet — create a video draft.</td></tr></tbody></table></div>
+            </section>
           </div>
         </section>
 
@@ -156,7 +185,13 @@
 
         <section class="view" id="view-sources"><div class="page-heading"><div><div class="eyebrow">EVIDENCE &amp; PROVENANCE</div><h1>Sources</h1><p class="page-subtitle">Registered sources and extracted evidence will appear here when the perception boundary is connected to the library workflow.</p></div></div><div class="empty-state panel"><div class="empty-illustration">◎</div><div class="eyebrow">NOT CONNECTED</div><h2>Source intake is not part of this UI slice yet</h2><p>The new perception boundary can characterize and extract from raw HTML or JSON. Source retrieval, persisted evidence, and approval actions still need to be wired into an engine run.</p></div></section>
 
-        <section class="view" id="view-runs"><div class="page-heading"><div><div class="eyebrow">EXECUTION</div><h1>Runs &amp; queue</h1><p class="page-subtitle">Track engine jobs, decisions, and human review points.</p></div></div><div class="empty-state panel"><div class="empty-illustration">◷</div><div class="eyebrow">NOT CONNECTED</div><h2>No persistent workflow runs to display</h2><p>The current worker is not connected to the Asset Library workflow. Run history will become useful once these steps share persistent execution state.</p></div></section>
+        <section class="view" id="view-runs">
+          <div class="page-heading"><div><div class="eyebrow">EXECUTION</div><h1>Runs &amp; queue</h1><p class="page-subtitle">Every saved engine run, newest first. Videos and reports open when rendered.</p></div><button class="button button-secondary" id="refresh-runs"><span>↻</span> Refresh</button></div>
+          <section class="panel runs-panel">
+            <div class="panel-heading inventory-heading"><div><div class="eyebrow">PIPELINE HISTORY</div><h2>All runs</h2><p>Status, media attachments, voice and render outputs.</p></div><div class="inventory-count" id="runs-count">— runs</div></div>
+            <div class="table-wrap"><table class="runs-table"><thead><tr><th>Run</th><th>Topic</th><th>Type</th><th>Status</th><th>Created</th><th>Seg</th><th>Media</th><th>Voice</th><th>Outputs</th></tr></thead><tbody id="run-rows"><tr><td colspan="9" class="empty-cell">Loading runs…</td></tr></tbody></table></div>
+          </section>
+        </section>
 
         <footer class="page-footer"><span>Autonomous Content Engine v1</span><span>Local-first · Human-reviewed acquisition</span></footer>
       </main>

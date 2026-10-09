@@ -249,6 +249,110 @@ def _assets(db_path: Path) -> list[dict[str, Any]]:
         conn.close()
 
 
+def _summarize_run(root: Path, path: Path) -> dict[str, Any] | None:
+    try:
+        run = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(run, dict):
+        return None
+    draft = run.get("draft", {})
+    if not isinstance(draft, dict):
+        draft = {}
+    segments = draft.get("segments", [])
+    if not isinstance(segments, list):
+        segments = []
+    media_count = sum(
+        1 for item in segments if isinstance(item, dict) and item.get("media_asset_id")
+    )
+    render_dir = root / "runtime/renders" / str(run.get("run_id", ""))
+    videos: dict[str, str] = {}
+    has_report = False
+    if render_dir.is_dir():
+        for name in ("template-preview.mp4", "visual-benchmark-silent.mp4", "full-render.mp4"):
+            if (render_dir / name).is_file():
+                videos[name] = f"/api/render/{run.get('run_id')}/{name}"
+        has_report = (render_dir / "render-report.json").is_file()
+    return {
+        "run_id": run.get("run_id"),
+        "created_at": run.get("created_at"),
+        "status": run.get("status", "unknown"),
+        "topic": draft.get("topic"),
+        "content_type": draft.get("content_type"),
+        "generation_mode": draft.get("generation_mode"),
+        "segment_count": len(segments),
+        "media_count": media_count,
+        "script_owner_approved": bool(run.get("script_owner_approved")),
+        "voice_preview": bool(run.get("voice_preview")),
+        "voice_preview_audited": bool(run.get("voice_preview_audited")),
+        "videos": videos,
+        "has_report": has_report,
+    }
+
+
+def _list_runs(root: Path, limit: int = 200) -> list[dict[str, Any]]:
+    runs_dir = root / "runtime/runs"
+    if not runs_dir.is_dir():
+        return []
+    summaries = []
+    for path in runs_dir.glob("*.json"):
+        if not re.fullmatch(r"[a-f0-9]{12}\.json", path.name):
+            continue
+        summary = _summarize_run(root, path)
+        if summary is not None:
+            summaries.append(summary)
+    summaries.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
+    return summaries[:limit]
+
+
+def _stats(root: Path, db_path: Path) -> dict[str, Any]:
+    conn = connect(db_path)
+    try:
+        total = conn.execute("SELECT COUNT(*) FROM assets").fetchone()[0]
+        verified = conn.execute(
+            "SELECT COUNT(*) FROM assets WHERE rights_state = 'verified'"
+        ).fetchone()[0]
+        active = conn.execute(
+            "SELECT COUNT(*) FROM assets WHERE lifecycle_state = 'active'"
+        ).fetchone()[0]
+
+        def daily(where: str) -> list[dict[str, Any]]:
+            rows = conn.execute(
+                "SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS count "
+                f"FROM assets WHERE {where} GROUP BY day ORDER BY day",
+            ).fetchall()
+            return [{"day": row["day"], "count": row["count"]} for row in rows]
+
+        by_day = daily("1 = 1")
+        verified_by_day = daily("rights_state = 'verified'")
+        active_by_day = daily("lifecycle_state = 'active'")
+        by_license = conn.execute(
+            "SELECT COALESCE(NULLIF(license_type, ''), 'Unknown') AS license, "
+            "COUNT(*) AS count FROM assets GROUP BY license "
+            "ORDER BY count DESC LIMIT 6",
+        ).fetchall()
+    finally:
+        conn.close()
+    runs = _list_runs(root)
+    by_status: dict[str, int] = {}
+    for item in runs:
+        key = str(item.get("status", "unknown"))
+        by_status[key] = by_status.get(key, 0) + 1
+    return {
+        "asset_count": total,
+        "verified_rights_count": verified,
+        "active_count": active,
+        "run_count": len(runs),
+        "assets_by_day": by_day,
+        "verified_by_day": verified_by_day,
+        "active_by_day": active_by_day,
+        "assets_by_license": [
+            {"license": row["license"], "count": row["count"]} for row in by_license
+        ],
+        "runs_by_status": by_status,
+    }
+
+
 def _template_foundation(db_path: Path) -> dict[str, Any]:
     root = db_path.parent.parent
     packages = {}
@@ -444,6 +548,26 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 except Exception:
                     self._send_json(
                         {"error": "Could not read the Asset Library."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            if path == "/api/runs":
+                try:
+                    self._send_json({"runs": _list_runs(db_path.parent.parent)})
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not read engine runs."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            if path == "/api/stats":
+                try:
+                    self._send_json(_stats(db_path.parent.parent, db_path))
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not compute engine stats."},
                         HTTPStatus.INTERNAL_SERVER_ERROR,
                     )
                 return

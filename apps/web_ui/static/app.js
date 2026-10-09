@@ -29,6 +29,8 @@ function showView(name) {
   if (name === "library") loadAssets();
   if (name === "templates") loadTemplateFoundation();
   if (name === "workflows") loadWorkflowStatus();
+  if (name === "overview") { loadOverview(); loadStats(); loadRuns(); }
+  if (name === "runs") loadRuns();
 }
 
 navButtons.forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
@@ -291,8 +293,230 @@ document.getElementById("requirement-form").addEventListener("submit", async (ev
   }
 });
 
+let lastStats = null;
+let chartRange = 14;
+
+function dayKey(offsetDays) {
+  return new Date(Date.now() - offsetDays * 864e5).toISOString().slice(0, 10);
+}
+
+function backfill(series, days) {
+  const map = Object.fromEntries((series || []).map((d) => [d.day, d.count]));
+  const out = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const day = dayKey(i);
+    out.push({ day, count: map[day] || 0 });
+  }
+  return out;
+}
+
+function sparkSvg(values) {
+  const w = 120, h = 34;
+  if (!values.length) return "";
+  const max = Math.max(1, ...values);
+  const step = values.length > 1 ? w / (values.length - 1) : 0;
+  const pts = values.map((v, i) => `${(i * step).toFixed(1)},${(h - 3 - (v / max) * (h - 8)).toFixed(1)}`);
+  if (pts.length === 1) return `<circle cx="${pts[0].split(",")[0]}" cy="${pts[0].split(",")[1]}" r="2.6" fill="#178a54"/>`;
+  const last = pts[pts.length - 1].split(",");
+  return `<polyline points="${pts.join(" ")}" fill="none" stroke="#178a54" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.8" fill="#178a54"/>`;
+}
+
+function barChartSvg(entries) {
+  const W = 560, H = 190, padL = 36, padB = 26, padT = 14;
+  const counts = entries.map((d) => d.count);
+  const max = Math.max(1, ...counts);
+  const n = Math.max(1, entries.length);
+  const innerW = W - padL - 12, innerH = H - padT - padB;
+  const slot = innerW / n;
+  const barW = Math.max(4, Math.min(30, slot * 0.55));
+  let svg = `<defs><linearGradient id="assetBarGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1db863"/><stop offset="1" stop-color="#0d9488"/></linearGradient></defs>`;
+  [0, 0.5, 1].forEach((f) => {
+    const y = (padT + innerH * (1 - f)).toFixed(1);
+    svg += `<line x1="${padL}" y1="${y}" x2="${W - 8}" y2="${y}" stroke="#e5e9e6" stroke-width="1"/><text x="${padL - 7}" y="${+y + 3.5}" text-anchor="end" font-size="10" fill="#9aa49d">${Math.round(max * f)}</text>`;
+  });
+  entries.forEach((d, i) => {
+    const h = d.count > 0 ? Math.max(3, (d.count / max) * innerH) : 0;
+    const x = padL + i * slot + (slot - barW) / 2;
+    const y = padT + innerH - h;
+    if (h > 0) svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3.5" fill="url(#assetBarGrad)"><title>${escapeHtml(d.day)}: ${d.count} asset(s)</title></rect>`;
+  });
+  const labelAt = (i) => {
+    const x = padL + i * slot + slot / 2;
+    return `<text x="${x.toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#9aa49d">${escapeHtml(entries[i].day.slice(5))}</text>`;
+  };
+  svg += labelAt(0);
+  if (n > 2) svg += labelAt(Math.floor((n - 1) / 2));
+  if (n > 1) svg += labelAt(n - 1);
+  return svg;
+}
+
+const STATUS_PATTERNS = [
+  [/APPROVED|RENDERED|COMPLETE|VERIFIED/, "#178a54"],
+  [/WAITING|REVIEW|AUDIT/, "#d99a26"],
+  [/FAIL|ERROR|BLOCK|REJECT/, "#b0493c"],
+];
+
+function statusColor(status) {
+  const s = String(status || "");
+  for (const [pattern, color] of STATUS_PATTERNS) if (pattern.test(s)) return color;
+  return "#9aa49d";
+}
+
+function donutSvg(byStatus) {
+  const entries = Object.entries(byStatus || {});
+  const total = entries.reduce((sum, [, c]) => sum + c, 0);
+  if (!total) return "";
+  let offset = 25, segs = "";
+  entries.forEach(([name, count]) => {
+    const frac = count / total;
+    segs += `<circle cx="60" cy="60" r="42" fill="none" stroke="${statusColor(name)}" stroke-width="20" stroke-dasharray="${(frac * 100).toFixed(1)} 100" stroke-dashoffset="${offset.toFixed(1)}" pathLength="100"><title>${escapeHtml(name)}: ${count}</title></circle>`;
+    offset -= frac * 100;
+  });
+  return `${segs}<text x="60" y="58" text-anchor="middle" font-size="21" font-weight="800" fill="#131816">${total}</text><text x="60" y="73" text-anchor="middle" font-size="9.5" fill="#6b7670">runs</text>`;
+}
+
+function renderAssetChart() {
+  const svg = document.getElementById("chart-assets");
+  const empty = document.getElementById("chart-assets-empty");
+  if (!svg || !lastStats) return;
+  const entries = backfill(lastStats.assets_by_day, chartRange);
+  const hasData = entries.some((d) => d.count > 0);
+  svg.innerHTML = hasData ? barChartSvg(entries) : "";
+  svg.style.display = hasData ? "" : "none";
+  if (empty) empty.hidden = hasData;
+}
+
+function renderRunsDonut() {
+  const svg = document.getElementById("chart-runs");
+  const legend = document.getElementById("runs-legend");
+  const empty = document.getElementById("chart-runs-empty");
+  if (!svg || !lastStats) return;
+  const byStatus = lastStats.runs_by_status || {};
+  const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
+  svg.innerHTML = total ? donutSvg(byStatus) : "";
+  svg.style.display = total ? "" : "none";
+  if (empty) empty.hidden = total > 0;
+  if (legend) {
+    legend.innerHTML = total
+      ? Object.entries(byStatus).sort((a, b) => b[1] - a[1]).map(([name, count]) =>
+        `<div class="legend-row"><span class="legend-dot" style="background:${statusColor(name)}"></span><span class="legend-name">${escapeHtml(name.replaceAll("_", " "))}</span><span class="legend-count">${count}</span></div>`).join("")
+      : "";
+  }
+}
+
+function renderLicenseBars() {
+  const box = document.getElementById("license-bars");
+  const empty = document.getElementById("license-empty");
+  if (!box || !lastStats) return;
+  const items = lastStats.assets_by_license || [];
+  const max = Math.max(1, ...items.map((d) => d.count));
+  box.innerHTML = items.map((d) =>
+    `<div class="hbar-row"><span class="hbar-label">${escapeHtml(d.license)}</span><span class="hbar-track"><span class="hbar-fill" style="width:${Math.max(3, Math.round((d.count / max) * 100))}%"></span></span><span class="hbar-count">${d.count}</span></div>`).join("");
+  if (empty) empty.hidden = items.length > 0;
+}
+
+function paintSpark(svgId, deltaId, series) {
+  const svg = document.getElementById(svgId);
+  if (svg) svg.innerHTML = sparkSvg(backfill(series, 14).map((d) => d.count));
+  const delta = document.getElementById(deltaId);
+  if (delta) {
+    const cutoff = dayKey(6);
+    const recent = (series || []).filter((d) => d.day >= cutoff).reduce((a, d) => a + d.count, 0);
+    delta.innerHTML = recent > 0 ? `<strong class="delta-up">+${recent}</strong> in last 7 days` : "No change in last 7 days";
+  }
+}
+
+async function loadStats() {
+  try {
+    const response = await fetch("/api/stats", { cache: "no-store" });
+    if (!response.ok) throw new Error("stats unavailable");
+    lastStats = await response.json();
+  } catch {
+    return;
+  }
+  paintSpark("spark-total", "delta-total", lastStats.assets_by_day);
+  paintSpark("spark-verified", "delta-verified", lastStats.verified_by_day);
+  paintSpark("spark-active", "delta-active", lastStats.active_by_day);
+  renderAssetChart();
+  renderRunsDonut();
+  renderLicenseBars();
+}
+
+function runStatusPill(status) {
+  const s = String(status || "unknown");
+  const cls = /APPROVED|RENDERED|COMPLETE|VERIFIED/.test(s) ? "status-ok" : "status-muted";
+  return `<span class="status-pill ${cls}" title="${escapeHtml(s)}">${escapeHtml(s.replaceAll("_", " ").slice(0, 28))}</span>`;
+}
+
+function outputLinks(run) {
+  const labels = { "template-preview.mp4": "Preview", "visual-benchmark-silent.mp4": "Benchmark", "full-render.mp4": "Full" };
+  const links = [];
+  const videos = run.videos || {};
+  for (const [file, label] of Object.entries(labels)) {
+    if (videos[file]) links.push(`<a href="${escapeHtml(videos[file])}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+  }
+  if (run.has_report) links.push(`<a href="/api/render/${escapeHtml(run.run_id)}/report" target="_blank" rel="noopener noreferrer">Report</a>`);
+  return links.length ? links.join(" · ") : "—";
+}
+
+function runRow(run, compact) {
+  const cells = [
+    `<td><code class="run-id">${escapeHtml(String(run.run_id || "").slice(0, 8))}</code></td>`,
+    `<td class="run-topic">${escapeHtml(run.topic || "—")}</td>`,
+    `<td>${escapeHtml(run.content_type || "—")}</td>`,
+    `<td>${runStatusPill(run.status)}</td>`,
+  ];
+  if (!compact) {
+    cells.push(
+      `<td>${escapeHtml(formatDate(run.created_at))}</td>`,
+      `<td>${run.segment_count}</td>`,
+    );
+  }
+  cells.push(
+    `<td>${run.media_count}</td>`,
+  );
+  if (!compact) {
+    cells.push(`<td>${run.voice_preview_audited ? "Audited" : run.voice_preview ? "Preview" : "—"}</td>`);
+  }
+  cells.push(`<td class="run-links">${outputLinks(run)}</td>`);
+  return `<tr>${cells.join("")}</tr>`;
+}
+
+async function loadRuns() {
+  let runs = [];
+  try {
+    const response = await fetch("/api/runs", { cache: "no-store" });
+    if (!response.ok) throw new Error("runs unavailable");
+    runs = (await response.json()).runs || [];
+  } catch {
+    const body = document.getElementById("run-rows");
+    if (body) body.innerHTML = '<tr><td colspan="9" class="empty-cell">Could not load runs.</td></tr>';
+    return;
+  }
+  const count = document.getElementById("runs-count");
+  if (count) count.textContent = `${runs.length} run${runs.length === 1 ? "" : "s"}`;
+  const body = document.getElementById("run-rows");
+  if (body) {
+    body.innerHTML = runs.length
+      ? runs.map((run) => runRow(run, false)).join("")
+      : '<tr><td colspan="9" class="empty-cell">No runs yet — create a video draft.</td></tr>';
+  }
+  const recent = document.getElementById("recent-runs-rows");
+  if (recent) {
+    recent.innerHTML = runs.length
+      ? runs.slice(0, 6).map((run) => runRow(run, true)).join("")
+      : '<tr><td colspan="6" class="empty-cell">No runs yet — create a video draft.</td></tr>';
+  }
+}
+
 document.getElementById("refresh-overview").addEventListener("click", loadOverview);
 document.getElementById("refresh-library").addEventListener("click", () => { loadOverview(); loadAssets(); });
+document.getElementById("refresh-runs").addEventListener("click", loadRuns);
+document.querySelectorAll(".range-tab").forEach((tab) => tab.addEventListener("click", () => {
+  document.querySelectorAll(".range-tab").forEach((item) => item.classList.toggle("active", item === tab));
+  chartRange = parseInt(tab.dataset.range, 10) || 14;
+  renderAssetChart();
+}));
 
 async function loadWorkflowStatus() {
   const pill = document.getElementById("workflow-runtime-status");
@@ -632,4 +856,6 @@ if (approveScriptButton) approveScriptButton.addEventListener("click", async () 
 });
 
 loadOverview();
+loadStats();
+loadRuns();
 if (location.hash.length > 1) showView(location.hash.slice(1));
