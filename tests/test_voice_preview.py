@@ -86,3 +86,19 @@ def test_voice_worker_gets_utf8_environment(monkeypatch, tmp_path):
     voice_tts.synthesize_voice_preview(tmp_path, "abcdef123456")
     assert seen["env"]["PYTHONUTF8"] == "1"
     assert seen["env"]["PYTHONIOENCODING"] == "utf-8"
+
+
+def test_silence_pacing_forwarded_from_dotenv(monkeypatch, tmp_path):
+    _make_run(tmp_path)
+    _make_profile(tmp_path)
+    (tmp_path / ".env").write_text("TTS_SILENCE_P=0.03\n", encoding="utf-8")
+    monkeypatch.setattr(voice_tts, "_runtime_python", lambda root: Path("tts-python"))
+    seen = {}
+
+    def fake_run(*args, **kwargs):
+        seen.update(kwargs)
+        return SimpleNamespace(returncode=0, stderr="", stdout="")
+
+    monkeypatch.setattr(voice_tts.subprocess, "run", fake_run)
+    voice_tts.synthesize_voice_preview(tmp_path, "abcdef123456")
+    assert seen["env"]["TTS_SILENCE_P"] == "0.03"

@@ -88,6 +88,21 @@ def _clean_for_tts(text: str) -> str:
     return "".join(ch for ch in text if ch == "\n" or ch == "\t" or not unicodedata.category(ch).startswith("C"))
 
 
+def _local_value(root: Path, key: str) -> str | None:
+    """Read one machine-local setting from .env without touching os.environ."""
+    env_file = root / ".env"
+    if not env_file.exists():
+        return None
+    for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        if name.strip() == key:
+            return value.strip().strip("\"'")
+    return None
+
+
 def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     if not run_id.isalnum() or len(run_id) != 12:
         raise ValueError("Production run ID is invalid.")
@@ -124,6 +139,10 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     child_env["HF_HOME"] = str(root / "runtime/model-cache")
     child_env["PYTHONUTF8"] = "1"
     child_env["PYTHONIOENCODING"] = "utf-8"
+    for key in ("TTS_SILENCE_P",):
+        value = _local_value(root, key)
+        if value is not None:
+            child_env[key] = value
     process = subprocess.run(
         [str(runtime_python), str(worker), str(reference), str(output_dir / output_name)],
         input=text,
