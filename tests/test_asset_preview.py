@@ -3,7 +3,8 @@ from pathlib import Path
 import pytest
 
 from apps.asset_library.registry import connect
-from apps.web_ui.server import _asset_file_info
+from apps.web_ui.server import _asset_file_info, _read_run
+import json
 
 
 def _insert(conn, asset_id, stored_path, mime="image/jpeg"):
@@ -71,3 +72,20 @@ def test_preview_falls_back_to_suffix_mime(tmp_path):
         conn.close()
     _, mime = _asset_file_info(root, db_path, "asset-v")
     assert mime == "video/mp4"
+
+
+def test_read_run_returns_full_record(tmp_path):
+    root = tmp_path / "p"
+    runs = root / "runtime/runs"
+    runs.mkdir(parents=True)
+    record = {"run_id": "abcdef123456", "status": "SCRIPT_APPROVED",
+              "draft": {"topic": "T", "segments": []}, "asset_checks": []}
+    (runs / "abcdef123456.json").write_text(
+        json.dumps(record), encoding="utf-8")
+    loaded = _read_run(root, "abcdef123456")
+    assert loaded["status"] == "SCRIPT_APPROVED"
+    assert loaded["draft"]["segments"] == []
+    with pytest.raises(ValueError, match="not found"):
+        _read_run(root, "ffffffffffff")
+    with pytest.raises(ValueError, match="invalid"):
+        _read_run(root, "bad-id")

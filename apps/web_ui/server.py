@@ -243,6 +243,21 @@ def _asset_file_info(root: Path, db_path: Path, asset_id: str) -> tuple[Path, st
     return file_path, mime_type
 
 
+def _read_run(root: Path, run_id: str) -> dict[str, Any]:
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    run_path = root / "runtime/runs" / f"{run_id}.json"
+    if not run_path.is_file():
+        raise ValueError("Production run was not found.")
+    try:
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError("Production run file is unreadable.") from error
+    if not isinstance(run, dict):
+        raise ValueError("Production run file is unreadable.")
+    return run
+
+
 def _overview(db_path: Path) -> dict[str, Any]:
     conn = connect(db_path)
     try:
@@ -617,6 +632,19 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 except Exception:
                     self._send_json(
                         {"error": "Could not read engine runs."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            run_detail_match = re.fullmatch(r"/api/runs/([a-f0-9]{12})", path)
+            if run_detail_match:
+                try:
+                    self._send_json(_read_run(db_path.parent.parent, run_detail_match.group(1)))
+                except ValueError as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not read the run."},
                         HTTPStatus.INTERNAL_SERVER_ERROR,
                     )
                 return

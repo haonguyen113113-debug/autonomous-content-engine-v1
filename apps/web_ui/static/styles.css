@@ -1073,6 +1073,8 @@ table a:hover { color: #c4b5fd; }
 .run-links { white-space: nowrap; }
 .run-links a { color: #a78bfa; font-weight: 700; font-size: 11.5px; }
 .run-links a:hover { color: #c4b5fd; }
+.run-resume { padding: 2px 4px; }
+.run-resume code { cursor: pointer; }
 
 @media (max-width: 1150px) {
   .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -551,7 +551,7 @@ function outputLinks(run) {
 
 function runRow(run, compact) {
   const cells = [
-    `<td><code class="run-id">${escapeHtml(String(run.run_id || "").slice(0, 8))}</code></td>`,
+    `<td><button class="text-button run-resume" type="button" data-resume="${escapeHtml(String(run.run_id || ""))}" title="Open this run in Workflows"><code class="run-id">${escapeHtml(String(run.run_id || "").slice(0, 8))}</code></button></td>`,
     `<td class="run-topic">${escapeHtml(run.topic || "—")}</td>`,
     `<td>${escapeHtml(run.content_type || "—")}</td>`,
     `<td>${runStatusPill(run.status)}</td>`,
@@ -597,6 +597,7 @@ async function loadRuns() {
       ? runs.slice(0, 6).map((run) => runRow(run, true)).join("")
       : '<tr><td colspan="6" class="empty-cell">No runs yet — create a video draft.</td></tr>';
   }
+  document.querySelectorAll("[data-resume]").forEach((el) => el.addEventListener("click", () => resumeRun(el.dataset.resume)));
 }
 
 document.getElementById("refresh-overview").addEventListener("click", loadOverview);
@@ -694,6 +695,19 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not create a script draft.");
+    renderDraftResult(result);
+  } catch (error) {
+    showToast(error.message || "Could not create a script draft.");
+  } finally {
+    clearInterval(draftPoll);
+    if (progress) progress.textContent = "";
+    button.disabled = false;
+    button.innerHTML = 'Draft script &amp; check assets <svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>';
+  }
+});
+
+
+  function renderDraftResult(result) {
     const draft = result.draft;
     document.getElementById("draft-mode-pill").textContent = `${draft.content_type.toUpperCase()} · ${draft.generation_mode === "local_ollama" ? "LOCAL MODEL" : draft.generation_mode === "local_ollama_partial" ? "LOCAL MODEL · PARTIAL" : "OUTLINE ONLY"}`;
     currentRunId = result.run_id;
@@ -769,15 +783,39 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
     if (fixedOnly) panel.insertAdjacentHTML("beforeend", '<span class="status-pill status-ok">TEMPLATE COVERS VISUALS</span>');
     document.getElementById("script-result-panel").hidden = false;
     document.getElementById("script-result-panel").scrollIntoView({ behavior: "smooth", block: "start" });
-  } catch (error) {
-    showToast(error.message || "Could not create a script draft.");
-  } finally {
-    clearInterval(draftPoll);
-    if (progress) progress.textContent = "";
-    button.disabled = false;
-    button.innerHTML = 'Draft script &amp; check assets <svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>';
   }
-});
+
+  async function resumeRun(runId) {
+    try {
+      const response = await fetch(`/api/runs/${runId}`, { cache: "no-store" });
+      const run = await response.json();
+      if (!response.ok) throw new Error(run.error || "Could not load the run.");
+      currentRunId = run.run_id || runId;
+      showView("workflows");
+      renderDraftResult(run);
+      if (run.script_owner_approved) {
+        document.getElementById("script-review-status").textContent = "Script approved earlier. The voice preview is available.";
+        document.getElementById("create-voice-preview").disabled = false;
+        document.getElementById("draft-status-heading").textContent = `SCRIPT APPROVED · run ${currentRunId}`;
+      }
+      if (run.voice_preview) {
+        const audio = document.getElementById("voice-preview-audio");
+        audio.src = `/api/voice-preview/${run.voice_preview.path}?v=${Date.now()}`;
+        audio.hidden = false;
+        document.getElementById("voice-preview-audited").disabled = false;
+        document.getElementById("voice-preview-status").textContent = "Preview available. Listen, then audit below.";
+      }
+      if (run.voice_preview_audited) {
+        document.getElementById("voice-preview-audited").checked = true;
+        document.getElementById("render-full-video").disabled = false;
+      }
+      if (run.render) {
+        document.getElementById("render-full-status").textContent = "This run already has a render. Re-rendering overwrites it.";
+      }
+    } catch (error) {
+      showToast(error.message || "Could not load the run.");
+    }
+  }
 
 const voiceProfileForm = document.getElementById("voice-profile-form");
 if (voiceProfileForm) voiceProfileForm.addEventListener("submit", async (event) => {
