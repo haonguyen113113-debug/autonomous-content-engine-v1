@@ -326,3 +326,41 @@ def test_agent_run_records_beat_progress(monkeypatch, tmp_path):
     listed = _list_runs(root)
     assert listed[0]["current_beat"] == 3
     assert listed[0]["total_beats"] == 6
+
+
+def test_overlap_guard_retries_repetitive_beat(monkeypatch):
+    first = _chat_content(_beat_payload(
+        "Carlos Espi ghi ban cho Real Madrid tu duong chuyen vao.", 7))
+    repeat = _chat_content(_beat_payload(
+        "Carlos Espi ghi ban cho Real Madrid tu duong chuyen vao!", 7))
+    fresh = _chat_content(_beat_payload(
+        "O tuoi 21, Espi mang den toc do va kha nang khong chien vuot troi.", 7))
+    rest = [_chat_content(_beat_payload(f"Beat rieng {i}.", 7)) for i in range(4)]
+    _install(monkeypatch, [first, repeat, fresh] + rest
+             + [_chat_content({"asset_needs": []})])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    assert result["generation_mode"] == "local_ollama"
+    beat2 = next(s for s in result["segments"] if s["id"] == "beat-2")
+    assert "toc do" in beat2["narration"]
+    assert beat2["generation"]["attempts"] == 2
+
+
+def test_persistent_repetition_falls_back_with_reason(monkeypatch):
+    same = _chat_content(_beat_payload("Lap lai y tuong cu.", 7))
+    _install(monkeypatch, [same, same, same]
+             + [_chat_content(_beat_payload(f"Tot {i}.", 7)) for i in range(4)]
+             + [_chat_content({"asset_needs": []})])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    assert result["generation_mode"] == "local_ollama_partial"
+    failed = next(s for s in result["segments"] if s["id"] == "beat-2")
+    assert failed["generation"]["error"] == "repetitive_beat"
+
+
+def test_overlap_ratio_unit():
+    assert workflow._overlap_ratio("a b c d e f", "a b c d e f") == 1.0
+    assert workflow._overlap_ratio("hoan toan khac", "chuyen hoan toan moi") < 0.7
+    assert workflow._overlap_ratio("", "non-empty") == 0.0

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 import json
+import re
 import time
 from pathlib import Path
 import uuid
@@ -286,6 +287,22 @@ def _clean_asset_needs(items: Any) -> list[dict[str, Any]]:
     return asset_needs
 
 
+def _word_5grams(text: str) -> set[tuple[str, ...]]:
+    tokens = re.findall(r"\w+", text.lower())
+    return {tuple(tokens[i:i + 5]) for i in range(len(tokens) - 4)}
+
+
+def _overlap_ratio(previous: str, current: str) -> float:
+    """Shared 5-gram overlap; guards against beats restating each other."""
+    earlier, later = _word_5grams(previous), _word_5grams(current)
+    if not earlier or not later:
+        return 0.0
+    return len(earlier & later) / min(len(earlier), len(later))
+
+
+MAX_BEAT_OVERLAP = 0.7
+
+
 def _outline_beat(topic: str, arc: list[Any], index: int, target_seconds: int) -> dict[str, Any]:
     """Deterministic per-beat fallback; never invents facts the owner must verify."""
     return {
@@ -324,6 +341,7 @@ def _ollama_beat(
     duration_hint: int,
     num_predict: int,
     ledger: dict[str, Any],
+    previous_narration: str = "",
 ) -> tuple[dict[str, Any] | None, int, dict[str, Any], str]:
     """Generate one beat; returns (segment, attempts, usage, last_error)."""
     lo = max(1, duration_hint // 4)
@@ -334,8 +352,9 @@ def _ollama_beat(
         "Only state football facts supported by supplied evidence. Never invent match details, "
         "statistics, quotes, or sources. If evidence is insufficient, "
         "write a clear [CẦN NGUỒN] placeholder instead of an assertion. "
-        "Return only a JSON object with narration (Vietnamese voiceover), visual "
-        "(short shot description), evidence_refs (array of supplied evidence used), "
+        "Open with a different sentence than the previous beat and do not "
+        "restate facts it already stated; advance the idea instead. "
+        "Return only a JSON object with narration (Vietnamese voiceover), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
         "visual_mode (tactical_explainer, statline_scorecard, source_card, "
         "chart_comparison, or chart_timeline), graphic_data (values and source only "
         "when explicitly present in supplied evidence, else {}), duration_seconds "
@@ -377,12 +396,17 @@ def _ollama_beat(
             last_error = "transport_or_provider_error"
             continue
         segment = _clean_segment(body)
-        if segment is not None:
-            segment["id"] = beat_id
-            return segment, attempts, usage, ""
-        last_error = "invalid_segment_reply"
+        if segment is None:
+            last_error = "invalid_segment_reply"
+            continue
+        if (previous_narration
+                and _overlap_ratio(previous_narration, segment["narration"]) > MAX_BEAT_OVERLAP):
+            last_error = "repetitive_beat"
+            segment = None
+            continue
+        segment["id"] = beat_id
+        return segment, attempts, usage, ""
     return None, attempts, usage, last_error
-
 
 def _ollama_asset_needs(
     env: dict[str, str],
@@ -457,6 +481,7 @@ def _ollama_draft(
     segments: list[dict[str, Any]] = []
     fallback_beats: list[str] = []
     previous_summary = ""
+    previous_full = ""
     model_beats = 0
     budget_fallbacks = 0
     ledger = _new_ledger(env)
@@ -477,7 +502,7 @@ def _ollama_draft(
                 purpose=str(purpose), position=position,
                 previous_summary=previous_summary, evidence=evidence,
                 duration_hint=duration_hint, num_predict=num_predict,
-                ledger=ledger,
+                ledger=ledger, previous_narration=previous_full,
             )
             if segment is None:
                 segment = _outline_beat(topic, arc, index, target)
@@ -489,6 +514,7 @@ def _ollama_draft(
                 segment["generation"] = {"mode": "local_ollama", "attempts": attempts,
                                          "usage": usage}
                 previous_summary = segment["narration"][:300]
+                previous_full = segment["narration"]
         segments.append(segment)
         if on_beat is not None:
             on_beat(index, total, segment["generation"]["mode"],
