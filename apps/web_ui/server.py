@@ -216,6 +216,32 @@ def _read_api_keys(root: Path) -> dict[str, str]:
     return {name: keys[name] for name in ("PEXELS_API_KEY",) if keys.get(name)}
 
 
+def _asset_file_info(root: Path, db_path: Path, asset_id: str) -> tuple[Path, str]:
+    """Resolve a library file for owner preview. Any rights state is viewable:
+    the owner must see an asset to review its rights."""
+    if not isinstance(asset_id, str) or not asset_id.strip() or len(asset_id) > 80:
+        raise ValueError("Asset ID is required.")
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT stored_path, mime_type FROM assets WHERE asset_id = ?",
+            (asset_id.strip(),),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        raise ValueError("Asset was not found in the library.")
+    library_root = (root / "runtime/assets/library").resolve()
+    file_path = (root / row["stored_path"]).resolve()
+    if library_root not in file_path.parents or not file_path.is_file():
+        raise ValueError("Library file is missing or outside the library.")
+    mime_type = str(row["mime_type"] or "")
+    if "/" not in mime_type:
+        import mimetypes
+        mime_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    return file_path, mime_type
+
+
 def _overview(db_path: Path) -> dict[str, Any]:
     conn = connect(db_path)
     try:
@@ -538,6 +564,23 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                             break
                         self.wfile.write(block)
                         remaining -= len(block)
+                return
+            asset_match = re.fullmatch(r"/api/assets/file/([A-Za-z0-9][A-Za-z0-9_-]{0,79})", path)
+            if asset_match:
+                try:
+                    file_path, mime_type = _asset_file_info(
+                        db_path.parent.parent, db_path, asset_match.group(1)
+                    )
+                except ValueError:
+                    self._send_json({"error": "Library file not found."}, HTTPStatus.NOT_FOUND)
+                    return
+                body = file_path.read_bytes()
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", mime_type)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
                 return
             report_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/report", path)
             if report_match:

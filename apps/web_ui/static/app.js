@@ -107,8 +107,13 @@ async function loadAssets() {
       body.innerHTML = '<tr><td colspan="9" class="empty-cell">No assets are registered yet. Add approved resources through the library ingest workflow.</td></tr>';
       return;
     }
-    body.innerHTML = assets.map((asset) => `<tr>
-      <td><div class="asset-name"><span class="asset-thumb">${thumbIcon(asset.asset_type)}</span>${escapeHtml(asset.original_name)}</div></td>
+    body.innerHTML = assets.map((asset) => {
+      const fileUrl = `/api/assets/file/${encodeURIComponent(asset.asset_id)}`;
+      const thumb = asset.asset_type === "image"
+        ? `<img class="asset-thumb-img" src="${fileUrl}" alt="" loading="lazy" data-preview="${escapeHtml(asset.asset_id)}" data-kind="image" title="Click to preview" />`
+        : `<span class="asset-thumb">${thumbIcon(asset.asset_type)}</span>`;
+      return `<tr>
+      <td><div class="asset-name">${thumb}<button class="text-button asset-view" type="button" data-preview="${escapeHtml(asset.asset_id)}" data-kind="${escapeHtml(asset.asset_type)}">${escapeHtml(asset.original_name)}</button></div></td>
       <td>${escapeHtml(asset.asset_type)}</td>
       <td>${escapeHtml(asset.purpose_code || "?")}</td>
       <td>${statusPill(asset.rights_state, "verified")}</td>
@@ -117,8 +122,10 @@ async function loadAssets() {
       <td>${statusPill(asset.lifecycle_state, "active")}</td>
       <td>${escapeHtml(formatDate(asset.created_at))}</td>
       <td>${asset.rights_state !== "verified" ? `<button class="button button-secondary button-small" type="button" data-review-rights="${escapeHtml(asset.asset_id)}" title="Review the source and license for your intended use before confirming">Review rights</button>` : '<span class="review-complete">Reviewed</span>'}</td>
-    </tr>`).join("");
+    </tr>`;
+    }).join("");
     body.querySelectorAll("[data-review-rights]").forEach((button) => button.addEventListener("click", () => reviewAssetRights(button)));
+    body.querySelectorAll("[data-preview]").forEach((el) => el.addEventListener("click", () => previewAsset(el)));
   } catch (error) {
     body.innerHTML = `<tr><td colspan="9" class="empty-cell">${escapeHtml(error.message || "Could not load inventory.")}</td></tr>`;
   }
@@ -251,6 +258,39 @@ async function approveCandidate(button, requirement) {
     showToast(error.message || "Could not save this candidate.");
   }
 }
+
+function previewAsset(el) {
+  const assetId = el.dataset.preview || "";
+  const kind = el.dataset.kind || "";
+  if (!assetId) return;
+  const fileUrl = `/api/assets/file/${encodeURIComponent(assetId)}`;
+  if (kind !== "image") {
+    window.open(fileUrl, "_blank", "noopener");
+    return;
+  }
+  const box = document.getElementById("lightbox");
+  const img = document.getElementById("lightbox-image");
+  const caption = document.getElementById("lightbox-caption");
+  const row = el.closest("tr");
+  const name = row ? row.querySelector(".asset-view")?.textContent?.trim() : "";
+  img.src = fileUrl;
+  caption.textContent = name ? `${name} · ${assetId}` : assetId;
+  box.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeLightbox() {
+  const box = document.getElementById("lightbox");
+  if (!box || box.hidden) return;
+  box.hidden = true;
+  document.getElementById("lightbox-image").removeAttribute("src");
+  document.body.style.overflow = "";
+}
+
+document.querySelectorAll("[data-lightbox-close]").forEach((el) => el.addEventListener("click", closeLightbox));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeLightbox();
+});
 
 async function reviewAssetRights(button) {
   const assetId = button.dataset.reviewRights;
