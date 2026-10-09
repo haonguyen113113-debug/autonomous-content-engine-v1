@@ -761,10 +761,19 @@ table a:hover { color: #c4b5fd; }
 .discovery-form .button { white-space: nowrap; padding: 0 14px; font-size: 12px; }
 .discovery-tabs { display: flex; gap: 6px; margin-bottom: 11px; }
 .provider-line { font-size: 10.5px; color: var(--muted); padding: 9px 12px; border: 1px dashed #3a4157; border-radius: 9px; background: rgba(255, 255, 255, .025); }
+.identity-line { font-size: 10.5px; color: #e8c877; padding: 9px 12px; border: 1px solid rgba(245, 165, 36, .45); border-radius: 9px; background: rgba(245, 165, 36, .07); margin-top: 8px; line-height: 1.6; }
+.identity-clean { color: #7fe3bb; border-color: rgba(52, 211, 153, .35); background: rgba(52, 211, 153, .06); }
 .candidate-kind {
   display: inline-block; margin-left: 7px; padding: 2px 8px; border-radius: 999px;
   font-size: 9px; font-weight: 800; letter-spacing: .06em; color: #fff;
   background: var(--grad-warm); box-shadow: 0 0 10px rgba(255, 94, 122, .4);
+  vertical-align: 1px;
+}
+.candidate-flag {
+  display: inline-block; margin-left: 7px; padding: 2px 8px; border-radius: 999px;
+  font-size: 9px; font-weight: 800; letter-spacing: .06em;
+  color: #e8c877; border: 1px solid rgba(245, 165, 36, .5);
+  background: rgba(245, 165, 36, .1);
   vertical-align: 1px;
 }
 .candidate-grid { display: grid; gap: 11px; }

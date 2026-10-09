@@ -22,6 +22,7 @@ from apps.asset_library.discovery import (
     save_commons_candidate,
     search_candidates,
 )
+from apps.asset_library.identity import apply_identity_filter
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.voice_tts import save_voice_reference, synthesize_voice_preview, voice_profile_status
@@ -768,10 +769,17 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         sort=sort,
                     )
                     ready = sorted({item["label"] for item in statuses if item["state"] == "ready"})
+                    identity = None
+                    entity_id = str(payload.get("entity_id", "")).strip()
+                    if entity_id:
+                        candidates, identity = apply_identity_filter(
+                            candidates, entity_id, db_path
+                        )
                     self._send_json(
                         {
                             "provider": " + ".join(ready) if ready else "No providers available",
                             "provider_status": statuses,
+                            "identity": identity,
                             "candidates": [asdict(item) for item in candidates],
                         }
                     )
@@ -883,6 +891,11 @@ def main() -> None:
 
     project_root = Path(args.root).resolve()
     db_path = project_root / "runtime/engine.db"
+    try:
+        from apps.asset_library.entity_seed import seed_entity_catalog
+        seed_entity_catalog(project_root)
+    except Exception as error:
+        print(f"[engine-ui] entity catalog seed skipped: {error}", flush=True)
     server = ThreadingHTTPServer(
         (args.host, args.port),
         make_handler(db_path),

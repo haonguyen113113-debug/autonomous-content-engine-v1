@@ -186,7 +186,7 @@ function candidateCard(candidate) {
   const thumbnailUrl = safeExternalUrl(candidate.thumbnail_url);
   return `<article class="candidate-card" data-candidate-card="${escapeHtml(candidate.candidate_id)}">
     ${thumbnailUrl ? `<img class="candidate-image" src="${escapeHtml(thumbnailUrl)}" alt="Preview of ${escapeHtml(candidate.title)}" loading="lazy" />` : '<div class="candidate-image candidate-image-empty">Preview unavailable</div>'}
-    <div class="candidate-content"><div class="candidate-provider">${escapeHtml(candidate.provider)}${candidate.media_type === "VIDEO" ? ' <span class="candidate-kind">VIDEO</span>' : ""}</div>${sourceUrl ? `<a class="candidate-title" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(candidate.title)}</a>` : `<strong class="candidate-title">${escapeHtml(candidate.title)}</strong>`}
+    <div class="candidate-content"><div class="candidate-provider">${escapeHtml(candidate.provider)}${candidate.media_type === "VIDEO" ? ' <span class="candidate-kind">VIDEO</span>' : ""}${candidate.identity === "uncertain" ? ' <span class="candidate-flag">UNCERTAIN ID</span>' : ""}</div>${sourceUrl ? `<a class="candidate-title" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(candidate.title)}</a>` : `<strong class="candidate-title">${escapeHtml(candidate.title)}</strong>`}
       <div class="candidate-meta">${escapeHtml(dimensions)} · ${escapeHtml(size)}${duration ? ` · ${escapeHtml(duration)}` : ""}${candidate.uploaded_at ? ` · up ${escapeHtml(candidate.uploaded_at)}` : ""}</div>
       <div class="candidate-license"><strong>License</strong><span>${licenseUrl ? `<a href="${escapeHtml(licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(license)}</a>` : escapeHtml(license)}</span></div>
       <div class="candidate-meta"><strong>Creator:</strong> ${escapeHtml(creator)}</div>
@@ -213,7 +213,7 @@ async function searchCandidates(event, requirement) {
     const response = await fetch("/api/discovery-search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit: 24, resource_type: dtype, sort }),
+      body: JSON.stringify({ query, limit: 24, resource_type: dtype, sort, entity_id: requirement.entity_id || "" }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Web discovery failed.");
@@ -222,7 +222,14 @@ async function searchCandidates(event, requirement) {
       return `${s.label} (${s.media}): ${state}`;
     }).join(" · ");
     const header = sources ? `<div class="provider-line">Sources — ${escapeHtml(sources)}</div>` : "";
-    grid.innerHTML = header + (result.candidates.length
+    let identityLine = "";
+    if (result.identity && result.identity.status === "screened") {
+      const removed = result.identity.removed || [];
+      identityLine = removed.length
+        ? `<div class="identity-line">Identity (${escapeHtml(result.identity.display_name || result.identity.entity_id)}): removed ${removed.length} — ${removed.map((r) => `${escapeHtml(r.title)} (${escapeHtml(r.reason)})`).join("; ")}</div>`
+        : `<div class="identity-line identity-clean">Identity (${escapeHtml(result.identity.display_name || result.identity.entity_id)}): all ${result.identity.kept} match, nothing removed.</div>`;
+    }
+    grid.innerHTML = header + identityLine + (result.candidates.length
       ? result.candidates.map(candidateCard).join("")
       : `<div class="candidate-message">No supported ${dtype === "video" ? "videos" : "images"} found. Try a broader search phrase.</div>`);
     grid.querySelectorAll("[data-approve]").forEach((approveButton) => approveButton.addEventListener("click", () => approveCandidate(approveButton, requirement)));

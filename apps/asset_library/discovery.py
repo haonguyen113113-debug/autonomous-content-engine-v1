@@ -85,6 +85,7 @@ class ExternalAssetCandidate:
     credit: str | None
     duration_seconds: int | None = None
     uploaded_at: str | None = None
+    identity: str | None = None
 
 
 def _license_label(license_code: Any, version: Any) -> str | None:
