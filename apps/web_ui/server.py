@@ -287,6 +287,8 @@ def _summarize_run(root: Path, path: Path) -> dict[str, Any] | None:
         "voice_preview_audited": bool(run.get("voice_preview_audited")),
         "videos": videos,
         "has_report": has_report,
+        "current_beat": run.get("current_beat"),
+        "total_beats": run.get("total_beats"),
     }
 
 

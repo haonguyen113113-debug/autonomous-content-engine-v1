@@ -234,3 +234,57 @@ def test_asset_needs_failure_degrades_to_empty(monkeypatch):
     assert result["generation_mode"] == "local_ollama"
     assert result["asset_needs"] == []
     assert "no variable library media was requested" in result["asset_need_reason"]
+
+
+def test_zero_budget_skips_model_calls_entirely(monkeypatch):
+    calls = _install(monkeypatch, [URLError("must not be called")])
+
+    result = workflow.create_script_draft(
+        ROOT, **{**_draft_kwargs(), "budget_seconds": 0}
+    )
+
+    assert result["generation_mode"] == "outline_fallback"
+    assert len(result["segments"]) == 6
+    assert calls == []
+
+
+def test_on_beat_reports_progress_sequence(monkeypatch):
+    beats = [_chat_content(_beat_payload("Good beat.", 7)) for _ in range(6)]
+    _install(monkeypatch, beats + [_chat_content({"asset_needs": []})])
+    seen = []
+
+    workflow.create_script_draft(
+        ROOT, **{**_draft_kwargs(), "on_beat": lambda *args: seen.append(args)}
+    )
+
+    assert [(i, total, mode, attempts) for i, total, mode, attempts, _ in seen] == [
+        (i, 6, "local_ollama", 1) for i in range(6)
+    ]
+    assert all(elapsed >= 0 for _, _, _, _, elapsed in seen)
+
+
+def test_agent_run_records_beat_progress(monkeypatch, tmp_path):
+    root = tmp_path / "p"
+    (root / "runtime/runs").mkdir(parents=True)
+
+    def fake_draft(*args, **kwargs):
+        kwargs["on_beat"](2, 6, "local_ollama", 1, 12.5)
+        return {
+            "topic": "Chủ đề kiểm thử",
+            "status": "NEEDS_EVIDENCE",
+            "generation_mode": "local_ollama",
+            "asset_needs": [],
+        }
+
+    monkeypatch.setattr(workflow, "create_script_draft", fake_draft)
+    run = workflow.run_content_agent(
+        root, root / "runtime/engine.db",
+        "Chủ đề kiểm thử", "one-moment-one-read",
+    )
+
+    assert run["current_beat"] == 3
+    assert run["total_beats"] == 6
+    assert run["last_beat_mode"] == "local_ollama"
+    listed = _list_runs(root)
+    assert listed[0]["current_beat"] == 3
+    assert listed[0]["total_beats"] == 6

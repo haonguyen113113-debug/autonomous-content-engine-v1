@@ -604,7 +604,10 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
       const poll = await fetch("/api/runs", { cache: "no-store" });
       const data = await poll.json();
       const active = (data.runs || []).find((run) => /DRAFTING|CHECKING/.test(String(run.status || "")));
-      if (active && progress) progress.textContent = `Đang chạy: ${active.status.replaceAll("_", " ")} · run ${String(active.run_id).slice(0, 8)}…`;
+      if (active && progress) {
+        const beat = active.current_beat && active.total_beats ? ` · beat ${active.current_beat}/${active.total_beats}` : "";
+        progress.textContent = `Đang chạy: ${active.status.replaceAll("_", " ")}${beat} · run ${String(active.run_id).slice(0, 8)}…`;
+      }
       loadRuns();
     } catch { /* the main draft request is still the source of truth */ }
   }, 5000);

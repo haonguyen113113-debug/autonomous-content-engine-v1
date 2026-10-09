@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 import json
 import os
+import time
 from pathlib import Path
 import uuid
 from datetime import datetime, timezone
@@ -31,6 +32,10 @@ BEAT_ATTEMPTS = 2
 BEAT_TIMEOUT_SECONDS = 300
 ASSET_NEEDS_TIMEOUT_SECONDS = 180
 EVIDENCE_CHARS_PER_CALL = 1500
+# Wall-clock budgets so a draft degrades gracefully instead of running
+# unbounded on weak machines. Short must fit a 5-10 minute slot.
+SHORT_BUDGET_SECONDS = 540
+LONG_BUDGET_SECONDS = 1500
 VISUAL_MODES = {
     "tactical_explainer", "statline_scorecard", "source_card",
     "chart_comparison", "chart_timeline",
@@ -416,12 +421,25 @@ def _ollama_asset_needs(
     return _clean_asset_needs(body.get("asset_needs", []))
 
 
+def _draft_budget_seconds(env: dict[str, str], content_type: str) -> int:
+    """Wall-clock budget; override per machine via DRAFT_BUDGET_*_SECONDS."""
+    key = "DRAFT_BUDGET_LONG_SECONDS" if content_type == "long" else "DRAFT_BUDGET_SHORT_SECONDS"
+    default = LONG_BUDGET_SECONDS if content_type == "long" else SHORT_BUDGET_SECONDS
+    try:
+        return max(1, int(env.get(key, default)))
+    except (TypeError, ValueError):
+        return default
+
+
 def _ollama_draft(
     env: dict[str, str],
     topic: str,
     form: dict[str, Any],
     evidence: list[str],
     content_type: str,
+    *,
+    on_beat: Any = None,
+    budget_seconds: int | None = None,
 ) -> dict[str, Any] | None:
     """Draft beat by beat; None only when the model produced nothing usable."""
     arc = form.get("arc", [])
@@ -431,6 +449,8 @@ def _ollama_draft(
     duration_hint = max(1, target // max(1, len(arc)))
     num_predict = 1024 if content_type == "short" else 1536
     total = len(arc)
+    budget = budget_seconds if budget_seconds is not None else _draft_budget_seconds(env, content_type)
+    started = time.monotonic()
 
     segments: list[dict[str, Any]] = []
     fallback_beats: list[str] = []
@@ -439,21 +459,32 @@ def _ollama_draft(
     for index, purpose in enumerate(arc):
         beat_id = f"beat-{index + 1}"
         position = f"beat {index + 1} of {total}"
-        segment, attempts = _ollama_beat(
-            env, topic=topic, beat_id=beat_id,
-            purpose=str(purpose), position=position,
-            previous_summary=previous_summary, evidence=evidence,
-            duration_hint=duration_hint, num_predict=num_predict,
-        )
-        if segment is None:
+        elapsed = time.monotonic() - started
+        if elapsed >= budget:
+            # Budget spent: remaining beats use the deterministic outline so
+            # the draft still completes instead of stalling the pipeline.
             segment = _outline_beat(topic, arc, index, target)
-            segment["generation"] = {"mode": "outline_fallback", "attempts": attempts}
+            segment["generation"] = {"mode": "outline_fallback", "attempts": 0}
             fallback_beats.append(beat_id)
         else:
-            model_beats += 1
-            segment["generation"] = {"mode": "local_ollama", "attempts": attempts}
-            previous_summary = segment["narration"][:300]
+            segment, attempts = _ollama_beat(
+                env, topic=topic, beat_id=beat_id,
+                purpose=str(purpose), position=position,
+                previous_summary=previous_summary, evidence=evidence,
+                duration_hint=duration_hint, num_predict=num_predict,
+            )
+            if segment is None:
+                segment = _outline_beat(topic, arc, index, target)
+                segment["generation"] = {"mode": "outline_fallback", "attempts": attempts}
+                fallback_beats.append(beat_id)
+            else:
+                model_beats += 1
+                segment["generation"] = {"mode": "local_ollama", "attempts": attempts}
+                previous_summary = segment["narration"][:300]
         segments.append(segment)
+        if on_beat is not None:
+            on_beat(index, total, segment["generation"]["mode"],
+                     segment["generation"]["attempts"], time.monotonic() - started)
 
     if model_beats == 0:
         return None
@@ -473,6 +504,9 @@ def create_script_draft(
     evidence_text: str = "",
     content_type: str = "short",
     colorway: str = "match-night",
+    *,
+    on_beat: Any = None,
+    budget_seconds: int | None = None,
 ) -> dict[str, Any]:
     topic = _normalise(topic)
     if len(topic) < 4 or len(topic) > 500:
@@ -496,7 +530,10 @@ def create_script_draft(
         for line in evidence_text.splitlines()
         if _normalise(line)
     ][:12]
-    generated = _ollama_draft(_local_env(root), topic, form, evidence, content_type)
+    generated = _ollama_draft(
+        _local_env(root), topic, form, evidence, content_type,
+        on_beat=on_beat, budget_seconds=budget_seconds,
+    )
     asset_needs: list[dict[str, Any]] = []
     chapter_events: list[dict[str, Any]] = []
     fallback_beats: list[str] = []
@@ -601,7 +638,16 @@ def run_content_agent(
     _save_progress(run)
 
     try:
-        draft = create_script_draft(root, topic, story_form_id, evidence_text, content_type, colorway)
+        def _report_beat(index: int, total: int, mode: str, attempts: int, elapsed: float) -> None:
+            run["current_beat"] = index + 1
+            run["total_beats"] = total
+            run["last_beat_mode"] = mode
+            _save_progress(run)
+
+        draft = create_script_draft(
+            root, topic, story_form_id, evidence_text, content_type, colorway,
+            on_beat=_report_beat,
+        )
     except Exception as error:
         run["status"] = "DRAFT_FAILED"
         run["error"] = str(error)
