@@ -157,6 +157,22 @@ def test_model_down_keeps_deterministic_outline_fallback(monkeypatch):
     assert result["status"] == "NEEDS_EVIDENCE"
 
 
+def test_total_failure_preserves_diagnostics(monkeypatch):
+    """Regression: a total model failure must keep fallback reasons and
+    spend evidence instead of a bare outline with attempts=0 everywhere."""
+    _install(monkeypatch, [URLError("connection refused")])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    assert result["fallback_beats"] == [f"beat-{i + 1}" for i in range(6)]
+    for segment in result["segments"]:
+        assert segment["generation"]["mode"] == "outline_fallback"
+        assert segment["generation"]["attempts"] == 2
+        assert segment["generation"]["error"] == "transport_or_provider_error"
+    assert result["llm_calls"] == 12  # 6 beats x 2 attempts, all recorded
+    assert result["budget_exceeded"] is False
+
+
 def test_asset_needs_validated_and_capped(monkeypatch):
     beats = [_chat_content(_beat_payload("Good beat.", 7)) for _ in range(6)]
     needs = _chat_content({"asset_needs": [

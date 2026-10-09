@@ -432,11 +432,21 @@ def _ollama_draft(
     *,
     on_beat: Any = None,
     budget_seconds: int | None = None,
-) -> dict[str, Any] | None:
-    """Draft beat by beat; None only when the model produced nothing usable."""
+) -> dict[str, Any]:
+    """Draft beat by beat; always returns the draft with per-beat provenance.
+
+    Even a total model failure returns usable outline segments plus the
+    fallback list, spend ledger, and failure reasons — never a bare None
+    that discards all diagnostics.
+    """
     arc = form.get("arc", [])
     if not arc:
-        return None
+        return {"model_beats": 0, "segments": [], "asset_needs": [],
+                "fallback_beats": [], "budget_exceeded": False,
+                "llm_cost_usd": 0.0, "llm_calls": 0,
+                "llm_provider": env.get("LLM_PROVIDER", "ollama").strip().lower(),
+                "llm_model": env.get("LLM_MODEL", "").strip(),
+                "llm_models_used": []}
     target = int(form.get("target_seconds", 45))
     duration_hint = max(1, target // max(1, len(arc)))
     num_predict = 1024 if content_type == "short" else 1536
@@ -484,15 +494,18 @@ def _ollama_draft(
             on_beat(index, total, segment["generation"]["mode"],
                      segment["generation"]["attempts"], time.monotonic() - started)
 
-    if model_beats == 0:
-        return None
     beat_visuals = [str(item.get("visual", ""))[:200] for item in segments]
-    asset_needs = _ollama_asset_needs(env, topic, beat_visuals, content_type, ledger)
+    asset_needs: list[dict[str, Any]] = []
+    if model_beats > 0:
+        # No model output means no grounded media needs; skip the extra call
+        # instead of burning quota to decorate an outline.
+        asset_needs = _ollama_asset_needs(env, topic, beat_visuals, content_type, ledger)
     models_used = sorted({
         call["model"] for call in ledger["calls"]
         if call.get("completion_tokens", 0) > 0 and call.get("model")
     })
     return {
+        "model_beats": model_beats,
         "segments": segments,
         "asset_needs": asset_needs,
         "fallback_beats": fallback_beats,
@@ -551,27 +564,21 @@ def create_script_draft(
     llm_model = ""
     llm_models_used: list[str] = []
     budget_exceeded = False
-    if generated:
-        segments = generated["segments"]
-        asset_needs = generated["asset_needs"]
-        fallback_beats = generated["fallback_beats"]
-        llm_cost_usd = generated["llm_cost_usd"]
-        llm_calls = generated["llm_calls"]
-        llm_provider = generated["llm_provider"]
-        llm_model = generated["llm_model"]
-        llm_models_used = generated["llm_models_used"]
-        budget_exceeded = generated["budget_exceeded"]
-        mode = "local_ollama" if not fallback_beats else "local_ollama_partial"
-    else:
-        arc = form.get("arc", [])
-        segments = [
-            {
-                **_outline_beat(topic, arc, index, int(form.get("target_seconds", 45))),
-                "generation": {"mode": "outline_fallback", "attempts": 0},
-            }
-            for index, _ in enumerate(arc)
-        ]
+    segments = generated["segments"]
+    asset_needs = generated["asset_needs"]
+    fallback_beats = generated["fallback_beats"]
+    llm_cost_usd = generated["llm_cost_usd"]
+    llm_calls = generated["llm_calls"]
+    llm_provider = generated["llm_provider"]
+    llm_model = generated["llm_model"]
+    llm_models_used = generated["llm_models_used"]
+    budget_exceeded = generated["budget_exceeded"]
+    if generated["model_beats"] == 0:
+        # Total model failure keeps the per-beat outline segments with their
+        # failure reasons instead of a bare outline with no diagnostics.
         mode = "outline_fallback"
+    else:
+        mode = "local_ollama" if not fallback_beats else "local_ollama_partial"
 
     total_duration = int(form.get("target_seconds", 45))
     segments, chapter_events = _add_production_timeline(segments, total_duration, package.timeline)
