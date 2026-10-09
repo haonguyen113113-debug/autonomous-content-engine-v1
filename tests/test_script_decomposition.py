@@ -366,6 +366,14 @@ def test_overlap_ratio_unit():
     assert workflow._overlap_ratio("", "non-empty") == 0.0
 
 
+def test_clean_segment_enforces_speech_budget():
+    ok = workflow._clean_segment(_beat_payload("Ngan gon vua slot.", 7), max_chars=200)
+    assert ok is not None
+    long_text = "x" * 201
+    assert workflow._clean_segment(_beat_payload(long_text, 7), max_chars=200) is None
+    assert workflow._clean_segment(_beat_payload(long_text, 7)) is not None
+
+
 def test_fact_signature_unit():
     signature = workflow._fact_signature("Cao 1,94m, phi 25 triệu euro, 4 ban/2 tran.")
     assert "1,94m" in signature
