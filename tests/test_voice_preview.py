@@ -52,8 +52,7 @@ def test_voice_preview_pipes_utf8_to_worker(monkeypatch, tmp_path):
     assert saved["voice_preview"]["path"] == "abcdef123456-voice-preview.wav"
 
 
-def test_voice_preview_blocks_unresolved_markers(tmp_path):
-    _make_run(tmp_path)
+def test_voice_preview_blocks_unresolved_markers(tmp_path):    _make_run(tmp_path)
     _make_profile(tmp_path)
     run_path = tmp_path / "runtime/runs/abcdef123456.json"
     run = json.loads(run_path.read_text(encoding="utf-8"))
@@ -61,3 +60,28 @@ def test_voice_preview_blocks_unresolved_markers(tmp_path):
     run_path.write_text(json.dumps(run, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(ValueError, match="research placeholders"):
         voice_tts.synthesize_voice_preview(tmp_path, "abcdef123456")
+
+
+def test_clean_for_tts_removes_surrogates_and_controls():
+    dirty = "Espi ghi bàn.\udc81\udfff\x00\x07 legitimate — text"
+    clean = voice_tts._clean_for_tts(dirty)
+    assert "\udc81" not in clean and "\udfff" not in clean
+    assert "\x00" not in clean and "\x07" not in clean
+    assert "Espi ghi bàn." in clean
+    clean.encode("utf-8")  # must not raise
+
+
+def test_voice_worker_gets_utf8_environment(monkeypatch, tmp_path):
+    _make_run(tmp_path)
+    _make_profile(tmp_path)
+    monkeypatch.setattr(voice_tts, "_runtime_python", lambda root: Path("tts-python"))
+    seen = {}
+
+    def fake_run(*args, **kwargs):
+        seen.update(kwargs)
+        return SimpleNamespace(returncode=0, stderr="", stdout="")
+
+    monkeypatch.setattr(voice_tts.subprocess, "run", fake_run)
+    voice_tts.synthesize_voice_preview(tmp_path, "abcdef123456")
+    assert seen["env"]["PYTHONUTF8"] == "1"
+    assert seen["env"]["PYTHONIOENCODING"] == "utf-8"
