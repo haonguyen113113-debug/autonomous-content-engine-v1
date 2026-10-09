@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import unicodedata
 from datetime import datetime, timezone
 import textwrap
 from typing import Any
@@ -48,6 +49,10 @@ def _ffprobe(ffmpeg: str) -> str:
 
 def _safe_run_id(value: str) -> bool:
     return len(value) == 12 and all(ch in "0123456789abcdef" for ch in value)
+
+
+def _normalise(value: str) -> str:
+    return unicodedata.normalize("NFC", str(value)).strip()
 
 
 def _write_text(path: Path, text: str) -> str:
@@ -1018,6 +1023,50 @@ def _write_backdrop(path: Path, *, width: int, height: int, palette: dict[str, s
     Image.blend(composed, grain, 0.035).save(path)
 
 
+def _beat_fades(events: list[Any], start: float, end: float) -> tuple[bool, bool]:
+    """Whether a beat requests fade in/out from its overlapping timeline events."""
+    fade_in = False
+    fade_out = False
+    for item in events:
+        if not isinstance(item, dict):
+            continue
+        try:
+            item_start = float(item.get("start_seconds", 0))
+            item_end = float(item.get("end_seconds", 0))
+        except (TypeError, ValueError):
+            continue
+        if item_end <= start or item_start >= end:
+            continue
+        if item.get("enter") == "fade":
+            fade_in = True
+        if item.get("exit") == "fade":
+            fade_out = True
+    return fade_in, fade_out
+
+
+def _overlay_items(events: list[Any], start: float, end: float, *,
+                   kinds: tuple[str, ...] = ("lower_third", "caption"),
+                   limit: int = 6) -> list[dict[str, Any]]:
+    """Typed on-screen items whose windows overlap a beat, oldest first."""
+    picked: list[dict[str, Any]] = []
+    for item in events:
+        if not isinstance(item, dict) or item.get("item_type") not in kinds:
+            continue
+        try:
+            item_start = float(item.get("start_seconds", 0))
+            item_end = float(item.get("end_seconds", 0))
+        except (TypeError, ValueError):
+            continue
+        if item_end <= start or item_start >= end or item_end <= item_start:
+            continue
+        picked.append(item)
+        if len(picked) >= limit:
+            break
+    picked.sort(key=lambda item: (float(item.get("start_seconds", 0)),
+                                  float(item.get("end_seconds", 0))))
+    return picked
+
+
 def _render(
     root: Path,
     run: dict[str, Any],
@@ -1253,6 +1302,11 @@ def _render(
     # diagram beat, then animate the ball along its reviewed pass vector.
     chains: list[str] = []
     current = "0:v"
+    panel_w, panel_h = (1540, 840) if is_long else (960, 1250)
+    full_segments = draft.get("segments", []) if isinstance(draft.get("segments"), list) else []
+    chapter_pool = draft.get("chapter_events", []) if isinstance(draft.get("chapter_events"), list) else []
+    fades_used = 0
+    overlays_used = 0
     for index, ((start, end), spec) in enumerate(zip(phase_ranges, diagram_specs)):
         if end <= start:
             continue
@@ -1261,6 +1315,12 @@ def _render(
         scene_enable = f"gte(t,{start:.3f})*lt(t,{end:.3f})"
         scene_slide = f"18*(1-min(max((t-{start:.3f})/0.24,0),1))^2"
         scene_y_expr = f"{scene_y}+{scene_slide}"
+        beat_events: list[Any] = list(chapter_pool)
+        if not preview and index < len(full_segments) and isinstance(full_segments[index], dict):
+            beat_events += full_segments[index].get("timeline_events", [])
+        fade_in, fade_out = _beat_fades(beat_events, start, end)
+        if fade_in or fade_out:
+            fades_used += 1
         scene_source = f"{scene_idx}:v"
         if selected_modes[index] == "media_b_roll":
             media_layer = f"mediamotion{index}"
@@ -1271,6 +1331,26 @@ def _render(
                 f"s={media_width}x{media_height}:fps={fps},format=rgba[{media_layer}]"
             )
             scene_source = media_layer
+        else:
+            # Ken Burns drift on every static plate so no beat ever sits still.
+            # Alternate push-in / pull-out per beat for editorial variety.
+            motion_label = f"scenemotion{index}"
+            if index % 2 == 0:
+                zoom_expr = "min(1.07,zoom+0.0004)"
+            else:
+                zoom_expr = "if(eq(on,0),1.07,max(zoom-0.0004,1.0))"
+            motion_chain = (
+                f"[{scene_idx}:v]zoompan=z='{zoom_expr}':"
+                f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
+                f"s={panel_w}x{panel_h}:fps={fps},format=rgba"
+            )
+            fade_chain = ""
+            if fade_in:
+                fade_chain += f",fade=t=in:st={start:.3f}:d=0.45:alpha=1"
+            if fade_out:
+                fade_chain += f",fade=t=out:st={max(start, end - 0.45):.3f}:d=0.45:alpha=1"
+            chains.append(f"{motion_chain}{fade_chain}[{motion_label}]")
+            scene_source = motion_label
         chains.append(
             f"[{current}][{scene_source}]overlay=x={scene_x}:y='{scene_y_expr}':eval=frame:eof_action=pass:format=auto:"
             f"enable='{scene_enable}'[{scene_label}]"
@@ -1318,6 +1398,88 @@ def _render(
             f"eval=frame:eof_action=pass:format=auto:enable='{scene_enable}'[{ball_label}]"
         )
         current = ball_label
+    # Typed on-screen items declared in the production timeline. Lower-thirds
+    # identify who/what is on screen; captions carry the hook for muted
+    # viewers. Both sit above every scene layer.
+    for index, (start, end) in enumerate(phase_ranges):
+        if end <= start:
+            continue
+        pool: list[Any] = list(chapter_pool)
+        if not preview and index < len(full_segments) and isinstance(full_segments[index], dict):
+            pool += full_segments[index].get("timeline_events", [])
+        for job, item in enumerate(_overlay_items(pool, start, end)):
+            try:
+                item_start = max(start, float(item.get("start_seconds", start)))
+                item_end = min(end, float(item.get("end_seconds", end)))
+            except (TypeError, ValueError):
+                continue
+            if item_end <= item_start:
+                continue
+            raw_text = _normalise(str(item.get("text", "")))
+            if not raw_text:
+                continue
+            window = f"between(t,{item_start:.3f},{item_end:.3f})"
+            if item.get("item_type") == "lower_third":
+                lines = textwrap.wrap(raw_text, width=34, break_long_words=False,
+                                       break_on_hyphens=False)[:2]
+                text_path = _write_text(work_dir / f"lower-{index}-{job}.txt", "\n".join(lines))
+                box_y = scene_y + panel_h - 168
+                filters.append(
+                    f"drawbox=x={scene_x + 24}:y={box_y}:w={panel_w - 48}:h=118:"
+                    f"color={color_token('ink')}@0.78:t=fill:enable='{window}'"
+                )
+                filters.append(
+                    f"drawbox=x={scene_x + 24}:y={box_y}:w=7:h=118:"
+                    f"color={signal_lime}@1:t=fill:enable='{window}'"
+                )
+                filters.append(
+                    f"drawtext=fontfile='{font_path}':textfile='{text_path}':fontcolor={chalk}:"
+                    f"fontsize=h*0.022:line_spacing=7:"
+                    f"x={scene_x + 48}:y={box_y + 16}:"
+                    f"shadowcolor=black@0.6:shadowx=1:shadowy=2:enable='{window}'"
+                )
+            else:
+                lines = textwrap.wrap(raw_text, width=40, break_long_words=False,
+                                       break_on_hyphens=False)[:2]
+                text_path = _write_text(work_dir / f"caption-{index}-{job}.txt", "\n".join(lines))
+                filters.append(
+                    f"drawtext=fontfile='{font_path}':textfile='{text_path}':fontcolor={chalk}:"
+                    f"fontsize=h*0.026:line_spacing=6:text_align=center:"
+                    f"x='(w-text_w)/2':y={scene_y + panel_h - 96}:"
+                    f"box=1:boxcolor=black@0.55:boxborderw=10:enable='{window}'"
+                )
+            overlays_used += 1
+    # Branded end-card closes the arc inside the final seconds: wordmark,
+    # channel tagline, and template version. Audio, if any, plays under it.
+    end_start = max(0.0, duration - 2.5)
+    tagline = ""
+    if isinstance(package.channel, dict):
+        tagline = _normalise(str(package.channel.get("tagline", "")))[:120]
+    filters.append(
+        f"drawbox=x=0:y=0:w=iw:h=ih:color={color_token('ink')}@0.94:t=fill:"
+        f"enable='gte(t,{end_start:.3f})'"
+    )
+    filters.append(
+        f"drawtext=fontfile='{latin_font_path}':textfile='{label_path}':fontcolor={signal_lime}:"
+        f"fontsize=h*0.055:text_align=center:x='(w-text_w)/2':y=h*0.40:"
+        f"enable='gte(t,{end_start:.3f})'"
+    )
+    if tagline:
+        tagline_path = _write_text(work_dir / "endcard-tagline.txt", tagline)
+        filters.append(
+            f"drawtext=fontfile='{font_path}':textfile='{tagline_path}':fontcolor={chalk}:"
+            f"fontsize=h*0.026:text_align=center:x='(w-text_w)/2':y=h*0.52:"
+            f"enable='gte(t,{end_start:.3f})'"
+        )
+    version_path = _write_text(
+        work_dir / "endcard-version.txt",
+        f"{template_id}  ·  v{package.manifest.get('version', '?')}",
+    )
+    filters.append(
+        f"drawtext=fontfile='{latin_font_path}':textfile='{version_path}':fontcolor={chalk}:"
+        f"fontsize=h*0.018:text_align=center:x='(w-text_w)/2':y=h*0.60:"
+        f"enable='gte(t,{end_start:.3f})'"
+    )
     chains.append(f"[{current}]{','.join(filters)}[vout]")
     filter_complex = ";".join(chains)
     command += ["-filter_complex", filter_complex, "-map", "[vout]", "-t", str(duration), "-r", str(fps), "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22", "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"]
@@ -1350,12 +1512,13 @@ def _render(
         {"criterion": "Vietnamese font and diacritics", "status": "PASS", "detail": "Barlow Condensed provides Vietnamese headline glyphs; Be Vietnam Pro remains available for dense supporting copy."},
         {"criterion": "Tactical pitch orientation and authored vectors", "status": "NOT USED" if not any(mode == "tactical_explainer" for mode in selected_modes) else "PASS", "detail": "No tactical pitch scene is part of this short-form script." if not any(mode == "tactical_explainer" for mode in selected_modes) else f"The {('landscape' if is_long else 'portrait')} pitch has correct halfway-line orientation, full markings, and color-coded pass/run/press vectors."},
         {"criterion": "Template art direction", "status": "PASS", "detail": "Touchline Editorial pairs expressive Vietnamese display headlines, condensed chapter numerals, tactile pitch marks, contextual colorways, and distinct portrait/landscape graphic plates."},
-        {"criterion": "Opening / body / ending rhythm", "status": "PARTIAL", "detail": "Chapter-led visual beats and the match-specific conclusion are present; authored end-card behavior is still a gap."},
-        {"criterion": "Visible motion and beat changes", "status": "PARTIAL" if visual_only else "PASS", "detail": f"The render switches across {len(phase_ranges)} timed beats; licensed still photographs receive a slow camera push, while tactical diagrams use one authored pass movement."},
+        {"criterion": "Opening / body / ending rhythm", "status": "PASS", "detail": "Chapter-led visual beats open on the match hook and close on a branded end-card with the channel wordmark, tagline, and template version."},
+        {"criterion": "Visible motion and beat changes", "status": "PASS", "detail": f"Alternating Ken Burns push-in/pull-out drift runs on all {len(phase_ranges)} scene plates; tactical diagrams add one authored pass movement with ball and trail."},
         {"criterion": "Narration subtitles", "status": "NOT USED", "detail": "Subtitles are intentionally omitted; the narration carries the explanation."},
         {"criterion": "Personal voice and speech pacing", "status": "PENDING OWNER AUDIT" if not preview and not visual_only else "NOT ASSESSED", "detail": "TTS preview is muxed as one continuous narration track; naturalness and voice similarity await owner review." if not preview and not visual_only else ("Voice evaluation is intentionally excluded from this benchmark." if visual_only else "This is a silent visual preview.")},
-        {"criterion": "Asset Library media", "status": "PASS" if selected_media else "FAIL", "detail": f"{len(selected_media)} verified, attributed library images are used as contextual B-roll; they are not footage from the current Premier League matches."},
-        {"criterion": "Script-specific transitions and effects", "status": "PARTIAL", "detail": "Current renderer uses clean static compositions and restrained accents; timeline transition/effect execution remains to be implemented."},
+        {"criterion": "Asset Library media", "status": "PASS" if selected_media else ("NOT ASSESSED" if preview else "FAIL"), "detail": f"{len(selected_media)} verified, attributed library images are used as contextual B-roll; they are not footage from the current Premier League matches." if selected_media else ("Media placement is exercised in full runs, not in silent template previews." if preview else "No verified library media is attached to this script.")},
+        {"criterion": "Lower-third and caption overlays", "status": "PASS" if overlays_used else "NOT USED", "detail": f"{overlays_used} timeline lower-third/caption item(s) rendered in their declared windows." if overlays_used else "This script declares no lower-third or caption timeline items."},
+        {"criterion": "Script-specific transitions and effects", "status": "PARTIAL", "detail": f"Fade in/out executes from timeline enter/exit on {fades_used} beat(s); all other beats cut clean. slide/draw/wipe transitions and freeze_and_trace/number_pop/pitch_grid effects remain unexecuted."},
     ]
     probe = _ffprobe(ffmpeg)
     probe_result = subprocess.run(
@@ -1385,7 +1548,7 @@ def _render(
     report = {
         "run_id": run["run_id"],
         "rendered_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-        "renderer": "ace-ffmpeg-0.2.0",
+        "renderer": "ace-ffmpeg-0.3.0",
         "template_id": template_id,
         "template_version": package.manifest["version"],
         "mode": "template_visual_preview" if preview else ("silent_longform_visual_benchmark" if visual_only else "full_script_render"),
@@ -1397,6 +1560,7 @@ def _render(
             "TTS voice naturalness and similarity have not been audited by the owner.",
             "The library images are contextual soccer photographs, not current Premier League match action.",
             "Still photographs use a slow camera push rather than live match motion; this benchmark tests workflow feasibility, not publish-ready aesthetics.",
+            "Only fade in/out transitions execute; slide, draw, wipe, and the declared effect set remain unexecuted.",
         ] if not preview and not visual_only else ["This is a silent visual-only benchmark and does not include narration audio."]),
     }
     (render_dir / "render-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
