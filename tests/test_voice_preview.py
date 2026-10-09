@@ -52,7 +52,8 @@ def test_voice_preview_pipes_utf8_to_worker(monkeypatch, tmp_path):
     assert saved["voice_preview"]["path"] == "abcdef123456-voice-preview.wav"
 
 
-def test_voice_preview_blocks_unresolved_markers(tmp_path):    _make_run(tmp_path)
+def test_voice_preview_blocks_unresolved_markers(tmp_path):
+    _make_run(tmp_path)
     _make_profile(tmp_path)
     run_path = tmp_path / "runtime/runs/abcdef123456.json"
     run = json.loads(run_path.read_text(encoding="utf-8"))
