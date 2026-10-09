@@ -113,7 +113,12 @@ Install the renderer's Python dependency with `python -m pip install -r requirem
 It rasterizes Vietnamese-labeled tactical boards with pitch geometry, player markers,
 directional vectors, and an animated ball.
 
-The renderer validates the output container, target aspect ratio, Vietnamese
+The renderer (ace-ffmpeg-0.3.0) composites Ken Burns drift on every scene plate,
+executes fade in/out from timeline enter/exit, renders lower-third and caption
+items in their declared windows, and closes with a branded end-card carrying the
+channel wordmark, tagline, and template version. Slide/draw/wipe transitions and
+the freeze/number-pop/pitch-grid effects remain unexecuted and are reported as
+such. It validates the output container, target aspect ratio, Vietnamese
 font, palette, full-pitch tactical markings, authored pass/run/press vectors,
 and beat-by-beat ball motion. It does not yet place selected Asset Library
 football media or execute the complete declared transition/effect set. The
