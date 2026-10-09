@@ -60,9 +60,29 @@ def test_unknown_entity_returns_none(tmp_path):
     conn = connect(db_path)
     try:
         assert load_identity_profile(conn, "player:nobody") is None
-        assert load_identity_profile(conn, "club:arsenal") is None
     finally:
         conn.close()
+
+
+def test_club_profile_matches_without_person_collision(tmp_path):
+    db_path = _seeded_db(tmp_path)
+    conn = connect(db_path)
+    try:
+        profile = load_identity_profile(conn, "club:real-madrid")
+    finally:
+        conn.close()
+    assert profile is not None
+    assert profile.is_person is False
+    assert "real madrid" in profile.include_terms
+    candidates = [
+        _candidate("1", "Real Madrid v Barcelona, Champions League 2026.jpg"),
+        _candidate("2", "Santiago Bernabeu at night"),
+    ]
+    kept, removed = screen_candidates(candidates, profile)
+    # Match photos legitimately name two teams: never disqualify team entities.
+    assert [c.candidate_id for c in kept] == ["1", "2"]
+    assert removed == []
+    assert {c.identity for c in kept} == {"match", "uncertain"}
 
 
 def test_screening_drops_wrong_person_and_flags_uncertain(tmp_path):

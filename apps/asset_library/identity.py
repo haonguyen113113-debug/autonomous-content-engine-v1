@@ -10,6 +10,8 @@ from typing import Any
 from .registry import connect
 
 PERSON_TYPES = {"player", "manager", "official"}
+TEAM_TYPES = {"club", "national_team", "competition"}
+SCREENABLE_TYPES = PERSON_TYPES | TEAM_TYPES
 
 
 @dataclass(frozen=True)
@@ -21,6 +23,7 @@ class IdentityProfile:
     include_terms: tuple[str, ...]
     exclude_terms: tuple[str, ...]
     other_names: tuple[tuple[str, str], ...]
+    is_person: bool = True
 
 
 def _term_hit(text: str, term: str) -> bool:
@@ -36,7 +39,7 @@ def load_identity_profile(conn: sqlite3.Connection, entity_id: str) -> IdentityP
         "FROM entities WHERE entity_id = ?",
         (entity_id,),
     ).fetchone()
-    if row is None or row["entity_type"] not in PERSON_TYPES:
+    if row is None or row["entity_type"] not in SCREENABLE_TYPES:
         return None
     try:
         metadata = json.loads(row["metadata_json"] or "{}")
@@ -63,24 +66,28 @@ def load_identity_profile(conn: sqlite3.Connection, entity_id: str) -> IdentityP
     exclude = {str(term).lower() for term in identity.get("exclude_terms", []) if str(term).strip()}
 
     others: list[tuple[str, str]] = []
-    try:
-        people = conn.execute(
-            "SELECT entity_id, canonical_name FROM entities "
-            "WHERE entity_type IN ('player', 'manager', 'official') AND entity_id != ?",
-            (entity_id,),
-        ).fetchall()
-        for person in people:
-            if person["canonical_name"]:
-                others.append((person["entity_id"], str(person["canonical_name"])))
-        alias_rows = conn.execute(
-            "SELECT entity_id, alias FROM entity_aliases WHERE entity_id != ?",
-            (entity_id,),
-        ).fetchall()
-        for alias_row in alias_rows:
-            if alias_row["alias"]:
-                others.append((alias_row["entity_id"], str(alias_row["alias"])))
-    except sqlite3.Error:
-        pass
+    is_person = row["entity_type"] in PERSON_TYPES
+    if is_person:
+        # Only people suffer same-name collisions. Match photos legitimately
+        # name two teams, so other-team names never disqualify team entities.
+        try:
+            people = conn.execute(
+                "SELECT entity_id, canonical_name FROM entities "
+                "WHERE entity_type IN ('player', 'manager', 'official') AND entity_id != ?",
+                (entity_id,),
+            ).fetchall()
+            for person in people:
+                if person["canonical_name"]:
+                    others.append((person["entity_id"], str(person["canonical_name"])))
+            alias_rows = conn.execute(
+                "SELECT entity_id, alias FROM entity_aliases WHERE entity_id != ?",
+                (entity_id,),
+            ).fetchall()
+            for alias_row in alias_rows:
+                if alias_row["alias"]:
+                    others.append((alias_row["entity_id"], str(alias_row["alias"])))
+        except sqlite3.Error:
+            pass
 
     return IdentityProfile(
         entity_id=row["entity_id"],
@@ -88,6 +95,7 @@ def load_identity_profile(conn: sqlite3.Connection, entity_id: str) -> IdentityP
         include_terms=tuple(sorted(include)),
         exclude_terms=tuple(sorted(exclude)),
         other_names=tuple(others),
+        is_person=is_person,
     )
 
 
@@ -108,9 +116,13 @@ def screen_candidates(
         text = f"{getattr(candidate, 'title', '')} {getattr(candidate, 'provider', '')}".lower()
         candidate_id = str(getattr(candidate, "candidate_id", ""))
         title = str(getattr(candidate, "title", ""))
-        hit_other = next(
-            (name for _, name in profile.other_names if name.lower() in text),
-            None,
+        hit_other = (
+            next(
+                (name for _, name in profile.other_names if name.lower() in text),
+                None,
+            )
+            if profile.is_person
+            else None
         )
         if hit_other is not None:
             removed.append({
