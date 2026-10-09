@@ -20,8 +20,9 @@ from apps.asset_library.asset_intelligence import ResourceRequirement
 from apps.asset_library.discovery import (
     DiscoveryError,
     save_commons_candidate,
-    search_image_candidates,
+    search_candidates,
 )
+from apps.asset_library.identity import apply_identity_filter
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.voice_tts import save_voice_reference, synthesize_voice_preview, voice_profile_status
@@ -201,6 +202,45 @@ def _attach_segment_media(root: Path, db_path: Path, payload: dict[str, Any]) ->
         segment.pop("media_caption", None)
     run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {"status": "MEDIA_ATTACHED", "run_id": run_id, "segment_id": segment_id, "asset_id": asset_id}
+
+
+def _read_api_keys(root: Path) -> dict[str, str]:
+    """Optional provider keys from the environment and the local .env file."""
+    keys = dict(os.environ)
+    env_file = root / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                keys.setdefault(key.strip(), value.strip().strip("\"'"))
+    return {name: keys[name] for name in ("PEXELS_API_KEY", "PIXABAY_API_KEY") if keys.get(name)}
+
+
+def _asset_file_info(root: Path, db_path: Path, asset_id: str) -> tuple[Path, str]:
+    """Resolve a library file for owner preview. Any rights state is viewable:
+    the owner must see an asset to review its rights."""
+    if not isinstance(asset_id, str) or not asset_id.strip() or len(asset_id) > 80:
+        raise ValueError("Asset ID is required.")
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT stored_path, mime_type FROM assets WHERE asset_id = ?",
+            (asset_id.strip(),),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        raise ValueError("Asset was not found in the library.")
+    library_root = (root / "runtime/assets/library").resolve()
+    file_path = (root / row["stored_path"]).resolve()
+    if library_root not in file_path.parents or not file_path.is_file():
+        raise ValueError("Library file is missing or outside the library.")
+    mime_type = str(row["mime_type"] or "")
+    if "/" not in mime_type:
+        import mimetypes
+        mime_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    return file_path, mime_type
 
 
 def _overview(db_path: Path) -> dict[str, Any]:
@@ -526,6 +566,23 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         self.wfile.write(block)
                         remaining -= len(block)
                 return
+            asset_match = re.fullmatch(r"/api/assets/file/([A-Za-z0-9][A-Za-z0-9_-]{0,79})", path)
+            if asset_match:
+                try:
+                    file_path, mime_type = _asset_file_info(
+                        db_path.parent.parent, db_path, asset_match.group(1)
+                    )
+                except ValueError:
+                    self._send_json({"error": "Library file not found."}, HTTPStatus.NOT_FOUND)
+                    return
+                body = file_path.read_bytes()
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", mime_type)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+                return
             report_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/report", path)
             if report_match:
                 report_path = db_path.parent.parent / "runtime/renders" / report_match.group(1) / "render-report.json"
@@ -698,13 +755,31 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     raise ValueError("Request must be a JSON object.")
 
                 if path == "/api/discovery-search":
-                    candidates = search_image_candidates(
+                    resource_type = str(payload.get("resource_type", "image")).strip().lower()
+                    if resource_type not in {"image", "video"}:
+                        raise ValueError("Discovery supports image and video requests.")
+                    sort = str(payload.get("sort", "relevance")).strip().lower()
+                    if sort not in {"relevance", "newest"}:
+                        raise ValueError("Sort must be relevance or newest.")
+                    candidates, statuses = search_candidates(
                         str(payload.get("query", "")),
+                        resource_type=resource_type,
                         limit=int(payload.get("limit", 24)),
+                        api_keys=_read_api_keys(db_path.parent.parent),
+                        sort=sort,
                     )
+                    ready = sorted({item["label"] for item in statuses if item["state"] == "ready"})
+                    identity = None
+                    entity_id = str(payload.get("entity_id", "")).strip()
+                    if entity_id:
+                        candidates, identity = apply_identity_filter(
+                            candidates, entity_id, db_path
+                        )
                     self._send_json(
                         {
-                            "provider": "Openverse + Wikimedia Commons",
+                            "provider": " + ".join(ready) if ready else "No providers available",
+                            "provider_status": statuses,
+                            "identity": identity,
                             "candidates": [asdict(item) for item in candidates],
                         }
                     )
@@ -759,6 +834,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         str(payload.get("candidate_id", "")),
                         ResourceRequirement(**requirement_data),
                         rights_reviewed=rights_reviewed,
+                        api_keys=_read_api_keys(db_path.parent.parent),
                     )
                     self._send_json(result, HTTPStatus.CREATED)
                     return
@@ -815,6 +891,11 @@ def main() -> None:
 
     project_root = Path(args.root).resolve()
     db_path = project_root / "runtime/engine.db"
+    try:
+        from apps.asset_library.entity_seed import seed_entity_catalog
+        seed_entity_catalog(project_root)
+    except Exception as error:
+        print(f"[engine-ui] entity catalog seed skipped: {error}", flush=True)
     server = ThreadingHTTPServer(
         (args.host, args.port),
         make_handler(db_path),

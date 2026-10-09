@@ -1,0 +1,63 @@
+{
+  "dataset_version": "2026-10-09",
+  "source": {
+    "name": "Curated player identity records for Asset Library disambiguation",
+    "url": "https://en.wikipedia.org/wiki/Bruno_Fernandes",
+    "retrieved_at": "2026-10-09",
+    "notes": "Minimal reviewed seed so the identity filter can tell same-named players apart. Verify against a primary source before expanding."
+  },
+  "records": [
+    {
+      "entity_id": "player:bruno-fernandes",
+      "entity_type": "player",
+      "canonical_name": "Bruno Miguel Borges Fernandes",
+      "slug": "bruno-fernandes",
+      "country_code": "PT",
+      "aliases": [
+        {"alias": "Bruno Fernandes", "alias_type": "common"},
+        {"alias": "Bruno", "alias_type": "short"}
+      ],
+      "metadata": {
+        "football_entity_scope": "player",
+        "position": "midfielder",
+        "birth_date": "1994-09-08",
+        "birth_place": "Maia, Portugal",
+        "clubs": ["Manchester United"],
+        "national_team": "Portugal",
+        "shirt_numbers": {"Manchester United": 8, "Portugal": 8},
+        "identity": {
+          "include_terms": [
+            "manchester united",
+            "man utd",
+            "portugal",
+            "bruno fernandes",
+            "midfielder"
+          ],
+          "exclude_terms": ["de souza", "goalkeeper"]
+        }
+      }
+    },
+    {
+      "entity_id": "player:bruno-fernandes-de-souza",
+      "entity_type": "player",
+      "canonical_name": "Bruno Fernandes das Dores de Souza",
+      "slug": "bruno-fernandes-de-souza",
+      "country_code": "BR",
+      "aliases": [
+        {"alias": "Bruno Fernandes de Souza", "alias_type": "common"}
+      ],
+      "metadata": {
+        "football_entity_scope": "player",
+        "position": "goalkeeper",
+        "birth_date": "1984-12-23",
+        "birth_place": "Ribeirão das Neves, Brazil",
+        "clubs": ["Flamengo"],
+        "national_team": null,
+        "identity": {
+          "include_terms": ["flamengo", "brazil", "goalkeeper"],
+          "exclude_terms": []
+        }
+      }
+    }
+  ]
+}
