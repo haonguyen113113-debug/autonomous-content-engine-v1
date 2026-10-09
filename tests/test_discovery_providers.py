@@ -298,3 +298,103 @@ def test_save_rejects_type_mismatch(monkeypatch, tmp_path):
         discovery.save_commons_candidate(
             tmp_path, "56", requirement, rights_reviewed=True
         )
+
+
+def _pixabay_photo_hit(photo_id=101, width=2000, height=1300):
+    return {
+        "id": photo_id,
+        "pageURL": f"https://pixabay.com/photos/test-{photo_id}/",
+        "tags": "derby stadium night",
+        "previewURL": "https://cdn.pixabay.com/photo/150.jpg",
+        "largeImageURL": "https://pixabay.com/get/abcdef_1280.jpg",
+        "imageWidth": width,
+        "imageHeight": height,
+        "imageSize": 500000,
+        "user": "Pix User",
+    }
+
+
+def _pixabay_video_hit(video_id=202):
+    return {
+        "id": video_id,
+        "pageURL": f"https://pixabay.com/videos/test-{video_id}/",
+        "tags": "derby stadium night",
+        "duration": 15,
+        "user": "Pix Videographer",
+        "videos": {
+            "medium": {"url": "https://cdn.pixabay.com/video/medium.mp4",
+                       "width": 1280, "height": 720},
+            "small": {"url": "https://cdn.pixabay.com/video/small.mp4",
+                      "width": 640, "height": 360},
+        },
+    }
+
+
+def test_pixabay_included_with_key_and_latest_order(monkeypatch):
+    monkeypatch.setenv("PIXABAY_API_KEY", "px-key")
+    seen = []
+
+    def fake_pixabay(url):
+        seen.append(url)
+        if url.startswith(discovery.PIXABAY_VIDEO_API):
+            return {"hits": [_pixabay_video_hit()]}
+        return {"hits": [_pixabay_photo_hit()]}
+
+    monkeypatch.setattr(discovery, "_pixabay_get_json", fake_pixabay)
+    monkeypatch.setattr(discovery, "_search_openverse_page", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "search_commons_images", lambda *a, **k: [])
+    candidates, statuses = discovery.search_candidates(
+        "derby stadium", limit=10, sort="newest")
+    assert [c.candidate_id for c in candidates] == ["pixabay:101"]
+    assert candidates[0].license_name == "Pixabay Content License"
+    assert {s["key"]: s["state"] for s in statuses}["pixabay_image"] == "ready"
+    assert any("order=latest" in url for url in seen)
+
+
+def test_pixabay_video_candidate_and_save(monkeypatch, tmp_path):
+    monkeypatch.setenv("PIXABAY_API_KEY", "px-key")
+    monkeypatch.setattr(
+        discovery, "_pixabay_get_json",
+        lambda url: {"hits": [_pixabay_video_hit()]},
+    )
+    monkeypatch.setattr(discovery, "_search_commons_videos", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_openverse_page", lambda *a, **k: [])
+    candidates, _ = discovery.search_candidates("derby", resource_type="video")
+    assert [c.candidate_id for c in candidates] == ["pixabay-video:202"]
+    assert candidates[0].duration_seconds == 15
+    monkeypatch.setattr(
+        discovery, "_download_candidate",
+        lambda *a, **k: (b"\x00\x00\x00\x20ftypmp42" + b"\x00" * 64, "video/mp4"),
+    )
+    result = discovery.save_commons_candidate(
+        tmp_path, "pixabay-video:202", _video_requirement(), rights_reviewed=True,
+        api_keys={"PIXABAY_API_KEY": "px-key"},
+    )
+    assert result["status"] == "SAVED"
+    from apps.asset_library.registry import connect
+    conn = connect(tmp_path / "runtime/engine.db")
+    try:
+        row = conn.execute(
+            "SELECT asset_type, source_url FROM assets WHERE asset_id = ?",
+            (result["asset_id"],),
+        ).fetchone()
+    finally:
+        conn.close()
+    assert tuple(row) == ("video", "https://pixabay.com/videos/test-202/")
+
+
+def test_pixabay_skipped_without_key(monkeypatch):
+    monkeypatch.delenv("PIXABAY_API_KEY", raising=False)
+    monkeypatch.delenv("PEXELS_API_KEY", raising=False)
+
+    def boom(url):
+        raise AssertionError("must not query Pixabay without a key")
+
+    monkeypatch.setattr(discovery, "_pixabay_get_json", boom)
+    monkeypatch.setattr(discovery, "_search_openverse_page", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "search_commons_images", lambda *a, **k: [])
+    candidates, statuses = discovery.search_candidates("derby")
+    assert candidates == []
+    states = {s["key"]: s["state"] for s in statuses}
+    assert states["pixabay_image"] == "needs_key"
+    assert states["pixabay_video"] == "needs_key"

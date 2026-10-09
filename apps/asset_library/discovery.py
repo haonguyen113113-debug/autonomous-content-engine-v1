@@ -22,6 +22,8 @@ from .ingest import ingest_one
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 OPENVERSE_API = "https://api.openverse.org/v1"
 PEXELS_API = "https://api.pexels.com"
+PIXABAY_API = "https://pixabay.com/api"
+PIXABAY_VIDEO_API = "https://pixabay.com/api/videos/"
 COMMONS_USER_AGENT = "AutonomousContentEngine/0.1 (local asset discovery)"
 MAX_RESULTS = 24
 OPENVERSE_PAGE_SIZE = 20
@@ -387,6 +389,12 @@ def _pexels_key(api_keys: dict | None) -> str | None:
     return os.environ.get("PEXELS_API_KEY") or None
 
 
+def _pixabay_key(api_keys: dict | None) -> str | None:
+    if api_keys and api_keys.get("PIXABAY_API_KEY"):
+        return str(api_keys["PIXABAY_API_KEY"])
+    return os.environ.get("PIXABAY_API_KEY") or None
+
+
 def _require_pexels_key(api_keys: dict | None) -> str:
     key = _pexels_key(api_keys)
     if not key:
@@ -416,6 +424,16 @@ def _candidate_by_id(
         return _pexels_video_detail(
             candidate_id.removeprefix("pexels-video:"),
             _require_pexels_key(api_keys),
+        )
+    if candidate_id.startswith("pixabay:"):
+        return _pixabay_photo_detail(
+            candidate_id.removeprefix("pixabay:"),
+            _require_pixabay_key(api_keys),
+        )
+    if candidate_id.startswith("pixabay-video:"):
+        return _pixabay_video_detail(
+            candidate_id.removeprefix("pixabay-video:"),
+            _require_pixabay_key(api_keys),
         )
     if not candidate_id.isdigit():
         raise ValueError("Invalid external candidate ID.")
@@ -453,6 +471,33 @@ def _candidate_by_id(
     return candidate
 
 
+def _download_pinned_image(file_url: str, allowed_hosts: set[str]) -> tuple[bytes, str]:
+    """Download an image re-resolved at save time from a pinned file host."""
+    _validate_public_https_url(file_url)
+    request = Request(file_url, headers={"User-Agent": COMMONS_USER_AGENT})
+    opener = build_opener(_PublicHttpsRedirectHandler())
+    try:
+        with opener.open(request, timeout=30) as response:
+            final_url = response.geturl()
+            if urlparse(final_url).hostname not in allowed_hosts:
+                raise DiscoveryError("Image download left the approved media host.")
+            _validate_public_https_url(final_url)
+            mime_type = response.headers.get_content_type().lower()
+            if mime_type not in ALLOWED_IMAGE_TYPES:
+                raise DiscoveryError(f"Unsupported image MIME type: {mime_type}")
+            declared_size = response.headers.get("Content-Length")
+            if declared_size and int(declared_size) > MAX_DOWNLOAD_BYTES:
+                raise DiscoveryError("Image exceeds the 20 MiB download limit.")
+            data = response.read(MAX_DOWNLOAD_BYTES + 1)
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError) as error:
+        if isinstance(error, DiscoveryError):
+            raise
+        raise DiscoveryError(f"Provider image download failed: {error}") from error
+    if len(data) > MAX_DOWNLOAD_BYTES:
+        raise DiscoveryError("Image exceeds the 20 MiB download limit.")
+    return data, mime_type
+
+
 def _download_candidate(
     candidate: ExternalAssetCandidate,
     api_keys: dict | None = None,
@@ -461,6 +506,13 @@ def _download_candidate(
         return _download_video_candidate(candidate, api_keys)
     if candidate.candidate_id.startswith("openverse:"):
         return _download_openverse_candidate(candidate.candidate_id.removeprefix("openverse:"))
+    if candidate.candidate_id.startswith("pixabay:"):
+        file_url, _ = _pixabay_file_url(
+            candidate.candidate_id.removeprefix("pixabay:"),
+            _require_pixabay_key(api_keys),
+            video=False,
+        )
+        return _download_pinned_image(file_url, {"pixabay.com"})
     image_info_url = _candidate_image_url(candidate.candidate_id)
     request = Request(
         image_info_url,
@@ -615,6 +667,7 @@ def save_commons_candidate(
     source_type = (
         "openverse" if candidate_id.startswith("openverse:")
         else "pexels" if candidate_id.startswith("pexels")
+        else "pixabay" if candidate_id.startswith("pixabay")
         else "wikimedia_commons"
     )
     sidecar = {
@@ -687,6 +740,7 @@ def save_commons_candidate(
 def provider_status(api_keys: dict | None = None) -> list[dict[str, str]]:
     """Report every discovery provider and whether it can run right now."""
     pexels_ready = bool(_pexels_key(api_keys))
+    pixabay_ready = bool(_pixabay_key(api_keys))
     return [
         {"key": "openverse_image", "label": "Openverse", "media": "image", "state": "ready"},
         {"key": "commons_image", "label": "Wikimedia Commons", "media": "image", "state": "ready"},
@@ -695,6 +749,10 @@ def provider_status(api_keys: dict | None = None) -> list[dict[str, str]]:
          "state": "ready" if pexels_ready else "needs_key"},
         {"key": "pexels_video", "label": "Pexels", "media": "video",
          "state": "ready" if pexels_ready else "needs_key"},
+        {"key": "pixabay_image", "label": "Pixabay", "media": "image",
+         "state": "ready" if pixabay_ready else "needs_key"},
+        {"key": "pixabay_video", "label": "Pixabay", "media": "video",
+         "state": "ready" if pixabay_ready else "needs_key"},
     ]
 
 
@@ -883,6 +941,219 @@ def _pexels_video_file_url(video_id: str, key: str) -> str:
     return str(chosen["link"])
 
 
+def _pixabay_get_json(url: str) -> dict[str, Any]:
+    request = Request(url, headers={"Accept": "application/json",
+                                    "User-Agent": COMMONS_USER_AGENT})
+    try:
+        with urlopen(request, timeout=20) as response:
+            payload = response.read(4 * 1024 * 1024)
+    except HTTPError as error:
+        raise DiscoveryError(f"Pixabay request failed with HTTP {error.code}.") from error
+    except (URLError, TimeoutError, OSError) as error:
+        raise DiscoveryError(f"Pixabay request failed: {error}") from error
+    try:
+        result = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise DiscoveryError("Pixabay returned invalid JSON.") from error
+    if not isinstance(result, dict):
+        raise DiscoveryError("Pixabay returned an unexpected response.")
+    return result
+
+
+def _require_pixabay_key(api_keys: dict | None) -> str:
+    key = _pixabay_key(api_keys)
+    if not key:
+        raise DiscoveryError("Pixabay needs a free API key (PIXABAY_API_KEY).")
+    return key
+
+
+def _pixabay_photo_candidate(item: dict[str, Any]) -> ExternalAssetCandidate | None:
+    try:
+        photo_id = int(item.get("id", 0))
+    except (TypeError, ValueError):
+        return None
+    if photo_id <= 0:
+        return None
+    file_url = str(item.get("largeImageURL", ""))
+    if urlparse(file_url).scheme != "https":
+        return None
+    try:
+        width = int(item.get("imageWidth", 0))
+        height = int(item.get("imageHeight", 0))
+    except (TypeError, ValueError):
+        return None
+    if max(width, height) < 1000:
+        return None
+    creator = _clean_metadata(item.get("user"))
+    tags = _clean_metadata(item.get("tags")) or f"Pixabay photo {photo_id}"
+    return ExternalAssetCandidate(
+        candidate_id=f"pixabay:{photo_id}",
+        provider="Pixabay",
+        title=tags[:120],
+        source_url=str(item.get("pageURL", "")) or f"https://pixabay.com/photos/{photo_id}/",
+        thumbnail_url=str(item.get("previewURL", "")),
+        media_type="IMAGE",
+        mime_type="image/jpeg",
+        width=width,
+        height=height,
+        size_bytes=item.get("imageSize") if isinstance(item.get("imageSize"), int) else None,
+        license_name="Pixabay Content License",
+        license_url="https://pixabay.com/service/license-summary/",
+        creator=creator,
+        credit=f"Image by {creator} on Pixabay" if creator else "Image from Pixabay",
+    )
+
+
+def _best_pixabay_rendition(entry: dict[str, Any]) -> dict[str, Any] | None:
+    videos = entry.get("videos", {})
+    if not isinstance(videos, dict):
+        return None
+    for size in ("medium", "small", "large", "tiny"):
+        rendition = videos.get(size, {})
+        if not isinstance(rendition, dict):
+            continue
+        if urlparse(str(rendition.get("url", ""))).scheme != "https":
+            continue
+        try:
+            width = int(rendition.get("width", 0))
+            height = int(rendition.get("height", 0))
+        except (TypeError, ValueError):
+            continue
+        if width <= 0 or height <= 0:
+            continue
+        return {
+            "url": str(rendition["url"]),
+            "width": width,
+            "height": height,
+            "thumbnail": str(rendition.get("thumbnail", "")),
+        }
+    return None
+
+
+def _pixabay_video_candidate(item: dict[str, Any]) -> ExternalAssetCandidate | None:
+    try:
+        video_id = int(item.get("id", 0))
+    except (TypeError, ValueError):
+        return None
+    if video_id <= 0:
+        return None
+    rendition = _best_pixabay_rendition(item)
+    if rendition is None:
+        return None
+    try:
+        duration = int(item.get("duration", 0)) or None
+    except (TypeError, ValueError):
+        duration = None
+    creator = _clean_metadata(item.get("user"))
+    tags = _clean_metadata(item.get("tags")) or f"Pixabay video {video_id}"
+    return ExternalAssetCandidate(
+        candidate_id=f"pixabay-video:{video_id}",
+        provider="Pixabay",
+        title=tags[:120],
+        source_url=str(item.get("pageURL", "")) or f"https://pixabay.com/videos/{video_id}/",
+        thumbnail_url=rendition["thumbnail"],
+        media_type="VIDEO",
+        mime_type="video/mp4",
+        width=rendition["width"],
+        height=rendition["height"],
+        size_bytes=None,
+        license_name="Pixabay Content License",
+        license_url="https://pixabay.com/service/license-summary/",
+        creator=creator,
+        credit=f"Video by {creator} on Pixabay" if creator else "Video from Pixabay",
+        duration_seconds=duration,
+    )
+
+
+def _pixabay_search(query: str, key: str, limit: int, endpoint: str,
+                    order: str, orientation: str | None) -> list[dict[str, Any]]:
+    params: dict[str, Any] = {
+        "key": key,
+        "q": query[:100],
+        "per_page": max(3, min(limit, 20)),
+        "safesearch": "true",
+        "order": "latest" if order == "newest" else "popular",
+    }
+    if endpoint == PIXABAY_API:
+        params.update({"image_type": "photo", "min_width": 1000})
+        if orientation in {"horizontal", "vertical"}:
+            params["orientation"] = orientation
+    response = _pixabay_get_json(f"{endpoint}?{urlencode(params)}")
+    hits = response.get("hits", [])
+    return [item for item in hits] if isinstance(hits, list) else []
+
+
+def _search_pixabay_images(query: str, key: str, limit: int,
+                           order: str = "relevance",
+                           orientation: str | None = None) -> list[ExternalAssetCandidate]:
+    pixabay_orientation = {"landscape": "horizontal", "portrait": "vertical"}.get(orientation or "")
+    candidates = []
+    for item in _pixabay_search(query, key, limit, PIXABAY_API, order, pixabay_orientation):
+        if isinstance(item, dict):
+            candidate = _pixabay_photo_candidate(item)
+            if candidate is not None:
+                candidates.append(candidate)
+    return candidates
+
+
+def _search_pixabay_videos(query: str, key: str, limit: int,
+                           order: str = "relevance") -> list[ExternalAssetCandidate]:
+    candidates = []
+    for item in _pixabay_search(query, key, limit, PIXABAY_VIDEO_API, order, None):
+        if isinstance(item, dict):
+            candidate = _pixabay_video_candidate(item)
+            if candidate is not None:
+                candidates.append(candidate)
+    return candidates
+
+
+def _pixabay_photo_detail(photo_id: str, key: str) -> ExternalAssetCandidate:
+    if not photo_id.isdigit():
+        raise ValueError("Invalid Pixabay candidate ID.")
+    detail = _pixabay_get_json(f"{PIXABAY_API}/?{urlencode({'key': key, 'id': photo_id})}")
+    hits = detail.get("hits", [])
+    if not hits or not isinstance(hits[0], dict):
+        raise DiscoveryError("The selected Pixabay photo no longer exists.")
+    candidate = _pixabay_photo_candidate(hits[0])
+    if candidate is None:
+        raise DiscoveryError("The selected Pixabay photo is no longer eligible.")
+    return candidate
+
+
+def _pixabay_video_detail(video_id: str, key: str) -> ExternalAssetCandidate:
+    if not video_id.isdigit():
+        raise ValueError("Invalid Pixabay candidate ID.")
+    detail = _pixabay_get_json(f"{PIXABAY_VIDEO_API}?{urlencode({'key': key, 'id': video_id})}")
+    hits = detail.get("hits", [])
+    if not hits or not isinstance(hits[0], dict):
+        raise DiscoveryError("The selected Pixabay video no longer exists.")
+    candidate = _pixabay_video_candidate(hits[0])
+    if candidate is None:
+        raise DiscoveryError("The selected Pixabay video is no longer eligible.")
+    return candidate
+
+
+def _pixabay_file_url(candidate_id: str, key: str, video: bool) -> tuple[str, str | None]:
+    """Re-resolve a direct file URL at download time; Pixabay URLs rotate."""
+    if video:
+        detail = _pixabay_get_json(f"{PIXABAY_VIDEO_API}?{urlencode({'key': key, 'id': candidate_id})}")
+        hits = detail.get("hits", [])
+        if not hits or not isinstance(hits[0], dict):
+            raise DiscoveryError("The selected Pixabay video no longer exists.")
+        rendition = _best_pixabay_rendition(hits[0])
+        if rendition is None:
+            raise DiscoveryError("The selected Pixabay video has no downloadable file.")
+        return rendition["url"], {"cdn.pixabay.com"}
+    detail = _pixabay_get_json(f"{PIXABAY_API}/?{urlencode({'key': key, 'id': candidate_id})}")
+    hits = detail.get("hits", [])
+    if not hits or not isinstance(hits[0], dict):
+        raise DiscoveryError("The selected Pixabay photo no longer exists.")
+    file_url = str(hits[0].get("largeImageURL", ""))
+    if urlparse(file_url).scheme != "https":
+        raise DiscoveryError("The selected Pixabay photo has no downloadable file.")
+    return file_url, {"pixabay.com"}
+
+
 def _commons_uploaded_at(image_info: dict[str, Any]) -> str | None:
     """Upload timestamp is the only freshness signal Commons exposes."""
     timestamp = image_info.get("timestamp")
@@ -939,7 +1210,17 @@ def _download_video_candidate(
     candidate: ExternalAssetCandidate,
     api_keys: dict | None = None,
 ) -> tuple[bytes, str]:
-    if candidate.candidate_id.startswith("pexels-video:"):
+    if candidate.candidate_id.startswith("pixabay-video:"):
+        file_url, allowed_hosts = _pixabay_file_url(
+            candidate.candidate_id.removeprefix("pixabay-video:"),
+            _require_pixabay_key(api_keys),
+            video=True,
+        )
+        _validate_public_https_url(file_url)
+        request = Request(file_url, headers={"User-Agent": COMMONS_USER_AGENT})
+        opener = build_opener(_PublicHttpsRedirectHandler())
+        error_prefix = "Pixabay video download failed"
+    elif candidate.candidate_id.startswith("pexels-video:"):
         file_url = _pexels_video_file_url(
             candidate.candidate_id.removeprefix("pexels-video:"),
             _require_pexels_key(api_keys),
@@ -986,7 +1267,7 @@ def _score_candidate(candidate: ExternalAssetCandidate, query_tokens: set[str]) 
     license_name = (candidate.license_name or "").upper()
     if "CC0" in license_name or "PUBLIC DOMAIN" in license_name:
         license_score = 3.0
-    elif "PEXELS" in license_name or "BY-SA" in license_name or "CC BY" in license_name:
+    elif "PIXABAY" in license_name or "PEXELS" in license_name or "BY-SA" in license_name or "CC BY" in license_name:
         license_score = 2.0
     else:
         license_score = 1.0
@@ -1082,6 +1363,9 @@ def search_candidates(
                 failures.append(f"{key}: {error}")
 
     pexels_key = _pexels_key(per_key)
+    pixabay_key = _pixabay_key(per_key)
+    pixabay_orientation = {"landscape": "horizontal", "portrait": "vertical"}.get(orientation or "")
+    pixabay_order = sort
     run("openverse_image", "image",
         lambda: _search_openverse_page(normalized_query)[:limit])
     run("commons_image", "image",
@@ -1093,6 +1377,12 @@ def search_candidates(
             lambda: _search_pexels_images(normalized_query, pexels_key, limit, orientation))
         run("pexels_video", "video",
             lambda: _search_pexels_videos(normalized_query, pexels_key, limit, orientation))
+    if pixabay_key:
+        run("pixabay_image", "image",
+            lambda: _search_pixabay_images(normalized_query, pixabay_key, limit,
+                                           pixabay_order, pixabay_orientation))
+        run("pixabay_video", "video",
+            lambda: _search_pixabay_videos(normalized_query, pixabay_key, limit, pixabay_order))
 
     if not collected and failures:
         raise DiscoveryError("; ".join(failures))

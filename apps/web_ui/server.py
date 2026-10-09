@@ -214,7 +214,7 @@ def _read_api_keys(root: Path) -> dict[str, str]:
             if line and not line.startswith("#") and "=" in line:
                 key, value = line.split("=", 1)
                 keys.setdefault(key.strip(), value.strip().strip("\"'"))
-    return {name: keys[name] for name in ("PEXELS_API_KEY",) if keys.get(name)}
+    return {name: keys[name] for name in ("PEXELS_API_KEY", "PIXABAY_API_KEY") if keys.get(name)}
 
 
 def _asset_file_info(root: Path, db_path: Path, asset_id: str) -> tuple[Path, str]:
