@@ -133,7 +133,7 @@ def _post_json(url: str, payload: dict[str, Any], headers: dict[str, str], timeo
     request = Request(
         url,
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers=headers,
+        headers={"User-Agent": "AutonomousContentEngine/0.1", **headers},
         method="POST",
     )
     try:
@@ -195,6 +195,31 @@ def _ollama_chat(config: dict[str, str], model: str, system: str,
     return body, usage
 
 
+def _openai_body(config: dict[str, str], model: str, system: str,
+                 user_payload: dict[str, Any], num_predict: int) -> dict[str, Any]:
+    """Chat-completions body with provider-quirks isolated in one place.
+
+    Groq's reasoning models reject response_format=json_object and burn the
+    whole budget on hidden thinking, so both are configurable: LLM_JSON_MODE
+    (strict|off) and LLM_REASONING_EFFORT (sent only when set).
+    """
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
+        ],
+        "temperature": 0.35,
+        "max_tokens": num_predict,
+    }
+    if config.get("LLM_JSON_MODE", "strict").strip().lower() != "off":
+        body["response_format"] = {"type": "json_object"}
+    reasoning = config.get("LLM_REASONING_EFFORT", "").strip().lower()
+    if reasoning:
+        body["reasoning_effort"] = reasoning
+    return body
+
+
 def _openai_compatible_chat(config: dict[str, str], model: str, system: str,
                             user_payload: dict[str, Any],
                             num_predict: int, timeout: int) -> tuple[dict[str, Any], dict[str, int]]:
@@ -204,16 +229,7 @@ def _openai_compatible_chat(config: dict[str, str], model: str, system: str,
         raise LLMError("OpenAI-compatible provider needs LLM_MODEL, LLM_BASE_URL, and LLM_API_KEY.")
     result = _post_json(
         f"{base_url}/chat/completions",
-        {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
-            ],
-            "temperature": 0.35,
-            "max_tokens": num_predict,
-            "response_format": {"type": "json_object"},
-        },
+        _openai_body(config, model, system, user_payload, num_predict),
         {"Content-Type": "application/json", "Authorization": "Bearer " + api_key},
         timeout,
     )

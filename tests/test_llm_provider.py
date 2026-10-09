@@ -168,3 +168,14 @@ def test_budget_defaults_and_config_merge(tmp_path):
     assert config["LLM_MODEL"] == "test-model"
     assert config["LLM_PROVIDER"] == "ollama"
     assert config["OLLAMA_BASE_URL"] == "http://localhost:11434"
+
+
+def test_openai_body_json_mode_and_reasoning():
+    from apps.llm import _openai_body
+    strict = _openai_body({}, "m", "s", {"a": 1}, 64)
+    assert strict["response_format"] == {"type": "json_object"}
+    assert "reasoning_effort" not in strict
+    relaxed = _openai_body({"LLM_JSON_MODE": "off", "LLM_REASONING_EFFORT": "low"},
+                           "m", "s", {"a": 1}, 64)
+    assert "response_format" not in relaxed
+    assert relaxed["reasoning_effort"] == "low"
