@@ -570,7 +570,46 @@ def run_content_agent(
     """Run the bounded local agent and stop before owner-controlled actions."""
     from apps.voice_tts import voice_profile_status
 
-    draft = create_script_draft(root, topic, story_form_id, evidence_text, content_type, colorway)
+    run_id = uuid.uuid4().hex[:12]
+    runs_dir = root / "runtime/runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    run_path = runs_dir / f"{run_id}.json"
+
+    def _save_progress(run: dict[str, Any]) -> None:
+        run_path.write_text(
+            json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+
+    # Publish the run immediately so Runs & queue shows live progress while
+    # the local model drafts (minutes on CPU) instead of appearing only at
+    # the end. Owner review still gates everything downstream.
+    run: dict[str, Any] = {
+        "run_id": run_id,
+        "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "status": "DRAFTING_SCRIPT",
+        "steps": [
+            {"id": "script", "status": "RUNNING"},
+            {"id": "asset_needs", "status": "PENDING", "count": 0},
+            {"id": "library", "status": "PENDING", "count": 0},
+            {"id": "owner_checkpoint", "status": "WAITING"},
+        ],
+        "draft": None,
+        "asset_checks": [],
+        "human_approval_required": True,
+        "no_assets_saved_or_selected": True,
+    }
+    _save_progress(run)
+
+    try:
+        draft = create_script_draft(root, topic, story_form_id, evidence_text, content_type, colorway)
+    except Exception as error:
+        run["status"] = "DRAFT_FAILED"
+        run["error"] = str(error)
+        _save_progress(run)
+        raise
+    run["status"] = "CHECKING_ASSETS"
+    run["steps"][0] = {"id": "script", "status": draft["status"], "local_model": draft["generation_mode"]}
+    _save_progress(run)
     checks: list[dict[str, Any]] = []
     conn = connect(db_path)
     try:
@@ -616,26 +655,22 @@ def run_content_agent(
     finally:
         conn.close()
 
-    run_id = uuid.uuid4().hex[:12]
-    run = {
-        "run_id": run_id,
-        "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-        "status": "WAITING_FOR_OWNER_REVIEW",
-        "steps": [
-            {"id": "script", "status": draft["status"], "local_model": draft["generation_mode"]},
-            {"id": "asset_needs", "status": "ASSESSED", "count": len(draft["asset_needs"])},
-            {"id": "library", "status": "ASSESSED_AND_DISCOVERY_OFFERED", "count": len(checks)},
-            {"id": "owner_checkpoint", "status": "WAITING"},
-        ],
-        "draft": draft,
-        "asset_checks": checks,
-        "human_approval_required": True,
-        "no_assets_saved_or_selected": True,
-        "voice_status": voice_profile_status(root),
-    }
-    runs_dir = root / "runtime/runs"
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    (runs_dir / f"{run_id}.json").write_text(
-        json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    run_id = run["run_id"]
+    run.update(
+        {
+            "status": "WAITING_FOR_OWNER_REVIEW",
+            "steps": [
+                {"id": "script", "status": draft["status"], "local_model": draft["generation_mode"]},
+                {"id": "asset_needs", "status": "ASSESSED", "count": len(draft["asset_needs"])},
+                {"id": "library", "status": "ASSESSED_AND_DISCOVERY_OFFERED", "count": len(checks)},
+                {"id": "owner_checkpoint", "status": "WAITING"},
+            ],
+            "draft": draft,
+            "asset_checks": checks,
+            "human_approval_required": True,
+            "no_assets_saved_or_selected": True,
+            "voice_status": voice_profile_status(root),
+        }
     )
+    _save_progress(run)
     return run

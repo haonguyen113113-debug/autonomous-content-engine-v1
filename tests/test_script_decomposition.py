@@ -6,6 +6,7 @@ from urllib.error import URLError
 import pytest
 
 import apps.content_workflow as workflow
+from apps.web_ui.server import _list_runs
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -152,6 +153,76 @@ def test_asset_needs_validated_and_capped(monkeypatch):
     assert len(result["asset_needs"]) == 1
     assert result["asset_needs"][0]["quantity"] == 3  # clamped to 1-3
     assert result["asset_needs"][0]["requirement_id"] == "variable-media-1"
+
+
+def test_run_publishes_progress_before_draft_completes(monkeypatch, tmp_path):
+    root = tmp_path / "p"
+    (root / "runtime/runs").mkdir(parents=True)
+    seen = {}
+
+    def fake_draft(*args, **kwargs):
+        files = list((root / "runtime/runs").glob("*.json"))
+        assert len(files) == 1
+        seen.update(json.loads(files[0].read_text(encoding="utf-8")))
+        return {
+            "topic": "Chủ đề kiểm thử",
+            "status": "NEEDS_EVIDENCE",
+            "generation_mode": "outline_fallback",
+            "asset_needs": [],
+        }
+
+    monkeypatch.setattr(workflow, "create_script_draft", fake_draft)
+    run = workflow.run_content_agent(
+        root, root / "runtime/engine.db",
+        "Chủ đề kiểm thử", "one-moment-one-read",
+    )
+
+    assert seen["status"] == "DRAFTING_SCRIPT"
+    assert seen["draft"] is None
+    assert seen["run_id"] == run["run_id"]
+    assert run["status"] == "WAITING_FOR_OWNER_REVIEW"
+    assert run["draft"]["topic"] == "Chủ đề kiểm thử"
+    saved = json.loads((root / "runtime/runs" / f"{run['run_id']}.json").read_text(encoding="utf-8"))
+    assert saved["status"] == "WAITING_FOR_OWNER_REVIEW"
+
+
+def test_run_records_draft_failure(monkeypatch, tmp_path):
+    root = tmp_path / "p"
+    (root / "runtime/runs").mkdir(parents=True)
+
+    def boom(*args, **kwargs):
+        raise ValueError("Chủ đề cần dài từ 4 đến 500 ký tự.")
+
+    monkeypatch.setattr(workflow, "create_script_draft", boom)
+    with pytest.raises(ValueError):
+        workflow.run_content_agent(
+            root, root / "runtime/engine.db",
+            "Chủ đề kiểm thử", "one-moment-one-read",
+        )
+    files = list((root / "runtime/runs").glob("*.json"))
+    assert len(files) == 1
+    saved = json.loads(files[0].read_text(encoding="utf-8"))
+    assert saved["status"] == "DRAFT_FAILED"
+    assert "500 ký tự" in saved["error"]
+
+
+def test_progress_records_listed_with_zero_counts(tmp_path):
+    root = tmp_path / "p"
+    (root / "runtime/runs").mkdir(parents=True)
+    (root / "runtime/runs" / "abcdef123456.json").write_text(
+        json.dumps({
+            "run_id": "abcdef123456",
+            "created_at": "2026-10-09T00:00:00+00:00",
+            "status": "DRAFTING_SCRIPT",
+            "draft": None,
+        }),
+        encoding="utf-8",
+    )
+    runs = _list_runs(root)
+    assert len(runs) == 1
+    assert runs[0]["status"] == "DRAFTING_SCRIPT"
+    assert runs[0]["segment_count"] == 0
+    assert runs[0]["media_count"] == 0
 
 
 def test_asset_needs_failure_degrades_to_empty(monkeypatch):
