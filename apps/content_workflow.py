@@ -2,14 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 import json
-import os
 import time
 from pathlib import Path
 import uuid
 from datetime import datetime, timezone
 import unicodedata
-from urllib.error import URLError
-from urllib.request import Request, urlopen
 from typing import Any
 
 from template_foundation import resolve_template
@@ -17,6 +14,7 @@ from apps.asset_library.asset_intelligence import ResourceRequirement
 from apps.asset_library.discovery import DiscoveryError, search_candidates
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.asset_library.registry import connect
+from apps.llm import budget_usd_per_run, chat_json, cost_usd, load_config
 
 
 TEMPLATE_IDS = {
@@ -59,22 +57,13 @@ class ScriptDraft:
         return asdict(self)
 
 
-def _local_env(root: Path) -> dict[str, str]:
-    values = dict(os.environ)
-    env_file = root / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            values.setdefault(key.strip(), value.strip().strip("\"'"))
-    values.setdefault("LLM_MODEL", "qwen3.5:2b")
-    return values
-
-
 def _normalise(value: str) -> str:
     return unicodedata.normalize("NFC", value).strip()
+
+
+def _new_ledger(env: dict[str, str]) -> dict[str, Any]:
+    """Per-draft spend ledger; the cost budget degrades to outline, never debt."""
+    return {"spent": 0.0, "calls": [], "budget": budget_usd_per_run(env), "budget_stops": 0}
 
 
 def _normalize_timeline_events(items: Any, segment_start: int, segment_duration: int) -> list[dict[str, Any]]:
@@ -181,44 +170,37 @@ def _ollama_call(
     *,
     num_predict: int,
     timeout: int,
-) -> dict[str, Any] | None:
-    """One bounded local-model call returning the parsed JSON body, or None."""
-    model = env.get("LLM_MODEL", "").strip() or "qwen3.5:2b"
-    provider = env.get("LLM_PROVIDER", "ollama").strip().lower()
-    if provider != "ollama" or not model:
-        return None
-    base_url = env.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-    request_body = {
-        "model": model,
-        "stream": False,
-        "format": "json",
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
-        ],
-        "options": {
-            "temperature": 0.35,
-            "num_ctx": 4096,
-            "num_predict": num_predict,
-            "low_vram": True,
-        },
-        "keep_alive": 0,
+    ledger: dict[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """One bounded model call through the configured provider.
+
+    Usage is charged to the ledger. When the cost budget is spent, the call
+    is skipped (recorded as a budget stop) so the draft degrades to outline
+    instead of accumulating uncapped spend.
+    """
+    record = {
+        "provider": env.get("LLM_PROVIDER", "ollama").strip().lower(),
+        "model": env.get("LLM_MODEL", "").strip(),
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cost_usd": 0.0,
     }
-    request = Request(
-        f"{base_url}/api/chat",
-        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
+    if ledger["budget"] > 0 and ledger["spent"] >= ledger["budget"]:
+        ledger["budget_stops"] += 1
+        ledger["calls"].append(record)
+        return None, record
+    body, usage = chat_json(
+        env, system, user_payload, num_predict=num_predict, timeout=timeout
     )
-    try:
-        # Bounded per call so one slow beat cannot stall the whole draft; the
-        # orchestrator retries or falls back per beat instead.
-        with urlopen(request, timeout=timeout) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        body = json.loads(result["message"]["content"])
-        return body if isinstance(body, dict) else None
-    except (URLError, TimeoutError, OSError, ValueError, KeyError, TypeError):
-        return None
+    cost, _ = cost_usd(env, usage)
+    record.update(
+        prompt_tokens=usage.get("prompt_tokens", 0),
+        completion_tokens=usage.get("completion_tokens", 0),
+        cost_usd=cost,
+    )
+    ledger["spent"] = round(ledger["spent"] + cost, 6)
+    ledger["calls"].append(record)
+    return body, record
 
 
 def _cap_evidence(evidence: list[str], limit: int = EVIDENCE_CHARS_PER_CALL) -> list[str]:
@@ -340,8 +322,9 @@ def _ollama_beat(
     evidence: list[str],
     duration_hint: int,
     num_predict: int,
-) -> tuple[dict[str, Any] | None, int]:
-    """Generate one beat; returns (segment, attempts). None means beat failed."""
+    ledger: dict[str, Any],
+) -> tuple[dict[str, Any] | None, int, dict[str, Any]]:
+    """Generate one beat; returns (segment, attempts, usage). None means failed."""
     lo = max(1, duration_hint // 4)
     hi = max(10, duration_hint * 2)
     system = (
@@ -379,19 +362,22 @@ def _ollama_beat(
         "evidence": _cap_evidence(evidence),
     }
     attempts = 0
+    usage: dict[str, Any] = {"provider": "", "model": "", "prompt_tokens": 0,
+                             "completion_tokens": 0, "cost_usd": 0.0}
     while attempts < BEAT_ATTEMPTS:
         attempts += 1
-        body = _ollama_call(
+        body, usage = _ollama_call(
             env, system, user_payload,
             num_predict=num_predict, timeout=BEAT_TIMEOUT_SECONDS,
+            ledger=ledger,
         )
         if body is None:
             continue
         segment = _clean_segment(body)
         if segment is not None:
             segment["id"] = beat_id
-            return segment, attempts
-    return None, attempts
+            return segment, attempts, usage
+    return None, attempts, usage
 
 
 def _ollama_asset_needs(
@@ -399,6 +385,7 @@ def _ollama_asset_needs(
     topic: str,
     beat_visuals: list[str],
     content_type: str,
+    ledger: dict[str, Any],
 ) -> list[dict[str, Any]]:
     system = (
         "You suggest variable real media for a Vietnamese soccer-analysis video. "
@@ -410,11 +397,12 @@ def _ollama_asset_needs(
         "query, exact_context, and reason. Use an empty list when the locked "
         "authored pitch-board is enough."
     )
-    body = _ollama_call(
+    body, _ = _ollama_call(
         env, system,
         {"locale": "vi-VN", "topic": topic, "beats": beat_visuals,
          "content_type": content_type},
         num_predict=512, timeout=ASSET_NEEDS_TIMEOUT_SECONDS,
+        ledger=ledger,
     )
     if body is None:
         return []
@@ -456,6 +444,8 @@ def _ollama_draft(
     fallback_beats: list[str] = []
     previous_summary = ""
     model_beats = 0
+    budget_fallbacks = 0
+    ledger = _new_ledger(env)
     for index, purpose in enumerate(arc):
         beat_id = f"beat-{index + 1}"
         position = f"beat {index + 1} of {total}"
@@ -466,12 +456,14 @@ def _ollama_draft(
             segment = _outline_beat(topic, arc, index, target)
             segment["generation"] = {"mode": "outline_fallback", "attempts": 0}
             fallback_beats.append(beat_id)
+            budget_fallbacks += 1
         else:
-            segment, attempts = _ollama_beat(
+            segment, attempts, usage = _ollama_beat(
                 env, topic=topic, beat_id=beat_id,
                 purpose=str(purpose), position=position,
                 previous_summary=previous_summary, evidence=evidence,
                 duration_hint=duration_hint, num_predict=num_predict,
+                ledger=ledger,
             )
             if segment is None:
                 segment = _outline_beat(topic, arc, index, target)
@@ -479,7 +471,8 @@ def _ollama_draft(
                 fallback_beats.append(beat_id)
             else:
                 model_beats += 1
-                segment["generation"] = {"mode": "local_ollama", "attempts": attempts}
+                segment["generation"] = {"mode": "local_ollama", "attempts": attempts,
+                                         "usage": usage}
                 previous_summary = segment["narration"][:300]
         segments.append(segment)
         if on_beat is not None:
@@ -489,11 +482,16 @@ def _ollama_draft(
     if model_beats == 0:
         return None
     beat_visuals = [str(item.get("visual", ""))[:200] for item in segments]
-    asset_needs = _ollama_asset_needs(env, topic, beat_visuals, content_type)
+    asset_needs = _ollama_asset_needs(env, topic, beat_visuals, content_type, ledger)
     return {
         "segments": segments,
         "asset_needs": asset_needs,
         "fallback_beats": fallback_beats,
+        "budget_exceeded": bool(budget_fallbacks or ledger["budget_stops"]),
+        "llm_cost_usd": ledger["spent"],
+        "llm_calls": len(ledger["calls"]),
+        "llm_provider": env.get("LLM_PROVIDER", "ollama").strip().lower(),
+        "llm_model": env.get("LLM_MODEL", "").strip(),
     }
 
 
@@ -531,16 +529,26 @@ def create_script_draft(
         if _normalise(line)
     ][:12]
     generated = _ollama_draft(
-        _local_env(root), topic, form, evidence, content_type,
+        load_config(root), topic, form, evidence, content_type,
         on_beat=on_beat, budget_seconds=budget_seconds,
     )
     asset_needs: list[dict[str, Any]] = []
     chapter_events: list[dict[str, Any]] = []
     fallback_beats: list[str] = []
+    llm_cost_usd = 0.0
+    llm_calls = 0
+    llm_provider = "ollama"
+    llm_model = ""
+    budget_exceeded = False
     if generated:
         segments = generated["segments"]
         asset_needs = generated["asset_needs"]
         fallback_beats = generated["fallback_beats"]
+        llm_cost_usd = generated["llm_cost_usd"]
+        llm_calls = generated["llm_calls"]
+        llm_provider = generated["llm_provider"]
+        llm_model = generated["llm_model"]
+        budget_exceeded = generated["budget_exceeded"]
         mode = "local_ollama" if not fallback_beats else "local_ollama_partial"
     else:
         arc = form.get("arc", [])
@@ -592,6 +600,11 @@ def create_script_draft(
     result["chapter_events"] = chapter_events
     result["timeline_events"] = [event for segment in segments for event in segment["timeline_events"]] + chapter_events
     result["fallback_beats"] = fallback_beats
+    result["budget_exceeded"] = budget_exceeded
+    result["llm_cost_usd"] = llm_cost_usd
+    result["llm_calls"] = llm_calls
+    result["llm_provider"] = llm_provider
+    result["llm_model"] = llm_model
     return result
 
 
@@ -715,6 +728,7 @@ def run_content_agent(
             "asset_checks": checks,
             "human_approval_required": True,
             "no_assets_saved_or_selected": True,
+            "llm_cost_usd": draft.get("llm_cost_usd", 0.0),
             "voice_status": voice_profile_status(root),
         }
     )

@@ -730,6 +730,11 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
       ? `Research still needed: ${draft.evidence_needed.map(escapeHtml).join("; ")}. This draft is not ready for voice or final rendering.`
       : "Evidence notes attached. Verify every factual statement and source before voice production.";
     document.getElementById("draft-evidence-note").textContent = `${note} · Template ${draft.template_id} v${draft.template_version}`;
+    if (typeof draft.llm_cost_usd === "number" && draft.llm_calls) {
+      const provider = [draft.llm_provider, draft.llm_model].filter(Boolean).join(" ").trim();
+      document.getElementById("draft-evidence-note").textContent +=
+        ` · Model${provider ? ` ${provider}` : ""} cost $${draft.llm_cost_usd.toFixed(4)} across ${draft.llm_calls} calls.`;
+    }
     const panel = document.getElementById("draft-asset-check");
     const fixedOnly = draft.asset_needs.length === 0;
     panel.innerHTML = `<div>${fixedOnly
