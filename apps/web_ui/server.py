@@ -757,11 +757,15 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     resource_type = str(payload.get("resource_type", "image")).strip().lower()
                     if resource_type not in {"image", "video"}:
                         raise ValueError("Discovery supports image and video requests.")
+                    sort = str(payload.get("sort", "relevance")).strip().lower()
+                    if sort not in {"relevance", "newest"}:
+                        raise ValueError("Sort must be relevance or newest.")
                     candidates, statuses = search_candidates(
                         str(payload.get("query", "")),
                         resource_type=resource_type,
                         limit=int(payload.get("limit", 24)),
                         api_keys=_read_api_keys(db_path.parent.parent),
+                        sort=sort,
                     )
                     ready = sorted({item["label"] for item in statuses if item["state"] == "ready"})
                     self._send_json(

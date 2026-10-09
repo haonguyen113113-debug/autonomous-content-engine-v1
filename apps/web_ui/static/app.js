@@ -147,7 +147,7 @@ function showEvaluation(result, requirement) {
   };
   const reasons = (result.reasons || []).map((reason) => `<span class="reason-chip">${escapeHtml(reason.replaceAll("_", " "))}</span>`).join("");
   const discovery = result.recommendation === "ACQUIRE" && ["image", "video"].includes(requirement.resource_type)
-    ? `<div class="discovery-section"><div class="eyebrow">EXTERNAL DISCOVERY</div><h4>Search openly licensed collections</h4><p>Openverse and Pexels images, Wikimedia Commons images and video. Large commercial-use files are prioritized and sources are interleaved for variety. Results are suggestions only; nothing downloads until you choose.</p><div class="discovery-tabs" role="group" aria-label="Media type">${["image", "video"].map((t) => `<button type="button" class="range-tab${requirement.resource_type === t ? " active" : ""}" data-dtype="${t}">${t === "image" ? "Images" : "Videos"}</button>`).join("")}</div><form id="discovery-form" class="discovery-form"><input name="query" required maxlength="250" value="${escapeHtml(requirement.discovery_query || requirement.context || requirement.entity_id || requirement.purpose || requirement.content_objective || requirement.requirement_id)}" aria-label="Web search query" /><button class="button button-secondary" type="submit">Search</button></form><div class="candidate-grid" id="candidate-grid"></div></div>`
+    ? `<div class="discovery-section"><div class="eyebrow">EXTERNAL DISCOVERY</div><h4>Search openly licensed collections</h4><p>Openverse and Pexels images, Wikimedia Commons images and video. Large commercial-use files are prioritized and sources are interleaved for variety. Results are suggestions only; nothing downloads until you choose.</p><div class="discovery-tabs" role="group" aria-label="Media type">${["image", "video"].map((t) => `<button type="button" class="range-tab${requirement.resource_type === t ? " active" : ""}" data-dtype="${t}">${t === "image" ? "Images" : "Videos"}</button>`).join("")}</div><div class="discovery-tabs" role="group" aria-label="Sort order"><button type="button" class="range-tab active" data-sort="relevance">Relevance</button><button type="button" class="range-tab" data-sort="newest">Newest first</button></div><form id="discovery-form" class="discovery-form"><input name="query" required maxlength="250" value="${escapeHtml(requirement.discovery_query || requirement.context || requirement.entity_id || requirement.purpose || requirement.content_objective || requirement.requirement_id)}" aria-label="Web search query" /><button class="button button-secondary" type="submit">Search</button></form><div class="candidate-grid" id="candidate-grid"></div></div>`
     : result.recommendation === "ACQUIRE"
       ? '<p class="result-detail">External discovery currently supports images and video.</p>'
       : "";
@@ -165,6 +165,12 @@ function showEvaluation(result, requirement) {
   if (searchForm && !searchForm.dataset.dtype) {
     searchForm.dataset.dtype = requirement.resource_type === "video" ? "video" : "image";
   }
+  const sortButtons = panel.querySelectorAll("[data-sort]");
+  sortButtons.forEach((tab) => tab.addEventListener("click", () => {
+    sortButtons.forEach((item) => item.classList.toggle("active", item === tab));
+    if (searchForm) searchForm.dataset.sort = tab.dataset.sort;
+  }));
+  if (searchForm && !searchForm.dataset.sort) searchForm.dataset.sort = "relevance";
   panel.querySelectorAll("[data-approve]").forEach((button) => button.addEventListener("click", () => approveCandidate(button, requirement)));
   panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -181,7 +187,7 @@ function candidateCard(candidate) {
   return `<article class="candidate-card" data-candidate-card="${escapeHtml(candidate.candidate_id)}">
     ${thumbnailUrl ? `<img class="candidate-image" src="${escapeHtml(thumbnailUrl)}" alt="Preview of ${escapeHtml(candidate.title)}" loading="lazy" />` : '<div class="candidate-image candidate-image-empty">Preview unavailable</div>'}
     <div class="candidate-content"><div class="candidate-provider">${escapeHtml(candidate.provider)}${candidate.media_type === "VIDEO" ? ' <span class="candidate-kind">VIDEO</span>' : ""}</div>${sourceUrl ? `<a class="candidate-title" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(candidate.title)}</a>` : `<strong class="candidate-title">${escapeHtml(candidate.title)}</strong>`}
-      <div class="candidate-meta">${escapeHtml(dimensions)} · ${escapeHtml(size)}${duration ? ` · ${escapeHtml(duration)}` : ""}</div>
+      <div class="candidate-meta">${escapeHtml(dimensions)} · ${escapeHtml(size)}${duration ? ` · ${escapeHtml(duration)}` : ""}${candidate.uploaded_at ? ` · up ${escapeHtml(candidate.uploaded_at)}` : ""}</div>
       <div class="candidate-license"><strong>License</strong><span>${licenseUrl ? `<a href="${escapeHtml(licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(license)}</a>` : escapeHtml(license)}</span></div>
       <div class="candidate-meta"><strong>Creator:</strong> ${escapeHtml(creator)}</div>
       ${candidate.credit ? `<div class="candidate-meta"><strong>Attribution:</strong> ${escapeHtml(candidate.credit)}</div>` : ""}
@@ -197,6 +203,7 @@ async function searchCandidates(event, requirement) {
   const form = event.currentTarget;
   const query = new FormData(form).get("query").trim();
   const dtype = form.dataset.dtype === "video" ? "video" : "image";
+  const sort = form.dataset.sort === "newest" ? "newest" : "relevance";
   const button = form.querySelector("button[type=submit]");
   const grid = document.getElementById("candidate-grid");
   button.disabled = true;
@@ -206,7 +213,7 @@ async function searchCandidates(event, requirement) {
     const response = await fetch("/api/discovery-search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit: 24, resource_type: dtype }),
+      body: JSON.stringify({ query, limit: 24, resource_type: dtype, sort }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Web discovery failed.");

@@ -29,26 +29,26 @@ def _ov_item(**overrides):
 
 
 def _commons_page(*, pageid="11", mime="image/jpeg", width=1600, height=900,
-                  title="File:Derby.jpg", size=400000, mediatype="BITMAP"):
-    return {
-        "pageid": pageid,
-        "title": title,
-        "imageinfo": [{
-            "mime": mime,
-            "mediatype": mediatype,
-            "width": width,
-            "height": height,
-            "size": size,
-            "url": "https://upload.wikimedia.org/x",
-            "descriptionurl": f"https://commons.wikimedia.org/wiki/{title}",
-            "thumburl": "https://thumb.wikimedia.org/x.jpg",
-            "extmetadata": {
-                "LicenseShortName": {"value": "CC BY-SA 4.0"},
-                "LicenseUrl": {"value": "https://creativecommons.org/licenses/by-sa/4.0/"},
-                "Artist": {"value": "Commons User"},
-            },
-        }],
+                  title="File:Derby.jpg", size=400000, mediatype="BITMAP",
+                  timestamp=None):
+    info = {
+        "mime": mime,
+        "mediatype": mediatype,
+        "width": width,
+        "height": height,
+        "size": size,
+        "url": "https://upload.wikimedia.org/x",
+        "descriptionurl": f"https://commons.wikimedia.org/wiki/{title}",
+        "thumburl": "https://thumb.wikimedia.org/x.jpg",
+        "extmetadata": {
+            "LicenseShortName": {"value": "CC BY-SA 4.0"},
+            "LicenseUrl": {"value": "https://creativecommons.org/licenses/by-sa/4.0/"},
+            "Artist": {"value": "Commons User"},
+        },
     }
+    if timestamp is not None:
+        info["timestamp"] = timestamp
+    return {"pageid": pageid, "title": title, "imageinfo": [info]}
 
 
 def test_openverse_gates_license_size_and_id(monkeypatch):
@@ -182,6 +182,48 @@ def test_search_validates_inputs():
         discovery.search_candidates("derby", resource_type="audio")
     with pytest.raises(ValueError):
         discovery.search_candidates("derby", limit=99)
+    with pytest.raises(ValueError):
+        discovery.search_candidates("derby", sort="popular")
+    with pytest.raises(ValueError):
+        discovery.search_candidates("derby", orientation="panorama")
+
+
+def test_newest_sort_orders_dated_first(monkeypatch):
+    monkeypatch.setattr(discovery, "_search_openverse_page", lambda *a, **k: [])
+    pages = [
+        _commons_page(pageid="51", title="File:Old.jpg",
+                      timestamp="2020-05-01T10:00:00Z"),
+        _commons_page(pageid="52", title="File:Fresh.jpg",
+                      timestamp="2026-09-20T10:00:00Z"),
+        _commons_page(pageid="53", title="File:Undated.jpg"),
+    ]
+    monkeypatch.setattr(
+        discovery, "_request_json",
+        lambda url: {"query": {"pages": pages}},
+    )
+    candidates, _ = discovery.search_candidates("derby", sort="newest")
+    assert [(c.candidate_id, c.uploaded_at) for c in candidates] == [
+        ("52", "2026-09-20"), ("51", "2020-05-01"), ("53", None),
+    ]
+
+
+def test_orientation_forwarded_to_pexels(monkeypatch):
+    monkeypatch.setenv("PEXELS_API_KEY", "test-key")
+    seen = []
+
+    def fake_pexels(path, key):
+        seen.append(path)
+        return {"photos": [], "videos": []}
+
+    monkeypatch.setattr(discovery, "_pexels_get_json", fake_pexels)
+    monkeypatch.setattr(discovery, "_search_openverse_page", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "search_commons_images", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_commons_videos", lambda *a, **k: [])
+    discovery.search_candidates("derby", orientation="portrait")
+    assert any(p.startswith("/v1/search?") and "orientation=portrait" in p for p in seen)
+    seen.clear()
+    discovery.search_candidates("derby", resource_type="video", orientation="portrait")
+    assert any(p.startswith("/v1/videos/search") and "orientation=portrait" in p for p in seen)
 
 
 def test_best_pexels_file_prefers_viewable_mp4():

@@ -84,6 +84,7 @@ class ExternalAssetCandidate:
     creator: str | None
     credit: str | None
     duration_seconds: int | None = None
+    uploaded_at: str | None = None
 
 
 def _license_label(license_code: Any, version: Any) -> str | None:
@@ -202,6 +203,7 @@ def _candidate_from_page(page: dict[str, Any]) -> ExternalAssetCandidate | None:
         license_url=_clean_metadata(metadata.get("LicenseUrl")),
         creator=_clean_metadata(metadata.get("Artist")),
         credit=_clean_metadata(metadata.get("Credit")),
+        uploaded_at=_commons_uploaded_at(image_info),
     )
 
 
@@ -243,7 +245,7 @@ def _commons_file_pages(gsrsearch: str, *, limit: int) -> list[dict[str, Any]]:
             "gsrsearch": gsrsearch,
             "gsrlimit": limit,
             "prop": "imageinfo",
-            "iiprop": "url|extmetadata|size|mime|mediatype",
+            "iiprop": "url|extmetadata|size|mime|mediatype|timestamp",
             "iiurlwidth": 480,
         }
     )
@@ -424,7 +426,7 @@ def _candidate_by_id(
             "formatversion": 2,
             "pageids": candidate_id,
             "prop": "imageinfo",
-            "iiprop": "url|extmetadata|size|mime|mediatype",
+            "iiprop": "url|extmetadata|size|mime|mediatype|timestamp",
             "iiurlwidth": 480,
         }
     )
@@ -633,6 +635,7 @@ def save_commons_candidate(
             "rights_reviewed_by_user": rights_reviewed,
             "rights_reviewed_at": now if rights_reviewed else None,
             "downloaded_at": now,
+            "uploaded_at": candidate.uploaded_at,
             "mime_type": mime_type,
         },
     }
@@ -810,9 +813,13 @@ def _pexels_video_candidate(item: dict[str, Any]) -> ExternalAssetCandidate | No
     )
 
 
-def _search_pexels_images(query: str, key: str, limit: int) -> list[ExternalAssetCandidate]:
-    params = urlencode({"query": query, "per_page": min(limit, 20), "size": "large"})
-    response = _pexels_get_json(f"/v1/search?{params}", key)
+def _search_pexels_images(
+    query: str, key: str, limit: int, orientation: str | None = None,
+) -> list[ExternalAssetCandidate]:
+    params = {"query": query, "per_page": min(limit, 20), "size": "large"}
+    if orientation in {"landscape", "portrait", "square"}:
+        params["orientation"] = orientation
+    response = _pexels_get_json(f"/v1/search?{urlencode(params)}", key)
     photos = response.get("photos", [])
     if not isinstance(photos, list):
         return []
@@ -825,9 +832,13 @@ def _search_pexels_images(query: str, key: str, limit: int) -> list[ExternalAsse
     return candidates
 
 
-def _search_pexels_videos(query: str, key: str, limit: int) -> list[ExternalAssetCandidate]:
-    params = urlencode({"query": query, "per_page": min(limit, 20), "size": "large"})
-    response = _pexels_get_json(f"/videos/search?{params}", key)
+def _search_pexels_videos(
+    query: str, key: str, limit: int, orientation: str | None = None,
+) -> list[ExternalAssetCandidate]:
+    params = {"query": query, "per_page": min(limit, 20), "size": "large"}
+    if orientation in {"landscape", "portrait", "square"}:
+        params["orientation"] = orientation
+    response = _pexels_get_json(f"/v1/videos/search?{urlencode(params)}", key)
     videos = response.get("videos", [])
     if not isinstance(videos, list):
         return []
@@ -854,7 +865,7 @@ def _pexels_video_detail(video_id: str, key: str) -> ExternalAssetCandidate:
     if not video_id.isdigit():
         raise ValueError("Invalid Pexels candidate ID.")
     try:
-        detail = _pexels_get_json(f"/videos/videos/{video_id}", key)
+        detail = _pexels_get_json(f"/v1/videos/videos/{video_id}", key)
     except DiscoveryError as error:
         raise DiscoveryError("The selected Pexels video is no longer eligible.") from error
     candidate = _pexels_video_candidate(detail)
@@ -864,11 +875,19 @@ def _pexels_video_detail(video_id: str, key: str) -> ExternalAssetCandidate:
 
 
 def _pexels_video_file_url(video_id: str, key: str) -> str:
-    detail = _pexels_get_json(f"/videos/videos/{video_id}", key)
+    detail = _pexels_get_json(f"/v1/videos/videos/{video_id}", key)
     chosen = _best_pexels_file(detail.get("video_files"))
     if chosen is None:
         raise DiscoveryError("The selected Pexels video has no downloadable file.")
     return str(chosen["link"])
+
+
+def _commons_uploaded_at(image_info: dict[str, Any]) -> str | None:
+    """Upload timestamp is the only freshness signal Commons exposes."""
+    timestamp = image_info.get("timestamp")
+    if not isinstance(timestamp, str) or len(timestamp) < 10:
+        return None
+    return timestamp[:10]
 
 
 def _candidate_from_video_page(page: dict[str, Any]) -> ExternalAssetCandidate | None:
@@ -898,6 +917,7 @@ def _candidate_from_video_page(page: dict[str, Any]) -> ExternalAssetCandidate |
         license_url=_clean_metadata(metadata.get("LicenseUrl")),
         creator=_clean_metadata(metadata.get("Artist")),
         credit=_clean_metadata(metadata.get("Credit")),
+        uploaded_at=_commons_uploaded_at(image_info),
     )
 
 
@@ -1016,11 +1036,16 @@ def search_candidates(
     resource_type: str = "image",
     limit: int = 24,
     api_keys: dict | None = None,
+    sort: str = "relevance",
+    orientation: str | None = None,
 ) -> tuple[list[ExternalAssetCandidate], list[dict[str, str]]]:
     """Search every eligible provider for images or video.
 
     Returns (candidates, provider_status). Keyed providers without a key are
-    reported, not queried. Raises only when every queried provider failed.
+    reported, not queried. sort=newest puts dated uploads first (Wikimedia
+    Commons exposes upload dates; other providers do not). orientation hints
+    portrait/landscape to providers that support it. Raises only when every
+    queried provider failed.
     """
     normalized_query = " ".join(query.split())
     if not normalized_query:
@@ -1029,6 +1054,10 @@ def search_candidates(
         raise ValueError("Search query must be 250 characters or fewer.")
     if resource_type not in {"image", "video"}:
         raise ValueError("Discovery supports image and video requests.")
+    if sort not in {"relevance", "newest"}:
+        raise ValueError("Sort must be relevance or newest.")
+    if orientation is not None and orientation not in {"landscape", "portrait", "square"}:
+        raise ValueError("Orientation must be landscape, portrait, or square.")
     if not 1 <= limit <= MAX_RESULTS:
         raise ValueError(f"Result limit must be between 1 and {MAX_RESULTS}.")
 
@@ -1060,10 +1089,17 @@ def search_candidates(
         lambda: _search_commons_videos(normalized_query, limit=min(limit, 12)))
     if pexels_key:
         run("pexels_image", "image",
-            lambda: _search_pexels_images(normalized_query, pexels_key, limit))
+            lambda: _search_pexels_images(normalized_query, pexels_key, limit, orientation))
         run("pexels_video", "video",
-            lambda: _search_pexels_videos(normalized_query, pexels_key, limit))
+            lambda: _search_pexels_videos(normalized_query, pexels_key, limit, orientation))
 
     if not collected and failures:
         raise DiscoveryError("; ".join(failures))
-    return _rank_candidates(collected, normalized_query, limit=limit), statuses
+    ranked = _rank_candidates(collected, normalized_query, limit=limit)
+    if sort == "newest":
+        # Dated uploads newest-first; undated keep their relevance order.
+        dated = [item for item in ranked if item.uploaded_at]
+        undated = [item for item in ranked if not item.uploaded_at]
+        dated.sort(key=lambda item: str(item.uploaded_at), reverse=True)
+        ranked = dated + undated
+    return ranked, statuses
