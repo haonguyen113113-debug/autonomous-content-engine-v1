@@ -3,11 +3,35 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f5f6f3" />
+    <meta name="theme-color" content="#0b1512" />
     <title>Autonomous Content Engine</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></symbol>
+        <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 12.5 9 5 9-5"/><path d="m3 16.5 9 5 9-5"/></symbol>
+        <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12l1-8Z"/></symbol>
+        <symbol id="i-type" viewBox="0 0 24 24"><path d="M5 6.5v-2h14v2M9.5 20h5M12 4.5V20"/></symbol>
+        <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.6 3.4 2.9 7.5 2.9s7.5-1.3 7.5-2.9v-13"/><path d="M4.5 12c0 1.6 3.4 2.9 7.5 2.9s7.5-1.3 7.5-2.9"/></symbol>
+        <symbol id="i-history" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3.5 8.5"/><path d="M3.5 3.5v5h5"/><path d="M12 8v4.5l3 1.8"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3.5V9H15"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20.5 20.5-4.8-4.8"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="m4.5 12.5 5 5L19.5 7"/></symbol>
+        <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 5.5 6.5 6.5L9 18.5"/></symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6.5-6.5L19 12l-6.5 6.5"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m21 15.5-4.8-4.8L8.5 18.5"/></symbol>
+        <symbol id="i-video" viewBox="0 0 24 24"><rect x="2.5" y="7" width="13" height="10" rx="2.5"/><path d="m15.5 10.5 6-3.5v10l-6-3.5"/></symbol>
+        <symbol id="i-audio" viewBox="0 0 24 24"><circle cx="7" cy="18" r="2.7"/><circle cx="17" cy="15" r="2.7"/><path d="M9.6 18V7.5l10-2.5V15"/></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24"><path d="M13.5 2.5H7a1.5 1.5 0 0 0-1.5 1.5v16A1.5 1.5 0 0 0 7 21.5h10a1.5 1.5 0 0 0 1.5-1.5V7.5l-5-5Z"/><path d="M13.5 2.5v5h5"/></symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6.5 9.5a5.5 5.5 0 1 1 11 0c0 4.5 1.8 5.8 1.8 5.8H4.7s1.8-1.3 1.8-5.8"/><path d="M10.3 19.5a2 2 0 0 0 3.4 0"/></symbol>
+        <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 7.8h.01"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 4.8v14.4L19 12 7.5 4.8Z"/></symbol>
+        <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.5-6.5 4 13L16.5 12H21"/></symbol>
+      </defs>
+    </svg>
     <div class="app-shell">
       <aside class="sidebar">
         <a class="brand" href="#overview" aria-label="Engine overview">
@@ -15,17 +39,18 @@
           <span class="brand-copy"><strong>Autonomous</strong><small>CONTENT ENGINE</small></span>
         </a>
 
-        <div class="workspace-label">WORKSPACE</div>
+        <div class="workspace-label">MENU</div>
         <nav class="primary-nav" aria-label="Primary navigation">
-          <button class="nav-item active" data-view="overview"><span class="nav-icon">◫</span>Overview</button>
-          <button class="nav-item" data-view="library"><span class="nav-icon">▤</span>Asset library<span class="nav-badge" id="nav-asset-count">—</span></button>
-          <button class="nav-item" data-view="workflows"><span class="nav-icon">⌘</span>Workflows</button>
-          <button class="nav-item" data-view="templates"><span class="nav-icon">T</span>Templates</button>
-          <button class="nav-item" data-view="sources"><span class="nav-icon">◎</span>Sources</button>
-          <button class="nav-item" data-view="runs"><span class="nav-icon">◷</span>Runs &amp; queue</button>
+          <button class="nav-item active" data-view="overview"><span class="nav-icon"><svg class="ic"><use href="#i-grid"/></svg></span><span class="nav-label">Overview</span></button>
+          <button class="nav-item" data-view="library"><span class="nav-icon"><svg class="ic"><use href="#i-layers"/></svg></span><span class="nav-label">Asset library</span><span class="nav-badge" id="nav-asset-count">—</span></button>
+          <button class="nav-item" data-view="workflows"><span class="nav-icon"><svg class="ic"><use href="#i-zap"/></svg></span><span class="nav-label">Workflows</span></button>
+          <button class="nav-item" data-view="templates"><span class="nav-icon"><svg class="ic"><use href="#i-type"/></svg></span><span class="nav-label">Templates</span></button>
+          <button class="nav-item" data-view="sources"><span class="nav-icon"><svg class="ic"><use href="#i-db"/></svg></span><span class="nav-label">Sources</span></button>
+          <button class="nav-item" data-view="runs"><span class="nav-icon"><svg class="ic"><use href="#i-history"/></svg></span><span class="nav-label">Runs &amp; queue</span></button>
         </nav>
 
         <div class="sidebar-bottom">
+          <div class="workspace-label">WORKSPACE</div>
           <div class="connection-card">
             <span class="connection-dot"></span>
             <span><strong>Local engine</strong><small>Connected to this workspace</small></span>
@@ -37,38 +62,79 @@
       <main class="main-area">
         <header class="topbar">
           <div class="breadcrumbs"><span>Workspace</span><span class="crumb-sep">/</span><strong id="breadcrumb-current">Overview</strong></div>
-          <div class="topbar-actions"><span class="environment-pill"><i></i>LOCAL DEVELOPMENT</span><button class="icon-button" title="Notifications" aria-label="Notifications">♧</button></div>
+          <div class="topbar-actions">
+            <span class="environment-pill"><i></i>LOCAL DEVELOPMENT</span>
+            <button class="button button-primary button-small" data-go="workflows"><svg class="ic"><use href="#i-plus"/></svg> New video draft</button>
+            <button class="icon-button" title="Notifications" aria-label="Notifications"><svg class="ic"><use href="#i-bell"/></svg></button>
+          </div>
         </header>
 
         <section class="view active" id="view-overview">
           <div class="page-heading">
             <div><div class="eyebrow">ENGINE CONTROL</div><h1>Overview</h1><p class="page-subtitle">A live view of your content operations and reusable resources.</p></div>
-            <button class="button button-secondary" id="refresh-overview"><span>↻</span> Refresh data</button>
+            <button class="button button-secondary" id="refresh-overview"><svg class="ic"><use href="#i-refresh"/></svg> Refresh data</button>
           </div>
 
           <div class="welcome-banner">
-            <div class="welcome-copy"><div class="banner-label"><span class="banner-dot"></span> ENGINE WORKSPACE</div><h2>Build the workflow, one real run at a time.</h2><p>Start with a content resource need. The library checks what is already available before the engine looks elsewhere.</p><button class="button button-light" data-go="library">Open asset library <span>→</span></button></div>
-            <div class="banner-graphic" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit-core">A</div><span class="orbit-node node-one">✦</span><span class="orbit-node node-two">▤</span><span class="orbit-node node-three">⌘</span></div>
+            <div class="welcome-copy">
+              <div class="banner-label"><span class="banner-dot"></span> ENGINE WORKSPACE</div>
+              <h2>Build the workflow, <span class="grad-text">one real run</span> at a time.</h2>
+              <p>Start with a content resource need. The library checks what is already available before the engine looks elsewhere.</p>
+              <div class="banner-actions">
+                <button class="button button-light" data-go="library">Open asset library <svg class="ic"><use href="#i-chev"/></svg></button>
+                <button class="button button-ghost-light" data-go="workflows">Create a video <svg class="ic"><use href="#i-chev"/></svg></button>
+              </div>
+            </div>
+            <div class="banner-graphic" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit-core">A</div><span class="orbit-node node-one"><svg class="ic"><use href="#i-zap"/></svg></span><span class="orbit-node node-two"><svg class="ic"><use href="#i-play"/></svg></span><span class="orbit-node node-three"><svg class="ic"><use href="#i-image"/></svg></span></div>
           </div>
 
-          <div class="section-heading"><div><div class="eyebrow">SYSTEM SNAPSHOT</div><h2>Asset library</h2></div><button class="text-button" data-go="library">View library <span>→</span></button></div>
+          <div class="section-heading"><div><div class="eyebrow">SYSTEM SNAPSHOT</div><h2>Asset library</h2></div><button class="text-button" data-go="library">View library <svg class="ic"><use href="#i-chev"/></svg></button></div>
           <div class="metric-grid">
-            <article class="metric-card"><div class="metric-top"><span>Total assets</span><span class="metric-icon icon-violet">▤</span></div><strong id="metric-total">—</strong><small>Registered in this workspace</small></article>
-            <article class="metric-card"><div class="metric-top"><span>Rights verified</span><span class="metric-icon icon-green">✓</span></div><strong id="metric-verified">—</strong><small>Ready for eligible reuse</small></article>
-            <article class="metric-card"><div class="metric-top"><span>Active inventory</span><span class="metric-icon icon-blue">◉</span></div><strong id="metric-active">—</strong><small>Available for evaluation</small></article>
-            <article class="metric-card metric-card-accent"><div class="metric-top"><span>Next workflow</span><span class="metric-icon icon-orange">↗</span></div><strong class="metric-word">Resource check</strong><small>Evaluate a need against inventory</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Total assets</span><span class="metric-icon icon-violet"><svg class="ic"><use href="#i-layers"/></svg></span></div><strong id="metric-total">—</strong><div class="metric-chart"><svg id="spark-total" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg></div><small id="delta-total">Registered in this workspace</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Rights verified</span><span class="metric-icon icon-green"><svg class="ic"><use href="#i-check"/></svg></span></div><strong id="metric-verified">—</strong><div class="metric-chart"><svg id="spark-verified" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg></div><small id="delta-verified">Ready for eligible reuse</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Active inventory</span><span class="metric-icon icon-blue"><svg class="ic"><use href="#i-pulse"/></svg></span></div><strong id="metric-active">—</strong><div class="metric-chart"><svg id="spark-active" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"></svg></div><small id="delta-active">Available for evaluation</small></article>
+            <article class="metric-card metric-card-accent"><div class="metric-top"><span>Next workflow</span><span class="metric-icon icon-lime"><svg class="ic"><use href="#i-arrow"/></svg></span></div><strong class="metric-word">Resource check</strong><small>Evaluate a need against inventory</small></article>
           </div>
 
           <div class="section-heading section-heading-spaced"><div><div class="eyebrow">OPERATIONAL FLOW</div><h2>Connected capabilities</h2></div></div>
           <div class="flow-grid">
-            <article class="flow-card flow-live"><div class="flow-icon">▤</div><div class="flow-state">AVAILABLE</div><h3>Asset inventory check</h3><p>Match a resource requirement against registered assets, rights, lifecycle, and context.</p><button class="text-button" data-go="library">Open tool <span>→</span></button></article>
-            <article class="flow-card flow-live"><div class="flow-icon">⌕</div><div class="flow-state">AVAILABLE · IMAGES</div><h3>Web discovery &amp; approval</h3><p>Search across Openverse image collections. Review provider, source, and license data before deciding whether to save an image.</p><button class="text-button" data-go="library">Open tool <span>→</span></button></article>
-            <article class="flow-card"><div class="flow-icon muted-icon">✦</div><div class="flow-state state-next">NEXT CONNECTION</div><h3>Content workflow</h3><p>Turn a content objective into resource needs, production steps, and a reviewable result.</p><span class="coming-note">Not connected yet</span></article>
+            <article class="flow-card flow-live"><div class="flow-icon"><svg class="ic"><use href="#i-layers"/></svg></div><div class="flow-state">AVAILABLE</div><h3>Asset inventory check</h3><p>Match a resource requirement against registered assets, rights, lifecycle, and context.</p><button class="text-button" data-go="library">Open tool <svg class="ic"><use href="#i-chev"/></svg></button></article>
+            <article class="flow-card flow-live"><div class="flow-icon"><svg class="ic"><use href="#i-search"/></svg></div><div class="flow-state">AVAILABLE · IMAGES</div><h3>Web discovery &amp; approval</h3><p>Search across Openverse image collections. Review provider, source, and license data before deciding whether to save an image.</p><button class="text-button" data-go="library">Open tool <svg class="ic"><use href="#i-chev"/></svg></button></article>
+            <article class="flow-card"><div class="flow-icon muted-icon"><svg class="ic"><use href="#i-zap"/></svg></div><div class="flow-state state-next">NEXT CONNECTION</div><h3>Content workflow</h3><p>Turn a content objective into resource needs, production steps, and a reviewable result.</p><button class="text-button" data-go="workflows">Open workflow <svg class="ic"><use href="#i-chev"/></svg></button></article>
+          </div>
+
+          <div class="section-heading section-heading-spaced"><div><div class="eyebrow">TRENDS &amp; PIPELINE</div><h2>Analytics</h2></div></div>
+          <div class="chart-grid">
+            <section class="panel chart-panel chart-wide">
+              <div class="panel-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">TREND</div><h2>Asset growth</h2><p>Registered assets per day.</p></div>
+                <div class="range-tabs" role="group" aria-label="Chart range">
+                  <button class="range-tab" type="button" data-range="7">7D</button>
+                  <button class="range-tab active" type="button" data-range="14">14D</button>
+                  <button class="range-tab" type="button" data-range="30">30D</button>
+                </div>
+              </div>
+              <div class="chart-wrap"><svg id="chart-assets" viewBox="0 0 560 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Assets per day"></svg></div>
+              <div class="chart-empty" id="chart-assets-empty" hidden>No assets registered yet.</div>
+            </section>
+            <section class="panel chart-panel">
+              <div class="panel-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">PIPELINE</div><h2>Runs by status</h2><p>All saved engine runs.</p></div></div>
+              <div class="donut-wrap"><svg id="chart-runs" viewBox="0 0 120 120" role="img" aria-label="Runs by status"></svg><div class="donut-legend" id="runs-legend"></div></div>
+              <div class="chart-empty" id="chart-runs-empty" hidden>No runs yet — create a video draft.</div>
+            </section>
+            <section class="panel chart-panel">
+              <div class="panel-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">RIGHTS MIX</div><h2>Top licenses</h2><p>Most common licenses in inventory.</p></div></div>
+              <div class="hbar-list" id="license-bars"></div>
+              <div class="chart-empty" id="license-empty" hidden>No license data yet.</div>
+            </section>
+            <section class="panel chart-panel chart-wide">
+              <div class="panel-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">LATEST ACTIVITY</div><h2>Recent runs</h2><p>Newest engine runs across short and long targets.</p></div><button class="text-button" data-go="runs">View all <svg class="ic"><use href="#i-chev"/></svg></button></div>
+              <div class="table-wrap"><table><thead><tr><th>Run</th><th>Topic</th><th>Type</th><th>Status</th><th>Media</th><th>Outputs</th></tr></thead><tbody id="recent-runs-rows"><tr><td colspan="6" class="empty-cell">No runs yet — create a video draft.</td></tr></tbody></table></div>
+            </section>
           </div>
         </section>
 
         <section class="view" id="view-library">
-          <div class="page-heading"><div><div class="eyebrow">RESOURCE OPERATIONS</div><h1>Asset library</h1><p class="page-subtitle">Check whether the existing inventory can satisfy a content resource need.</p></div><button class="button button-secondary" id="refresh-library"><span>↻</span> Refresh</button></div>
+          <div class="page-heading"><div><div class="eyebrow">RESOURCE OPERATIONS</div><h1>Asset library</h1><p class="page-subtitle">Check whether the existing inventory can satisfy a content resource need.</p></div><button class="button button-secondary" id="refresh-library"><svg class="ic"><use href="#i-refresh"/></svg> Refresh</button></div>
           <div class="library-layout">
             <section class="panel request-panel">
               <div class="panel-heading"><div><div class="eyebrow">STEP 01</div><h2>Describe a resource need</h2><p>Evaluate local inventory first. This check never downloads or changes assets.</p></div><span class="step-number">01</span></div>
@@ -80,53 +146,76 @@
                 <label>Discovery keywords<input name="discovery_query" placeholder="Search terms used only if the library has a gap" /></label>
                 <div class="form-row"><label>Rights requirement<select name="rights_state"><option value="verified">Verified</option><option value="">Any state</option></select></label><label>Lifecycle requirement<select name="lifecycle_state"><option value="active">Active</option><option value="">Any state</option></select></label></div>
                 <details class="advanced-options"><summary>Additional constraints</summary><p>Specific quality, format, market, and temporal constraints will be carried into the resource request contract as the workflow grows.</p></details>
-                <button class="button button-primary submit-button" type="submit"><span>⌕</span> Check library inventory</button>
+                <button class="button button-primary submit-button" type="submit"><svg class="ic"><use href="#i-search"/></svg> Check library inventory</button>
               </form>
               <div class="evaluation-result" id="evaluation-result" aria-live="polite" hidden></div>
             </section>
 
-            <aside class="panel flow-aside"><div class="eyebrow">WHAT HAPPENS NEXT</div><h2>Reuse first. You decide on anything new.</h2><ol class="step-list"><li class="step-done"><span>1</span><div><strong>Check existing assets</strong><small>Compare type, purpose, subject, rights, lifecycle, and context.</small></div></li><li class="step-current"><span>2</span><div><strong>Review the result</strong><small>See whether an asset is ready, needs verification, or is missing.</small></div></li><li><span>3</span><div><strong>Discover web candidates</strong><small>Search Openverse across multiple image providers, with Wikimedia Commons as a fallback.</small></div></li><li><span>4</span><div><strong>Approve, then save or use</strong><small>No external candidate is acquired or used without your decision.</small></div></li></ol><div class="privacy-note"><span>ⓘ</span><p>The inventory check is read-only. An <code>ACQUIRE</code> result lets you search external collections; nothing downloads until you select a save action.</p></div></aside>
+            <aside class="panel flow-aside"><div class="eyebrow">WHAT HAPPENS NEXT</div><h2>Reuse first. You decide on anything new.</h2><ol class="step-list"><li class="step-done"><span>1</span><div><strong>Check existing assets</strong><small>Compare type, purpose, subject, rights, lifecycle, and context.</small></div></li><li class="step-current"><span>2</span><div><strong>Review the result</strong><small>See whether an asset is ready, needs verification, or is missing.</small></div></li><li><span>3</span><div><strong>Discover web candidates</strong><small>Search Openverse across multiple image providers, with Wikimedia Commons as a fallback.</small></div></li><li><span>4</span><div><strong>Approve, then save or use</strong><small>No external candidate is acquired or used without your decision.</small></div></li></ol><div class="privacy-note"><span><svg class="ic"><use href="#i-info"/></svg></span><p>The inventory check is read-only. An <code>ACQUIRE</code> result lets you search external collections; nothing downloads until you select a save action.</p></div></aside>
           </div>
 
           <section class="panel inventory-panel"><div class="panel-heading inventory-heading"><div><div class="eyebrow">REGISTERED RESOURCES</div><h2>Current inventory</h2><p>Latest assets stored in the local library database.</p></div><div class="inventory-count" id="inventory-count">— assets</div></div><div class="table-wrap"><table><thead><tr><th>Asset</th><th>Type</th><th>Purpose</th><th>Rights</th><th>License</th><th>Source</th><th>Lifecycle</th><th>Added</th><th>Review</th></tr></thead><tbody id="asset-rows"><tr><td colspan="9" class="empty-cell">Loading library inventory…</td></tr></tbody></table></div></section>
         </section>
 
         <section class="view" id="view-templates">
-          <div class="page-heading"><div><div class="eyebrow">CHANNEL IDENTITY &middot; TEMPLATE FOUNDATION</div><h1>Allen Knows Ball</h1><p class="page-subtitle">A fixed, versioned visual and editorial system for Vietnamese soccer content.</p></div><span class="environment-pill template-draft-pill" id="template-draft-status">DRAFT FOR OWNER AUDIT</span></div>
+          <div class="page-heading"><div><div class="eyebrow">CHANNEL IDENTITY · TEMPLATE FOUNDATION</div><h1>Allen Knows Ball</h1><p class="page-subtitle">A fixed, versioned visual and editorial system for Vietnamese soccer content.</p></div><span class="environment-pill template-draft-pill" id="template-draft-status">DRAFT FOR OWNER AUDIT</span></div>
           <div class="template-summary-grid">
-            <article class="panel template-summary-card"><div class="eyebrow">CHANNEL PROMISE</div><h2 id="template-tagline">B&#243;ng &#273;&#225;, nh&#236;n th&#234;m m&#7897;t nh&#7883;p.</h2><p id="template-promise">One clear football read, supported by evidence and delivered in Allen&#39;s own voice.</p></article>
+            <article class="panel template-summary-card"><div class="eyebrow">CHANNEL PROMISE</div><h2 id="template-tagline">Bóng đá, nhìn thêm một nhịp.</h2><p id="template-promise">One clear football read, supported by evidence and delivered in Allen's own voice.</p></article>
             <article class="panel template-summary-card"><div class="eyebrow">LOCKED PACKAGE</div><h2 id="template-version">v0.1.0 / 9:16 / vi-VN</h2><p>Fonts, identity, opening, timing, transitions, and effects are fixed in this package version. They do not belong to the Asset Library.</p></article>
             <article class="panel template-summary-card"><div class="eyebrow">ASSET LIBRARY BOUNDARY</div><h2>Media fills typed slots</h2><p>Match images and footage stay in the library. The template describes where approved media may appear, while its visual system remains fixed.</p></article>
           </div>
-          <section class="panel template-preview-panel"><div class="template-preview-heading"><div><div class="eyebrow">PARALLEL TEMPLATE PACKAGES</div><h2>One channel identity. Two production formats.</h2><p>Short form stays portrait and fast; long form adds chapters, deeper evidence, source cards, and sustained 16:9 analysis.</p></div><a class="button button-secondary" href="/template-foundation/preview.html" target="_blank" rel="noopener noreferrer">Open short preview &rarr;</a></div><div class="template-format-grid"><article><span>SHORT FORM</span><strong>9:16 · 30–58 seconds</strong><p>Three existing soccer story forms. Preserved.</p></article><article><span>LONG FORM</span><strong>16:9 · 8–20 minutes</strong><p>Tactical deep dive or player-role study, with a chapter map and explicit production timeline.</p></article></div><iframe class="template-preview-frame" src="/template-foundation/preview.html" title="Allen Knows Ball short-form visual template preview" loading="lazy"></iframe><p class="template-draft-note">Both packages remain drafts. The first FFmpeg preview now uses the fixed identity and typography; selected football media, narration timing, and the complete transition/effect set still need to be integrated.</p></section>
+          <section class="panel template-preview-panel"><div class="template-preview-heading"><div><div class="eyebrow">PARALLEL TEMPLATE PACKAGES</div><h2>One channel identity. Two production formats.</h2><p>Short form stays portrait and fast; long form adds chapters, deeper evidence, source cards, and sustained 16:9 analysis.</p></div><a class="button button-secondary" href="/template-foundation/preview.html" target="_blank" rel="noopener noreferrer">Open short preview <svg class="ic"><use href="#i-arrow"/></svg></a></div><div class="template-format-grid"><article><span>SHORT FORM</span><strong>9:16 · 30–58 seconds</strong><p>Three existing soccer story forms. Preserved.</p></article><article><span>LONG FORM</span><strong>16:9 · 8–20 minutes</strong><p>Tactical deep dive or player-role study, with a chapter map and explicit production timeline.</p></article></div><iframe class="template-preview-frame" src="/template-foundation/preview.html" title="Allen Knows Ball short-form visual template preview" loading="lazy"></iframe><p class="template-draft-note">Both packages remain drafts. The first FFmpeg preview now uses the fixed identity and typography; selected football media, narration timing, and the complete transition/effect set still need to be integrated.</p></section>
         </section>
 
         <section class="view" id="view-workflows">
-          <div class="page-heading"><div><div class="eyebrow">ENGINE PIPELINES &middot; SOCCER / VI-VN</div><h1>Create a video</h1><p class="page-subtitle">Topic &rarr; script draft &rarr; asset check &rarr; owner review &rarr; voice &amp; render.</p></div><span class="environment-pill" id="workflow-runtime-status">LOCAL ENGINE</span></div>
+          <div class="page-heading"><div><div class="eyebrow">ENGINE PIPELINES · SOCCER / VI-VN</div><h1>Create a video</h1><p class="page-subtitle">Topic → script draft → asset check → owner review → voice &amp; render.</p></div><span class="environment-pill" id="workflow-runtime-status">LOCAL ENGINE</span></div>
           <div class="workflow-layout">
             <section class="panel workflow-intake">
-              <div class="eyebrow">01 &middot; CONTENT BRIEF</div><h2>What should Allen explain?</h2>
+              <div class="eyebrow">01 · CONTENT BRIEF</div><h2>What should Allen explain?</h2>
               <form id="content-draft-form" class="content-draft-form">
                 <label>Video topic <span class="required-mark">*</span><textarea name="topic" required minlength="4" maxlength="500" placeholder="e.g. Vì sao khoảng trống sau lưng hậu vệ biên liên tục bị khai thác?" lang="vi"></textarea></label>
                 <div class="form-row"><label>Content target<select name="content_type"><option value="short">Short form · 9:16 · ~30–58 seconds</option><option value="long">Long form · 16:9 · ~8–20 minutes</option></select></label></div>
                 <div class="form-row"><label>Visual colorway<select name="colorway"><option value="match-night">Đêm thi đấu · teal / coral</option><option value="paper-report">Hồ sơ giấy · jade / rust</option><option value="stadium-lights">Ánh đèn sân · sky / coral</option><option value="cup-night">Đêm cúp · aqua / rose</option></select></label></div>
                 <div class="form-row"><label>Story form<select name="story_form" id="story-form-select"><option value="one-moment-one-read">Một tình huống, một góc nhìn</option><option value="explain-the-pattern">Giải thích một ý chiến thuật</option><option value="player-role-read">Cầu thủ và vai trò</option></select></label></div>
                 <label>Evidence &amp; source notes <span class="optional-mark">Optional for a first outline</span><textarea name="evidence" class="evidence-input" placeholder="Dán link/tên nguồn, ngày, quan sát hoặc số liệu đã kiểm tra. Mỗi dòng là một mẩu evidence." lang="vi"></textarea></label>
-                <p class="form-helper">Factual match claims need evidence. The draft marks unsupported details for research instead of inventing them. Script requests stay on this machine via local Ollama when configured.</p>
-                <button class="button button-primary" type="submit">Draft script &amp; check assets <span>&rarr;</span></button>
+                <p class="form-helper">Factual match claims need evidence. The draft marks unsupported details for research instead of inventing them. Script requests stay on this machine via local Ollama when configured. Long-form drafts on CPU can take several minutes — leave the tab open while the local model writes.</p>
+                <button class="button button-primary" type="submit">Draft script &amp; check assets <svg class="ic"><use href="#i-chev"/></svg></button>
               </form>
             </section>
             <section class="panel workflow-stages"><div class="eyebrow">FIXED CHANNEL FOUNDATION</div><h2>One connected production path</h2>
-              <ol class="workflow-step-list"><li class="step-current"><span>01</span><div><strong>Topic &amp; script</strong><small>Vietnamese, one football read</small></div></li><li><span>02</span><div><strong>Asset Library</strong><small>Reuse first; search only for gaps</small></div></li><li><span>03</span><div><strong>Allen’s voice</strong><small>Local Vietnamese TTS voice profile</small></div></li><li><span>04</span><div><strong>Template &amp; render</strong><small>Opening, captions, motion, ending</small></div></li><li><span>05</span><div><strong>Owner audit</strong><small>Approve each asset and final video</small></div></li></ol>
+              <ol class="workflow-step-list"><li class="step-current"><span>01</span><div><strong>Topic &amp; script</strong><small>Vietnamese, one football read</small></div></li><li><span>02</span><div><strong>Asset Library</strong><small>Reuse first; search only for gaps</small></div></li><li><span>03</span><div><strong>Allen's voice</strong><small>Local Vietnamese TTS voice profile</small></div></li><li><span>04</span><div><strong>Template &amp; render</strong><small>Opening, captions, motion, ending</small></div></li><li><span>05</span><div><strong>Owner audit</strong><small>Approve each asset and final video</small></div></li></ol>
               <div class="runtime-note"><strong id="voice-profile-heading">Voice sample not set up</strong><span>Chọn bản ghi giọng của bạn (WAV, MP3, FLAC; tối đa 50 MB). Tệp chỉ lưu trong thư mục runtime bị loại khỏi Git; xử lý giọng chạy trên máy này.</span><form id="voice-profile-form" class="voice-profile-form"><input type="file" name="voice_file" accept="audio/wav,audio/mpeg,audio/flac,.wav,.mp3,.flac" required><button class="button button-secondary button-small" type="submit">Save voice locally</button></form><small id="voice-runtime-note">Voice preview becomes available when the local VieNeu runtime is installed.</small></div>
             </section>
           </div>
-          <section class="panel script-result-panel" id="script-result-panel" hidden><div class="script-result-heading"><div><div class="eyebrow">DRAFT OUTPUT</div><h2 id="draft-status-heading">Script and asset check</h2></div><span class="status-pill status-muted" id="draft-mode-pill"></span></div><p class="form-helper">Review and edit the Vietnamese narration. Resolve every research marker and verify factual claims before approving the script for TTS.</p><div id="draft-timeline" class="draft-timeline" hidden></div><div id="script-segments" class="script-segments"></div><label class="evidence-verification"><input id="evidence-verified" type="checkbox"><span>I reviewed the narration and verified its factual evidence. Any unsupported claims are removed or marked for research.</span></label><div class="voice-preview-actions"><button class="button button-secondary" id="approve-script" type="button">Approve reviewed script</button><span id="script-review-status" role="status"></span></div><div id="draft-evidence-note" class="draft-evidence-note"></div><div class="asset-check-summary" id="draft-asset-check"></div><div class="voice-preview-actions"><button class="button button-secondary" id="render-template-preview" type="button" disabled>Render 18-second template preview</button><span id="render-preview-status" role="status"></span></div><section class="render-result" id="render-preview-result" hidden><video id="render-preview-video" controls playsinline></video><div id="render-quality-report" class="render-quality-report"></div></section><div class="voice-preview-actions"><button class="button button-primary" id="create-voice-preview" type="button" disabled>Create local voice preview</button><span id="voice-preview-status" role="status"></span><audio id="voice-preview-audio" controls hidden></audio></div><label class="evidence-verification voice-audit"><input id="voice-preview-audited" type="checkbox" disabled><span>I listened to the generated preview and approve this voice for full rendering.</span></label><div class="voice-preview-actions"><button class="button button-secondary" id="render-full-video" type="button" disabled>Render full reviewed video</button><span id="render-full-status" role="status"></span></div><section class="render-result" id="render-full-result" hidden><video id="render-full-video-player" controls playsinline></video></section></section>
+          <section class="panel script-result-panel" id="script-result-panel" hidden>
+            <div class="script-result-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">DRAFT OUTPUT</div><h2 id="draft-status-heading">Script and asset check</h2></div><span class="status-pill status-muted" id="draft-mode-pill"></span></div>
+            <p class="form-helper">Review and edit the Vietnamese narration. Resolve every research marker and verify factual claims before approving the script for TTS.</p>
+            <div id="draft-timeline" class="draft-timeline" hidden></div>
+            <div id="script-segments" class="script-segments"></div>
+            <label class="evidence-verification"><input id="evidence-verified" type="checkbox"><span>I reviewed the narration and verified its factual evidence. Any unsupported claims are removed or marked for research.</span></label>
+            <div class="voice-preview-actions"><button class="button button-secondary" id="approve-script" type="button">Approve reviewed script</button><span id="script-review-status" role="status"></span></div>
+            <div id="draft-evidence-note" class="draft-evidence-note"></div>
+            <div class="asset-check-summary" id="draft-asset-check"></div>
+            <div class="voice-preview-actions"><button class="button button-secondary" id="render-template-preview" type="button" disabled>Render 18-second template preview</button><span id="render-preview-status" role="status"></span></div>
+            <section class="render-result" id="render-preview-result" hidden><video id="render-preview-video" controls playsinline></video><div id="render-quality-report" class="render-quality-report"></div></section>
+            <div class="voice-preview-actions"><button class="button button-secondary" id="render-visual-benchmark" type="button" disabled>Render visual benchmark (long-form, silent)</button><span id="render-visual-status" role="status"></span></div>
+            <section class="render-result" id="render-visual-result" hidden><video id="render-visual-video" controls playsinline></video><div id="render-visual-report" class="render-quality-report"></div></section>
+            <div class="voice-preview-actions"><button class="button button-primary" id="create-voice-preview" type="button" disabled>Create local voice preview</button><span id="voice-preview-status" role="status"></span><audio id="voice-preview-audio" controls hidden></audio></div>
+            <label class="evidence-verification voice-audit"><input id="voice-preview-audited" type="checkbox" disabled><span>I listened to the generated preview and approve this voice for full rendering.</span></label>
+            <div class="voice-preview-actions"><button class="button button-secondary" id="render-full-video" type="button" disabled>Render full reviewed video</button><span id="render-full-status" role="status"></span></div>
+            <section class="render-result" id="render-full-result" hidden><video id="render-full-video-player" controls playsinline></video></section>
+          </section>
         </section>
 
-        <section class="view" id="view-sources"><div class="page-heading"><div><div class="eyebrow">EVIDENCE &amp; PROVENANCE</div><h1>Sources</h1><p class="page-subtitle">Registered sources and extracted evidence will appear here when the perception boundary is connected to the library workflow.</p></div></div><div class="empty-state panel"><div class="empty-illustration">◎</div><div class="eyebrow">NOT CONNECTED</div><h2>Source intake is not part of this UI slice yet</h2><p>The new perception boundary can characterize and extract from raw HTML or JSON. Source retrieval, persisted evidence, and approval actions still need to be wired into an engine run.</p></div></section>
+        <section class="view" id="view-sources"><div class="page-heading"><div><div class="eyebrow">EVIDENCE &amp; PROVENANCE</div><h1>Sources</h1><p class="page-subtitle">Registered sources and extracted evidence will appear here when the perception boundary is connected to the library workflow.</p></div></div><div class="empty-state panel"><div class="empty-illustration"><svg class="ic"><use href="#i-db"/></svg></div><div class="eyebrow">NOT CONNECTED</div><h2>Source intake is not part of this UI slice yet</h2><p>The new perception boundary can characterize and extract from raw HTML or JSON. Source retrieval, persisted evidence, and approval actions still need to be wired into an engine run.</p></div></section>
 
-        <section class="view" id="view-runs"><div class="page-heading"><div><div class="eyebrow">EXECUTION</div><h1>Runs &amp; queue</h1><p class="page-subtitle">Track engine jobs, decisions, and human review points.</p></div></div><div class="empty-state panel"><div class="empty-illustration">◷</div><div class="eyebrow">NOT CONNECTED</div><h2>No persistent workflow runs to display</h2><p>The current worker is not connected to the Asset Library workflow. Run history will become useful once these steps share persistent execution state.</p></div></section>
+        <section class="view" id="view-runs">
+          <div class="page-heading"><div><div class="eyebrow">EXECUTION</div><h1>Runs &amp; queue</h1><p class="page-subtitle">Every saved engine run, newest first. Videos and reports open when rendered.</p></div><button class="button button-secondary" id="refresh-runs"><svg class="ic"><use href="#i-refresh"/></svg> Refresh</button></div>
+          <section class="panel runs-panel">
+            <div class="panel-heading inventory-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">PIPELINE HISTORY</div><h2>All runs</h2><p>Status, media attachments, voice and render outputs.</p></div><div class="inventory-count" id="runs-count">— runs</div></div>
+            <div class="table-wrap"><table class="runs-table"><thead><tr><th>Run</th><th>Topic</th><th>Type</th><th>Status</th><th>Created</th><th>Seg</th><th>Media</th><th>Voice</th><th>Outputs</th></tr></thead><tbody id="run-rows"><tr><td colspan="9" class="empty-cell">Loading runs…</td></tr></tbody></table></div>
+          </section>
+        </section>
 
         <footer class="page-footer"><span>Autonomous Content Engine v1</span><span>Local-first · Human-reviewed acquisition</span></footer>
       </main>
@@ -134,4 +223,4 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="/app.js" defer></script>
   </body>
-</html>\n
+</html>
