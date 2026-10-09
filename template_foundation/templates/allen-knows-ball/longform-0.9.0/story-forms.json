@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "visual_system": "Shares the locked channel design tokens; long-form pacing and chapter structure are defined in timeline.json.",
+  "forms": [
+    {
+      "id": "longform-tactical-deep-dive",
+      "label_vi": "Phân tích chiến thuật chuyên sâu",
+      "target_seconds": 720,
+      "minimum_seconds": 480,
+      "maximum_seconds": 1200,
+      "arc": [
+        "cold open with the central football question",
+        "state a bounded thesis and preview the answer",
+        "set the match, competition, season, and scope",
+        "explain the tactical structure before the key sequence",
+        "walk through evidence and match moments in chronological order",
+        "show the mechanism with authored board diagrams",
+        "test the thesis against a counterexample or alternative reading",
+        "summarize what the evidence supports and what remains uncertain",
+        "give Allen's conclusion and fixed channel ending"
+      ],
+      "must_have": [
+        "dated evidence and source for every match-specific claim",
+        "separate observation from interpretation",
+        "at least one fair limitation or counter-reading",
+        "chapter map aligned to script and timeline",
+        "source card or citation event for each evidence block"
+      ],
+      "asset_slots": [
+        "optional exact-match approved imagery or user-supplied footage",
+        "authored tactical diagrams remain the default when footage is unavailable"
+      ]
+    },
+    {
+      "id": "longform-player-role-study",
+      "label_vi": "Hồ sơ vai trò cầu thủ",
+      "target_seconds": 600,
+      "minimum_seconds": 480,
+      "maximum_seconds": 900,
+      "arc": [
+        "a clear question about the player's role",
+        "team and season context",
+        "role and responsibilities in possession",
+        "role and responsibilities without the ball",
+        "strengths supported by multiple observations",
+        "trade-offs, limits, and an alternative interpretation",
+        "what the role means for the team",
+        "bounded takeaway and fixed channel ending"
+      ],
+      "must_have": [
+        "distinguish role from reputation",
+        "do not judge from a single statistic or match",
+        "date and source for each match or statistic",
+        "no invented likeness, footage, quote, or performance claim"
+      ],
+      "asset_slots": [
+        "optional rights-cleared current player portrait",
+        "optional exact-match approved imagery or user-supplied footage"
+      ]
+    }
+  ],
+  "always_on_rules": [
+    "One episode answers one primary football question.",
+    "The cold open renders the hook card with the reviewed opening claim in 5-8 words.",
+    "A longer runtime must add evidence and reasoning, not repeat the thesis.",
+    "Separate observed events, sourced facts, and Allen's interpretation.",
+    "Do not manufacture match visuals with unrelated library assets.",
+    "Use authored pitch-board diagrams as the default visual evidence when real footage cannot be lawfully used."
+  ]
+}

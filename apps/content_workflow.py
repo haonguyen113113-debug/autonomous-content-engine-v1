@@ -37,7 +37,7 @@ SHORT_BUDGET_SECONDS = 540
 LONG_BUDGET_SECONDS = 1500
 VISUAL_MODES = {
     "tactical_explainer", "statline_scorecard", "source_card",
-    "chart_comparison", "chart_timeline",
+    "chart_comparison", "chart_timeline", "hook_card",
 }
 
 
@@ -376,7 +376,7 @@ def _ollama_beat(
         f"between {speech_floor} and {speech_budget} characters so it fills "
         f"{duration_hint}s aloud without padding), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
         "visual_mode (tactical_explainer, statline_scorecard, source_card, "
-        "chart_comparison, or chart_timeline), graphic_data (values and source only "
+        "chart_comparison, chart_timeline, or hook_card), graphic_data (values and source only "
         "when explicitly present in supplied evidence, else {}), duration_seconds "
         f"(integer {lo}-{hi}), and timeline_events (on-screen items with item_id, "
         "item_type among caption, stat_card, tactical_diagram, media, lower_third, "
@@ -390,6 +390,10 @@ def _ollama_beat(
         "line only for ordered observations over match time or dates with visual_mode "
         "chart_timeline. Use pie or donut ONLY for mutually exclusive parts of one "
         "known whole with no more than four categories; otherwise choose bar or column. "
+        "For the opening beat use visual_mode hook_card with graphic_data.hook_text "
+        "restating the opening claim in 5-8 Vietnamese words. For one decisive sourced "
+        "number use statline_scorecard with graphic_data.hero {label, value} plus source "
+        "and date. "
         "Never estimate or invent missing values, units, order, dates, or sources."
     )
     user_payload = {

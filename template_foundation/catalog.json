@@ -122,6 +122,20 @@
       "version": "0.8.0",
       "status": "draft",
       "path": "templates/allen-knows-ball/longform-0.8.0"
+    },
+    {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.9.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/0.9.0"
+    },
+    {
+      "template_id": "allen-knows-ball.longform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "0.9.0",
+      "status": "draft",
+      "path": "templates/allen-knows-ball/longform-0.9.0"
     }
   ]
 }

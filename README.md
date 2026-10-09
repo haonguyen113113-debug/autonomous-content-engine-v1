@@ -6,7 +6,9 @@ local voice preview → FFmpeg render. Every step runs on your machine; paid
 services are optional and never foundational.
 
 > Status: working vertical slice for Vietnamese soccer Shorts (Allen Knows
-> Ball). Long-form, publishing adapters, and measurement loops are next.
+> Ball, Template Nova 0.9.0 draft): draft → asset check → owner review →
+> voice → render → distribution plan → measurement ledger. Real platform
+> publishing adapters (stubs return STAGED) and template release audit are next.
 
 ## How it works
 
@@ -56,6 +58,11 @@ python -m apps.web_ui.server --root .
 
 - `apps/content_workflow.py` — script drafting + agent runs
 - `apps/llm.py` — provider-agnostic model transport, rotation, budgets
+- `apps/orchestrator/` — Groq-first drafting with Ollama fallback when cloud is exhausted
+- `apps/distribution/` — channel routing + replaceable platform adapters (local_file ships; platform stubs stage only)
+- `apps/measurement/` — lifecycle states (generated…paid) + outcome/payout ledger
+- `apps/learning/` — advisory portfolio allocation + channel lifecycle (owner decides)
+- `apps/worker/` — queue consumer with bounded retries/backoff for draft jobs
 - `apps/asset_library/` — registry, discovery, identity, ingest, QA layers
 - `apps/video_renderer.py` — FFmpeg composition (Ken Burns, fades, overlays, end-card)
 - `apps/voice_tts.py` + `apps/tts_preview_worker.py` — local voice previews

@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "template_version": "0.9.0",
+  "selection_rule": "Open on the hook card for the first beat, then choose the mode that best proves each later beat. Do not show the tactical plate on every beat.",
+  "modes": [
+    {
+      "id": "hook_card",
+      "purpose": "Decide the first frame: one 5-8 word claim in condensed display type with a lime rule, punched in at frame 0. No logo bumper, no greeting.",
+      "preferred_visual": "authored hook plate using the reviewed opening claim",
+      "fallback": "typographic question on an editorial colorway"
+    },
+    {
+      "id": "opening_question",
+      "purpose": "Establish the hook and the match or player at stake.",
+      "preferred_visual": "owner-approved exact-context match still or player portrait",
+      "fallback": "typographic question on an editorial colorway"
+    },
+    {
+      "id": "match_evidence",
+      "purpose": "Show what happened in the exact passage being discussed.",
+      "preferred_visual": "owner-approved exact-context still or rights-cleared clip",
+      "fallback": "source card or explicitly illustrative tactical plate"
+    },
+    {
+      "id": "tactical_explainer",
+      "purpose": "Explain a shape, run, pressing trigger, or passing option.",
+      "preferred_visual": "authored pitch plate using context-aware team colors",
+      "fallback": "labeled diagram; no false match context"
+    },
+    {
+      "id": "statline_scorecard",
+      "purpose": "Compare a small number of sourced metrics, or press one number with the hero-metric variant.",
+      "preferred_visual": "split head-to-head scoreboard with mirrored team columns, large direct values, and compact paired comparison bars; a single hero metric renders as one 3x numeral with pop",
+      "fallback": "source card if values are missing"
+    },
+    {
+      "id": "source_card",
+      "purpose": "Show publication, date, and the claim supported by a source.",
+      "preferred_visual": "archival paper pull-quote on an ink field with publication, date, claim, and traceable URL",
+      "fallback": "source-needed marker without factual assertion"
+    },
+    {
+      "id": "chart_comparison",
+      "purpose": "Compare sourced numeric metrics with labeled bars.",
+      "preferred_visual": "warm editorial plotting sheet; choose horizontal bar, compact columns, or part-to-whole pie/donut according to evidence semantics and labels",
+      "fallback": "source card if data is incomplete"
+    },
+    {
+      "id": "chart_timeline",
+      "purpose": "Show a sourced metric over ordered moments or dates.",
+      "preferred_visual": "chronological line plot with ordered observations, event points, direct values, and source attribution",
+      "fallback": "source card if order or values are missing"
+    },
+    {
+      "id": "conclusion",
+      "purpose": "Return to Allen's bounded reading of the evidence.",
+      "preferred_visual": "quiet branded close or approved host media",
+      "fallback": "one-sentence takeaway and fixed channel signature"
+    }
+  ],
+  "annotation_rules": [
+    "Every annotation and value must be supported by reviewed script evidence.",
+    "A discovery result is never automatically saved or used.",
+    "Do not imitate a broadcast score bug, club crest, or another channel's distinctive package.",
+    "Keep narration subtitles off; add brief labels only when they contribute information.",
+    "Use contextual team colors and accessible, labeled data colors; color alone must never carry meaning."
+  ]
+}

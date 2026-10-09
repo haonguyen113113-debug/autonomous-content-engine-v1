@@ -25,6 +25,16 @@ from apps.asset_library.discovery import (
 from apps.asset_library.identity import apply_identity_filter
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
+from apps.distribution import ChannelDestination, default_registry, plan_distribution
+from apps.distribution.routing import read_plan
+from apps.distribution.service import publish_plan, stage_plan
+from apps.measurement import (
+    classify_lifecycle,
+    record_observation,
+    record_payout,
+    summarize_by_channel,
+    summarize_by_run,
+)
 from apps.voice_tts import save_voice_reference, synthesize_voice_preview, voice_profile_status
 from apps.video_renderer import render_full_run, render_template_preview, render_graphic_template_previews, render_visual_only_run
 from template_foundation import resolve_template
@@ -58,6 +68,7 @@ TEMPLATE_FILES = {
             "statline-preview", "chart-preview", "source-preview",
             "chart-bar-preview", "chart-column-preview", "chart-pie-preview",
             "chart-donut-preview", "chart-line-preview",
+            "hook-card-preview", "hero-preview",
         )
     },
     "/template-foundation/resources/identity/akb-mark.svg": (
@@ -501,6 +512,73 @@ def _review_asset_rights(db_path: Path, asset_id: str) -> dict[str, str]:
         conn.close()
 
 
+def _distribution_detail(root: Path, run_id: str) -> dict[str, Any]:
+    """Routing plan + publish records + lifecycle for one run (read-only)."""
+    run = _read_run(root, run_id)
+    plan = read_plan(root, run_id)
+    records: list[dict[str, Any]] = []
+    records_path = root / "runtime/publish" / run_id / "publish-records.json"
+    if records_path.is_file():
+        try:
+            loaded = json.loads(records_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, list):
+                records = [r for r in loaded if isinstance(r, dict)]
+        except (OSError, json.JSONDecodeError):
+            records = []
+    observations = [
+        json.loads(line) for line in
+        ((root / "runtime/measurement/observations.jsonl").read_text(encoding="utf-8").splitlines()
+         if (root / "runtime/measurement/observations.jsonl").is_file() else [])
+        if line.strip()
+    ]
+    payouts = [
+        json.loads(line) for line in
+        ((root / "runtime/measurement/payouts.jsonl").read_text(encoding="utf-8").splitlines()
+         if (root / "runtime/measurement/payouts.jsonl").is_file() else [])
+        if line.strip()
+    ]
+    run_obs = [o for o in observations if isinstance(o, dict) and o.get("run_id") == run_id]
+    run_pay = [p for p in payouts if isinstance(p, dict) and p.get("run_id") == run_id]
+    lifecycle = classify_lifecycle(run, plan, records, run_obs, run_pay)
+    return {"run_id": run_id, "plan": plan, "records": records,
+            "observations": run_obs, "payouts": run_pay, "lifecycle": lifecycle}
+
+
+def _plan_distribution_for_run(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    run = _read_run(root, run_id)
+    raw_dests = payload.get("destinations", [{"platform": "local_file", "account_ref": "local"}])
+    if not isinstance(raw_dests, list) or not raw_dests or len(raw_dests) > 4:
+        raise ValueError("Provide 1-4 destinations.")
+    destinations: dict[str, list[ChannelDestination]] = {}
+    plan = plan_distribution(root, run, {})
+    for item in raw_dests:
+        if not isinstance(item, dict) or not str(item.get("platform", "")).strip():
+            raise ValueError("Each destination needs a platform.")
+        dest = ChannelDestination(
+            platform=str(item["platform"]).strip(),
+            account_ref=str(item.get("account_ref", "")).strip(),
+            market=str(item.get("market", plan.get("market", "VN"))).strip() or "VN",
+        )
+        destinations.setdefault(plan["channel_id"], []).append(dest)
+    plan = plan_distribution(root, run, destinations)
+    return stage_plan(root, plan)
+
+
+def _publish_distribution_for_run(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    run = _read_run(root, run_id)
+    plan = read_plan(root, run_id)
+    if plan is None:
+        raise ValueError("Plan distribution first via /api/distribution/plan.")
+    dry_run = payload.get("dry_run", False) is True
+    return publish_plan(root, run, plan, registry=default_registry(), dry_run=dry_run)
+
+
 def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
     class EngineUIHandler(BaseHTTPRequestHandler):
         server_version = "AutonomousContentEngineUI/0.1"
@@ -673,6 +751,34 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 self._send_json(_content_status(db_path.parent.parent))
                 return
 
+            distribution_match = re.fullmatch(r"/api/distribution/([a-f0-9]{12})", path)
+            if distribution_match:
+                try:
+                    self._send_json(_distribution_detail(
+                        db_path.parent.parent, distribution_match.group(1)))
+                except ValueError as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not read the distribution plan."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            if path == "/api/measurement/summary":
+                try:
+                    root = db_path.parent.parent
+                    self._send_json({
+                        "by_run": summarize_by_run(root),
+                        "by_channel": summarize_by_channel(root),
+                    })
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not compute measurement summary."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
             template_file = TEMPLATE_FILES.get(path)
             if template_file:
                 template_id = (
@@ -766,6 +872,10 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 "/api/content/voice-review",
                 "/api/content/render-preview",
                 "/api/content/render-full",
+                "/api/distribution/plan",
+                "/api/distribution/publish",
+                "/api/measurement/observations",
+                "/api/measurement/payouts",
             }:
                 self._send_json(
                     {"error": "Not found."},
@@ -836,6 +946,47 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
 
                 if path == "/api/content/attach-media":
                     self._send_json(_attach_segment_media(db_path.parent.parent, db_path, payload))
+                    return
+
+                if path == "/api/distribution/plan":
+                    self._send_json(_plan_distribution_for_run(db_path.parent.parent, payload))
+                    return
+
+                if path == "/api/distribution/publish":
+                    self._send_json(_publish_distribution_for_run(db_path.parent.parent, payload))
+                    return
+
+                if path == "/api/measurement/observations":
+                    self._send_json(record_observation(
+                        db_path.parent.parent,
+                        run_id=str(payload.get("run_id", "")),
+                        remote_id=payload.get("remote_id"),
+                        channel_id=str(payload.get("channel_id", "")),
+                        platform=str(payload.get("platform", "")),
+                        day=str(payload.get("day", "")),
+                        views=int(payload.get("views", 0) or 0),
+                        likes=int(payload.get("likes", 0) or 0),
+                        comments=int(payload.get("comments", 0) or 0),
+                        shares=int(payload.get("shares", 0) or 0),
+                        watch_hours=float(payload.get("watch_hours", 0.0) or 0.0),
+                        ctr=float(payload.get("ctr", 0.0) or 0.0),
+                        conversions=int(payload.get("conversions", 0) or 0),
+                        earnings_estimated_usd=float(payload.get("earnings_estimated_usd", 0.0) or 0.0),
+                        source=str(payload.get("source", "ui_entry")),
+                    ), HTTPStatus.CREATED)
+                    return
+
+                if path == "/api/measurement/payouts":
+                    self._send_json(record_payout(
+                        db_path.parent.parent,
+                        run_id=payload.get("run_id"),
+                        channel_id=str(payload.get("channel_id", "")),
+                        amount_usd=float(payload.get("amount_usd", 0.0) or 0.0),
+                        kind=str(payload.get("kind", "platform_payout")),
+                        verified_cash_received=payload.get("verified_cash_received") is True,
+                        method=str(payload.get("method", "")),
+                        note=str(payload.get("note", "")),
+                    ), HTTPStatus.CREATED)
                     return
 
                 if path == "/api/content/render-preview":

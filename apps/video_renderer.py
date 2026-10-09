@@ -426,6 +426,13 @@ def render_graphic_template_previews(root: Path) -> dict[str, Any]:
             "claim": "Thẻ này cho thấy cách luận điểm, ngày xuất bản và xuất xứ sẽ xuất hiện cạnh nhau khi nội dung thật được duyệt.",
             "url": "example.invalid · placeholder",
         }),
+        "hook-card-preview.png": ("hook_card", {
+            "hook_text": "Ai đang đọc trận đấu hay nhất?",
+        }),
+        "hero-preview.png": ("statline_scorecard", {
+            "hero": {"label": "BÀN THẮNG QUYẾT ĐỊNH", "value": "19"},
+            "source": "DỮ LIỆU MINH HỌA · KHÔNG PHẢI TRẬN THẬT", "date": "Bản demo",
+        }),
     }
     for template_id, prefix, is_long in (
         ("allen-knows-ball.shortform-analyst", "short", False),
@@ -589,6 +596,36 @@ def _write_editorial_data_scene(
     # a true plotted chart, or a paper source note. Only the channel wordmark,
     # type system, and color tokens remain shared across the three layouts.
     if mode == "statline_scorecard":
+        hero = data.get("hero")
+        if isinstance(hero, dict) and not data.get("metrics") and str(hero.get("value", "")).strip():
+            # Nova hero-metric variant: one sourced number at 3x scale with pop.
+            draw.rectangle((0, 0, panel_w*scale, panel_h*scale), fill=ink)
+            draw.rectangle((0, 0, 12*scale, panel_h*scale), fill=home)
+            draw.rectangle(((panel_w-12)*scale, 0, panel_w*scale, panel_h*scale), fill=away)
+            draw.line((36*scale,72*scale,(panel_w-36)*scale,72*scale),fill=color("pitch_line","#658576",170),width=2*scale)
+            text(48,28,"ALLEN KNOWS BALL  /  HERO NUMBER",14,muted,bold=True)
+            hero_label = str(hero.get("label", ""))[:40] or "CHỈ SỐ QUYẾT ĐỊNH"
+            label_font = ImageFont.truetype(str(font_path), 20*scale)
+            label_bounds = draw.textbbox((0,0),hero_label,font=label_font)
+            text((panel_w-(label_bounds[2]-label_bounds[0])/scale)/2,150,hero_label,20,paper,bold=True)
+            draw.line((44*scale,205*scale,(panel_w-44)*scale,205*scale),fill=accent,width=4*scale)
+            hero_value = str(hero.get("value", ""))[:12]
+            hero_size = 168 if is_long else 198
+            hero_font = ImageFont.truetype(str(display_font_path),hero_size*scale)
+            while hero_size > 60 and draw.textbbox((0,0),hero_value,font=hero_font)[2] > (panel_w-160)*scale:
+                hero_size -= 12
+                hero_font = ImageFont.truetype(str(display_font_path),hero_size*scale)
+            value_bounds = draw.textbbox((0,0),hero_value,font=hero_font)
+            value_w = (value_bounds[2]-value_bounds[0])/scale
+            value_h = (value_bounds[3]-value_bounds[1])/scale
+            draw.text(((panel_w-value_w)/2*scale,(panel_h/2-value_h/2-30)*scale),hero_value,font=hero_font,fill=accent)
+            hero_source = str(data.get("source") or data.get("source_label") or "Nguồn cần xác minh")
+            hero_credit = f"{hero_source} · {data.get('date','')}".strip(" ·")
+            credit_bounds = draw.textbbox((0,0),hero_credit[:90],font=ImageFont.truetype(str(font_path),13*scale))
+            text((panel_w-(credit_bounds[2]-credit_bounds[0])/scale)/2,panel_h-110,hero_credit[:90],13,muted)
+            draw.text(((panel_w-44)*scale,(panel_h-68)*scale),f"{scene_number:02d}",font=ImageFont.truetype(str(display_font_path),20*scale),fill=accent,anchor="ra")
+            image.resize((panel_w,panel_h),Image.Resampling.LANCZOS).save(path)
+            return
         draw.rectangle((0, 0, panel_w*scale, panel_h*scale), fill=ink)
         draw.rectangle((0, 0, 12*scale, panel_h*scale), fill=home)
         draw.rectangle(((panel_w-12)*scale, 0, panel_w*scale, panel_h*scale), fill=away)
@@ -826,6 +863,46 @@ def _write_editorial_data_scene(
         text(44,panel_h-76,"CLAIM + PUBLICATION + DATE",12,muted,bold=True)
         draw.text(((panel_w-44)*scale,(panel_h-75)*scale),f"{scene_number:02d}",font=ImageFont.truetype(str(display_font_path),20*scale),fill=accent,anchor="ra")
         image.resize((panel_w,panel_h),Image.Resampling.LANCZOS).save(path)
+        return
+
+    if mode == "hook_card":
+        # Nova frame-0 plate: one 5-8 word claim, condensed display type, lime rule.
+        draw.rectangle((0, 0, panel_w*scale, panel_h*scale), fill=ink)
+        draw.rectangle((0, 0, panel_w*scale, 10*scale), fill=accent)
+        text(44, 32, "ALLEN KNOWS BALL  /  HOOK", 14, muted, bold=True)
+        draw.line((44*scale, 78*scale, (panel_w-44)*scale, 78*scale), fill=accent, width=4*scale)
+        hook = " ".join(str(data.get("hook_text") or data.get("headline") or data.get("title") or "").split())[:120]
+        if not hook:
+            hook = "CÂU HỎI TRẬN ĐẤU"
+        max_width = (panel_w - 120) * scale
+        hook_size = 88 if is_long else 76
+        hook_lines: list[str] = []
+        while hook_size >= 40:
+            hook_font = ImageFont.truetype(str(display_font_path), hook_size*scale)
+            hook_lines, current = [], ""
+            for word in hook.split():
+                candidate = f"{current} {word}".strip()
+                if current and draw.textbbox((0, 0), candidate, font=hook_font)[2] > max_width:
+                    hook_lines.append(current)
+                    current = word
+                else:
+                    current = candidate
+            if current:
+                hook_lines.append(current)
+            if len(hook_lines) <= 3:
+                break
+            hook_size -= 6
+        hook_font = ImageFont.truetype(str(display_font_path), hook_size*scale)
+        line_h = hook_size + 14
+        start_y = panel_h / 2 - len(hook_lines[:3]) * line_h / 2
+        for row, line_value in enumerate(hook_lines[:3]):
+            bounds = draw.textbbox((0, 0), line_value, font=hook_font)
+            line_w = (bounds[2] - bounds[0]) / scale
+            draw.text(((panel_w - line_w) / 2 * scale, (start_y + row * line_h) * scale), line_value, font=hook_font, fill=paper)
+        draw.line((44*scale, (panel_h-120)*scale, (panel_w-44)*scale, (panel_h-120)*scale), fill=color("pitch_line", "#658576", 150), width=scale)
+        text(44, panel_h-92, "01 / HOOK · KHÔNG LOGO MỞ ĐẦU", 13, muted, bold=True)
+        draw.text(((panel_w-44)*scale, (panel_h-92)*scale), f"{scene_number:02d}", font=ImageFont.truetype(str(display_font_path), 20*scale), fill=accent, anchor="ra")
+        image.resize((panel_w, panel_h), Image.Resampling.LANCZOS).save(path)
         return
 
     frame = [(24,8),(panel_w-42,8),(panel_w-8,42),(panel_w-8,panel_h-28),(panel_w-30,panel_h-8),(26,panel_h-8),(8,panel_h-26),(8,24)]
@@ -1174,6 +1251,7 @@ def _render(
     scene_paths: list[Path] = []
     trail_paths: list[Path] = []
     selected_modes: list[str] = []
+    punch_beats: set[int] = set()
     scene_x, scene_y = (190, 220) if is_long else (60, 390)
     fx, fy, fw, fh = (505, 138, 865, 560) if is_long else (260, 142, 490, 760)
     for index in range(len(phase_ranges)):
@@ -1183,7 +1261,7 @@ def _render(
             segment = segments[index]
             spec = segment.get("tactical_diagram")
         mode = str(segment.get("visual_mode", "tactical_explainer"))
-        supported_modes = {"tactical_explainer", "statline_scorecard", "source_card", "chart_comparison", "chart_timeline", "media_b_roll"}
+        supported_modes = {"tactical_explainer", "statline_scorecard", "source_card", "chart_comparison", "chart_timeline", "media_b_roll", "hook_card"}
         if mode not in supported_modes:
             mode = "tactical_explainer"
         # A typed timeline event can select a dedicated data layout when the
@@ -1195,6 +1273,9 @@ def _render(
             elif "source_card" in event_types:
                 mode = "source_card"
         selected_modes.append(mode)
+        beat_graphic = segment.get("graphic_data", {}) if isinstance(segment.get("graphic_data"), dict) else {}
+        if mode == "hook_card" or (mode == "statline_scorecard" and isinstance(beat_graphic.get("hero"), dict)):
+            punch_beats.add(index)
         scene_palette = dict(palette)
         graphic_data = segment.get("graphic_data", {}) if isinstance(segment.get("graphic_data"), dict) else {}
         media_record = None
@@ -1308,6 +1389,7 @@ def _render(
     chapter_pool = draft.get("chapter_events", []) if isinstance(draft.get("chapter_events"), list) else []
     fades_used = 0
     overlays_used = 0
+    punch_used = 0
     for index, ((start, end), spec) in enumerate(zip(phase_ranges, diagram_specs)):
         if end <= start:
             continue
@@ -1335,8 +1417,12 @@ def _render(
         else:
             # Ken Burns drift on every static plate so no beat ever sits still.
             # Alternate push-in / pull-out per beat for editorial variety.
+            # Nova hook and hero beats punch in faster instead.
             motion_label = f"scenemotion{index}"
-            if index % 2 == 0:
+            if index in punch_beats:
+                zoom_expr = "min(1.12,zoom+0.0012)"
+                punch_used += 1
+            elif index % 2 == 0:
                 zoom_expr = "min(1.07,zoom+0.0004)"
             else:
                 zoom_expr = "if(eq(on,0),1.07,max(zoom-0.0004,1.0))"
@@ -1519,7 +1605,8 @@ def _render(
         {"criterion": "Personal voice and speech pacing", "status": "PENDING OWNER AUDIT" if not preview and not visual_only else "NOT ASSESSED", "detail": "TTS preview is muxed as one continuous narration track; naturalness and voice similarity await owner review." if not preview and not visual_only else ("Voice evaluation is intentionally excluded from this benchmark." if visual_only else "This is a silent visual preview.")},
         {"criterion": "Asset Library media", "status": "PASS" if selected_media else ("NOT ASSESSED" if preview else "FAIL"), "detail": f"{len(selected_media)} verified, attributed library images are used as contextual B-roll; they are not footage from the current Premier League matches." if selected_media else ("Media placement is exercised in full runs, not in silent template previews." if preview else "No verified library media is attached to this script.")},
         {"criterion": "Lower-third and caption overlays", "status": "PASS" if overlays_used else "NOT USED", "detail": f"{overlays_used} timeline lower-third/caption item(s) rendered in their declared windows." if overlays_used else "This script declares no lower-third or caption timeline items."},
-        {"criterion": "Script-specific transitions and effects", "status": "PARTIAL", "detail": f"Fade in/out executes from timeline enter/exit on {fades_used} beat(s); all other beats cut clean. slide/draw/wipe transitions and freeze_and_trace/number_pop/pitch_grid effects remain unexecuted."},
+        {"criterion": "Script-specific transitions and effects", "status": "PARTIAL", "detail": f"Fade in/out executes from timeline enter/exit on {fades_used} beat(s); hook/hero punch-in executes on {punch_used} beat(s); all other beats cut clean. slide/draw/wipe transitions and freeze_and_trace/pitch_grid effects remain unexecuted."},
+        {"criterion": "Nova hook card and hero metric", "status": "PASS" if punch_used else "NOT USED", "detail": f"Hook punch-in / hero pop executes on {punch_used} beat(s)." if punch_used else "This script uses no hook card or hero-metric beat."},
     ]
     probe = _ffprobe(ffmpeg)
     probe_result = subprocess.run(

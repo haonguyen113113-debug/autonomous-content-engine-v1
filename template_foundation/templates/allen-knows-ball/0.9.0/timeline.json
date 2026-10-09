@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "target_duration_seconds": 45,
+  "max_duration_seconds": 58,
+  "segments": [
+    {
+      "id": "cold_open",
+      "range_percent": [
+        0,
+        7
+      ],
+      "purpose": "Start on Allen?s spoken hook; establish the football moment, not a logo bumper.",
+      "visual": "Hook card plate with the reviewed opening claim (5-8 words), punched in at frame 0; host close/medium shot with a single lime tactical marker.",
+      "audio": "Voice starts at frame 0; no intro silence."
+    },
+    {
+      "id": "setup",
+      "range_percent": [
+        7,
+        20
+      ],
+      "purpose": "Give competition, teams/player, match moment and the question being answered.",
+      "visual": "Fixed match-context strip; optional user-approved media from Asset Library."
+    },
+    {
+      "id": "read",
+      "range_percent": [
+        20,
+        65
+      ],
+      "purpose": "Explain one key tactical action or decision in Allen?s own words.",
+      "visual": "Host plus authored pitch-board overlay; one reusable asset slot if it improves comprehension."
+    },
+    {
+      "id": "evidence",
+      "range_percent": [
+        65,
+        83
+      ],
+      "purpose": "Show the strongest observable evidence or a fair counter-reading.",
+      "visual": "One source-backed stat, frame, or simple diagram; show source/date where applicable."
+    },
+    {
+      "id": "takeaway",
+      "range_percent": [
+        83,
+        95
+      ],
+      "purpose": "Land one clear conclusion and one natural question for the audience.",
+      "visual": "Return to host; retain channel wordmark in a quiet corner."
+    },
+    {
+      "id": "signature_close",
+      "range_percent": [
+        95,
+        100
+      ],
+      "purpose": "Brief fixed channel sign-off; never a separate long CTA bumper.",
+      "visual": "Fixed Allen Knows Ball mark and tagline, under 1.2 seconds."
+    }
+  ],
+  "transitions": [
+    {
+      "id": "clean_cut",
+      "use": "Default between spoken argument beats; preserve conversational pace."
+    },
+    {
+      "id": "chalk_line_wipe",
+      "use": "Reveal a tactical board or move between two pieces of match evidence; max two per video."
+    }
+  ],
+  "effects": [
+    {
+      "id": "freeze_and_trace",
+      "use": "Freeze a supplied, rights-cleared frame and draw one or two tactical runs; label as analysis, not broadcast graphics."
+    },
+    {
+      "id": "number_pop",
+      "use": "Briefly emphasize one sourced statistic; no floating clusters of metrics."
+    },
+    {
+      "id": "pitch_grid",
+      "use": "Subtle pitch geometry as a background texture, never a club crest or competition identity."
+    }
+  ],
+  "opening": "Spoken hook immediately over the hook card plate; the fixed logo mark may animate in parallel for no more than 0.45 seconds.",
+  "ending": "Allen?s takeaway/question leads into the fixed mark. No ?like and subscribe? script is forced."
+}
