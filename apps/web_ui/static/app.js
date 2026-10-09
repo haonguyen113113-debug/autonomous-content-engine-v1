@@ -610,7 +610,7 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not create a script draft.");
     const draft = result.draft;
-    document.getElementById("draft-mode-pill").textContent = `${draft.content_type.toUpperCase()} · ${draft.generation_mode === "local_ollama" ? "LOCAL MODEL" : "OUTLINE ONLY"}`;
+    document.getElementById("draft-mode-pill").textContent = `${draft.content_type.toUpperCase()} · ${draft.generation_mode === "local_ollama" ? "LOCAL MODEL" : draft.generation_mode === "local_ollama_partial" ? "LOCAL MODEL · PARTIAL" : "OUTLINE ONLY"}`;
     currentRunId = result.run_id;
     document.getElementById("evidence-verified").checked = false;
     document.getElementById("approve-script").disabled = false;
