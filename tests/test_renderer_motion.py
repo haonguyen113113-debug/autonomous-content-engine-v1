@@ -1,4 +1,33 @@
-from apps.video_renderer import _beat_fades, _overlay_items
+import wave
+
+import pytest
+
+from apps.video_renderer import _beat_fades, _ensure_voice_fits_script, _overlay_items
+
+
+def _write_silent_wav(path, seconds, rate=22050):
+    frames = int(seconds * rate)
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(rate)
+        wav.writeframes(b"\x00\x00" * frames)
+
+
+def test_voice_fit_gate_blocks_overlong_narration(tmp_path):
+    voice_dir = tmp_path / "runtime/voice"
+    voice_dir.mkdir(parents=True)
+    _write_silent_wav(voice_dir / "long.wav", seconds=60)
+    _write_silent_wav(voice_dir / "fine.wav", seconds=45)
+    base = {"draft": {"duration_target_seconds": 40}}
+    with pytest.raises(ValueError, match="60s.*40s"):
+        _ensure_voice_fits_script(
+            tmp_path, {**base, "voice_preview": {"path": "long.wav"}})
+    _ensure_voice_fits_script(
+        tmp_path, {**base, "voice_preview": {"path": "fine.wav"}})
+    with pytest.raises(ValueError, match="Generate and audit"):
+        _ensure_voice_fits_script(
+            tmp_path, {**base, "voice_preview": {"path": "missing.wav"}})
 
 
 def _event(item_id, item_type, start, end, enter="cut", exit="cut"):

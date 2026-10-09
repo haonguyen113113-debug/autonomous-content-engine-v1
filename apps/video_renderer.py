@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import unicodedata
+import wave
 from datetime import datetime, timezone
 import textwrap
 from typing import Any
@@ -1597,6 +1598,35 @@ def render_visual_only_run(root: Path, run_id: str) -> dict[str, Any]:
     return _render(root, run, preview=False, visual_only=True, output_name="visual-benchmark-silent.mp4")
 
 
+def _voice_duration_seconds(path: Path) -> float:
+    with wave.open(str(path), "rb") as wav:
+        rate = wav.getframerate() or 1
+        return wav.getnframes() / rate
+
+
+def _ensure_voice_fits_script(root: Path, run: dict[str, Any]) -> None:
+    """Fail loudly instead of silently truncating an overlong narration."""
+    from apps.content_workflow import MAX_SPEECH_OVERRUN
+
+    voice_name = str(run.get("voice_preview", {}).get("path", ""))
+    voice_root = (root / "runtime/voice").resolve()
+    audio_path = (voice_root / voice_name).resolve()
+    if audio_path.parent != voice_root or not audio_path.is_file():
+        raise ValueError("Generate and audit the local voice preview before rendering the full run.")
+    try:
+        target = int(run.get("draft", {}).get("duration_target_seconds", 0))
+    except (TypeError, ValueError):
+        target = 0
+    if target <= 0:
+        return
+    actual = _voice_duration_seconds(audio_path)
+    if actual > target * MAX_SPEECH_OVERRUN:
+        raise ValueError(
+            f"Voice preview runs {actual:.0f}s but the video slot is {target}s; "
+            "shorten the narration or regenerate the voice before full rendering."
+        )
+
+
 def render_full_run(root: Path, run_id: str) -> dict[str, Any]:
     if not _safe_run_id(run_id):
         raise ValueError("Production run ID is invalid.")
@@ -1608,6 +1638,7 @@ def render_full_run(root: Path, run_id: str) -> dict[str, Any]:
         raise ValueError("Approve and verify the script before full rendering.")
     if not run.get("voice_preview_audited"):
         raise ValueError("Listen to and approve the generated voice preview before full rendering.")
+    _ensure_voice_fits_script(root, run)
     result = _render(root, run, preview=False, output_name="full-render.mp4")
     run["render"] = {
         "path": "full-render.mp4",

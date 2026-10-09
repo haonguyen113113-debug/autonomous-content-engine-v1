@@ -217,12 +217,14 @@ def _cap_evidence(evidence: list[str], limit: int = EVIDENCE_CHARS_PER_CALL) -> 
     return kept
 
 
-def _clean_segment(item: Any) -> dict[str, Any] | None:
+def _clean_segment(item: Any, max_chars: int | None = None) -> dict[str, Any] | None:
     """Validate one model-supplied beat; None means this attempt failed."""
     if not isinstance(item, dict):
         return None
     narration = item.get("narration")
     if not isinstance(narration, str) or not narration.strip():
+        return None
+    if max_chars is not None and len(_normalise(narration)) > max_chars:
         return None
     try:
         duration = max(1, min(int(item.get("duration_seconds", 8)), 900))
@@ -310,6 +312,10 @@ def _fact_signature(text: str) -> set[str]:
 
 
 MAX_BEAT_OVERLAP = 0.7
+# Vietnamese voiceover pace: ~14 characters per second. Beats written longer
+# than their slot produce voice previews the video must truncate.
+CHARS_PER_SECOND = 14
+MAX_SPEECH_OVERRUN = 1.25
 
 
 def _outline_beat(topic: str, arc: list[Any], index: int, target_seconds: int) -> dict[str, Any]:
@@ -356,6 +362,7 @@ def _ollama_beat(
     """Generate one beat; returns (segment, attempts, usage, last_error)."""
     lo = max(1, duration_hint // 4)
     hi = max(10, duration_hint * 2)
+    speech_budget = max(40, duration_hint * CHARS_PER_SECOND)
     system = (
         "You write ONE beat of a Vietnamese soccer-analysis video script for Allen Knows Ball. "
         "Sound conversational, specific, calm, and human; avoid broadcast clichés and forced CTAs. "
@@ -366,7 +373,8 @@ def _ollama_beat(
         "restate facts it already stated; advance the idea instead. "
         "When facts_already_stated are supplied, treat them as used up: "
         "do not repeat them unless this beat adds a new fact of its own. "
-        "Return only a JSON object with narration (Vietnamese voiceover), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
+        "Return only a JSON object with narration (Vietnamese voiceover, "
+        f"at most {speech_budget} characters so it fits {duration_hint}s aloud), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
         "visual_mode (tactical_explainer, statline_scorecard, source_card, "
         "chart_comparison, or chart_timeline), graphic_data (values and source only "
         "when explicitly present in supplied evidence, else {}), duration_seconds "
@@ -409,7 +417,7 @@ def _ollama_beat(
         if body is None:
             last_error = "transport_or_provider_error"
             continue
-        segment = _clean_segment(body)
+        segment = _clean_segment(body, max_chars=max(40, duration_hint * CHARS_PER_SECOND))
         if segment is None:
             last_error = "invalid_segment_reply"
             continue

@@ -714,11 +714,15 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
     document.getElementById("render-visual-status").textContent = "";
     document.getElementById("render-full-status").textContent = "";
     document.getElementById("draft-status-heading").textContent = `${draft.content_type.toUpperCase()} · ${draft.duration_target_seconds}s · ${draft.status.replaceAll("_", " ")} · run ${result.run_id}`;
-    document.getElementById("script-segments").innerHTML = draft.segments.map((segment, index) => `
-      <article class="script-segment" data-segment-id="${escapeHtml(segment.id)}"><div class="script-segment-top"><span>${String(index + 1).padStart(2, "0")}</span><strong>${escapeHtml(segment.id.replaceAll("-", " "))}</strong><small>${escapeHtml(segment.start_seconds)}–${escapeHtml(segment.end_seconds)} sec · ${escapeHtml(segment.duration_seconds)} sec</small></div>
+    document.getElementById("script-segments").innerHTML = draft.segments.map((segment, index) => {
+      const speech = Math.max(1, Math.round((segment.narration || "").length / 14));
+      const over = speech > segment.duration_seconds * 1.25;
+      return `
+      <article class="script-segment" data-segment-id="${escapeHtml(segment.id)}"><div class="script-segment-top"><span>${String(index + 1).padStart(2, "0")}</span><strong>${escapeHtml(segment.id.replaceAll("-", " "))}</strong><small>${escapeHtml(segment.start_seconds)}–${escapeHtml(segment.end_seconds)} sec · ${escapeHtml(segment.duration_seconds)} sec video · ~${speech} sec speech${over ? " · OVER" : ""}</small></div>
       <label>Voiceover<textarea lang="vi">${escapeHtml(segment.narration)}</textarea></label><small>${escapeHtml(segment.visual)}</small>
       <div class="segment-media"><label>Library image (verified, active)<input name="media_asset_id" placeholder="Copy an asset ID from the library" value="${escapeHtml(segment.media_asset_id || "")}" /></label><label>On-screen caption<input name="media_caption" maxlength="500" placeholder="Vietnamese caption shown with the photo" value="${escapeHtml(segment.media_caption || "")}" /></label><div class="voice-preview-actions"><button class="button button-secondary button-small" type="button" data-attach-media="${escapeHtml(segment.id)}">Attach media</button><span class="segment-media-status" role="status">${segment.media_asset_id ? `Attached: ${escapeHtml(segment.media_asset_id)}` : ""}</span></div><small>Only rights-verified, active library images. The photo is contextual B-roll, never presented as match footage. Leave the asset ID empty to detach.</small></div>
-      ${(segment.timeline_events || []).map((item) => `<div class="timeline-event"><strong>${escapeHtml(item.item_type)} · ${escapeHtml(item.item_id)}</strong><span>${escapeHtml(item.start_seconds)}–${escapeHtml(item.end_seconds)}s · ${escapeHtml(item.enter)} / ${escapeHtml(item.exit)} · ${escapeHtml(item.transition_in)} · ${escapeHtml(item.effect)}</span><small>${escapeHtml(item.text || "")}</small></div>`).join("")}</article>`).join("");
+      ${(segment.timeline_events || []).map((item) => `<div class="timeline-event"><strong>${escapeHtml(item.item_type)} · ${escapeHtml(item.item_id)}</strong><span>${escapeHtml(item.start_seconds)}–${escapeHtml(item.end_seconds)}s · ${escapeHtml(item.enter)} / ${escapeHtml(item.exit)} · ${escapeHtml(item.transition_in)} · ${escapeHtml(item.effect)}</span><small>${escapeHtml(item.text || "")}</small></div>`).join("")}</article>`;
+    }).join("");
     document.querySelectorAll("[data-attach-media]").forEach((button) => button.addEventListener("click", () => attachSegmentMedia(button)));
     document.getElementById("render-visual-benchmark").disabled = false;
     const chapterEvents = draft.chapter_events || [];
