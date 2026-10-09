@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 import json
 import os
+import time
 from pathlib import Path
 import uuid
 from datetime import datetime, timezone
@@ -21,6 +22,23 @@ from apps.asset_library.registry import connect
 TEMPLATE_IDS = {
     "short": "allen-knows-ball.shortform-analyst",
         "long": "allen-knows-ball.longform-analyst",
+}
+
+# Decomposed local generation: one small model call per story beat instead of
+# a single large call. Small tasks fit weak local models far better, and a
+# failed beat regenerates or falls back on its own without discarding the
+# beats that already succeeded.
+BEAT_ATTEMPTS = 2
+BEAT_TIMEOUT_SECONDS = 300
+ASSET_NEEDS_TIMEOUT_SECONDS = 180
+EVIDENCE_CHARS_PER_CALL = 1500
+# Wall-clock budgets so a draft degrades gracefully instead of running
+# unbounded on weak machines. Short must fit a 5-10 minute slot.
+SHORT_BUDGET_SECONDS = 540
+LONG_BUDGET_SECONDS = 1500
+VISUAL_MODES = {
+    "tactical_explainer", "statline_scorecard", "source_card",
+    "chart_comparison", "chart_timeline",
 }
 
 
@@ -156,74 +174,32 @@ def _add_production_timeline(
     return normalized, chapter_events
 
 
-def _ollama_draft(
+def _ollama_call(
     env: dict[str, str],
-    topic: str,
-    form: dict[str, Any],
-    evidence: list[str],
-    content_type: str,
+    system: str,
+    user_payload: dict[str, Any],
+    *,
+    num_predict: int,
+    timeout: int,
 ) -> dict[str, Any] | None:
+    """One bounded local-model call returning the parsed JSON body, or None."""
     model = env.get("LLM_MODEL", "").strip() or "qwen3.5:2b"
     provider = env.get("LLM_PROVIDER", "ollama").strip().lower()
     if provider != "ollama" or not model:
         return None
-
     base_url = env.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-    system = (
-        f"You write {content_type}-form Vietnamese soccer-analysis video scripts for Allen Knows Ball. "
-        "Sound conversational, specific, calm, and human; avoid broadcast clichés and forced CTAs. "
-        "Only state football facts supported by supplied evidence. Never invent match details, "
-        "statistics, quotes, or sources. Return only a JSON object with a segments array; "
-        "each segment has id, narration, visual, evidence_refs, and visual_mode selected from "
-        "tactical_explainer, statline_scorecard, source_card, chart_comparison, chart_timeline. "
-        "Use a data visual only when its values and source are explicitly present in supplied evidence. "
-        "For statline_scorecard include graphic_data.metrics (label, home, away). For charts include "
-        "graphic_data with headline, source, date, values (label, value), and chart_type selected from "
-        "bar, column, pie, donut, line. Use bar for ranked/category comparisons with long labels; use column "
-        "for a few discrete category comparisons; use line only for ordered observations over match time or "
-        "dates, with visual_mode chart_timeline. Use pie or donut ONLY when categories are mutually exclusive "
-        "parts of one known whole, set part_to_whole=true, and show no more than four categories; otherwise "
-        "choose bar or column. Never choose radar unless comparable normalized metrics and an explicit benchmark "
-        "are supplied. Never estimate or invent missing values, units, order, dates, or sources. Include asset_needs as a list "
-        "of only variable real media that materially improves this exact topic; each need has "
-        "resource_type (image or video), purpose (match_analysis_evidence, player_context, or visual_context "
-        "for venue/atmosphere only; never represent contextual media as exact-match evidence), "
-        "quantity (1-3), query, exact_context, and reason. Use an empty list when the locked "
-        "authored pitch-board is enough. If evidence is insufficient, "
-        "write a clear [CẦN NGUỒN] placeholder instead of an assertion. "
-        "For every segment also return timeline_events: a list of on-screen items. "
-        "Each event has item_id, item_type (caption, stat_card, tactical_diagram, media, lower_third), "
-        "text, start_offset_seconds, end_offset_seconds, enter (cut, fade, slide, draw), exit "
-        "(cut, fade, wipe), transition_in (clean_cut, chalk_line_wipe), effect (none, freeze_and_trace, "
-        "number_pop, pitch_grid), and evidence_ref. Offsets are relative to the segment start; "
-        "all intervals must stay within that segment duration. Also return duration_seconds per segment, "
-        "and keep the total close to the target. Use fixed package intro/outro behavior."
-    )
     request_body = {
         "model": model,
         "stream": False,
         "format": "json",
         "messages": [
             {"role": "system", "content": system},
-            {
-                "role": "user",
-                "content": json.dumps(
-                    {
-                        "locale": "vi-VN",
-                        "topic": topic,
-                        "story_form": form,
-                        "evidence": evidence,
-                        "duration_target_seconds": form["target_seconds"],
-                        "content_type": content_type,
-                    },
-                    ensure_ascii=False,
-                ),
-            },
+            {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
         ],
         "options": {
             "temperature": 0.35,
             "num_ctx": 4096,
-            "num_predict": 8192 if content_type == "long" else 4096,
+            "num_predict": num_predict,
             "low_vram": True,
         },
         "keep_alive": 0,
@@ -235,67 +211,290 @@ def _ollama_draft(
         method="POST",
     )
     try:
-        # The first local model call may need several minutes to load weights on
-        # CPU-only machines. Keep this synchronous MVP bounded, but avoid silently
-        # falling back before cold-start inference can complete.
-        with urlopen(request, timeout=1800 if content_type == "long" else 900) as response:
+        # Bounded per call so one slow beat cannot stall the whole draft; the
+        # orchestrator retries or falls back per beat instead.
+        with urlopen(request, timeout=timeout) as response:
             result = json.loads(response.read().decode("utf-8"))
         body = json.loads(result["message"]["content"])
-        segments = body.get("segments")
-        if not isinstance(segments, list) or not segments:
-            return None
-        cleaned = []
-        for item in segments:
-            if not isinstance(item, dict):
-                continue
-            narration = item.get("narration")
-            if not isinstance(narration, str) or not narration.strip():
-                continue
-            cleaned.append(
-                {
-                    "id": str(item.get("id", f"beat-{len(cleaned) + 1}")),
-                    "narration": _normalise(narration),
-                    "visual": _normalise(str(item.get("visual", "Host analysis"))),
-                    "evidence_refs": item.get("evidence_refs", []),
-                    "visual_mode": item.get("visual_mode", "tactical_explainer"),
-                    "graphic_data": item.get("graphic_data", {}) if isinstance(item.get("graphic_data"), dict) else {},
-                    "duration_seconds": max(1, min(int(item.get("duration_seconds", 8)), 900)),
-                    "timeline_events": item.get("timeline_events", []),
-                }
-            )
-        asset_needs = []
-        for item in body.get("asset_needs", [])[:3]:
-            if not isinstance(item, dict):
-                continue
-            resource_type = item.get("resource_type")
-            purpose = item.get("purpose")
-            if resource_type not in {"image", "video"} or purpose not in {
-                "match_analysis_evidence", "player_context", "visual_context"
-            }:
-                continue
-            query = _normalise(str(item.get("query", "")))[:250]
-            if not query:
-                continue
-            try:
-                quantity = max(1, min(int(item.get("quantity", 1)), 3))
-            except (TypeError, ValueError):
-                quantity = 1
-            asset_needs.append(
-                {
-                    "requirement_id": f"variable-media-{len(asset_needs) + 1}",
-                    "resource_type": resource_type,
-                    "purpose": purpose,
-                    "quantity": quantity,
-                    "discovery_query": query,
-                    "context": _normalise(str(item.get("exact_context", ""))) or None,
-                    "reason": _normalise(str(item.get("reason", ""))),
-                }
-            )
-        if not cleaned:
-            return None
-        return {"segments": cleaned, "asset_needs": asset_needs}
+        return body if isinstance(body, dict) else None
     except (URLError, TimeoutError, OSError, ValueError, KeyError, TypeError):
         return None
+
+
+def _cap_evidence(evidence: list[str], limit: int = EVIDENCE_CHARS_PER_CALL) -> list[str]:
+    """Fit evidence into a weak model's context; callers keep the full list."""
+    kept: list[str] = []
+    used = 0
+    for line in evidence:
+        if used + len(line) + 1 > limit:
+            break
+        kept.append(line)
+        used += len(line) + 1
+    return kept
+
+
+def _clean_segment(item: Any) -> dict[str, Any] | None:
+    """Validate one model-supplied beat; None means this attempt failed."""
+    if not isinstance(item, dict):
+        return None
+    narration = item.get("narration")
+    if not isinstance(narration, str) or not narration.strip():
+        return None
+    try:
+        duration = max(1, min(int(item.get("duration_seconds", 8)), 900))
+    except (TypeError, ValueError):
+        return None
+    mode = item.get("visual_mode", "tactical_explainer")
+    if mode not in VISUAL_MODES:
+        mode = "tactical_explainer"
+    graphic_data = item.get("graphic_data", {})
+    if not isinstance(graphic_data, dict):
+        graphic_data = {}
+    evidence_refs = item.get("evidence_refs", [])
+    if not isinstance(evidence_refs, list):
+        evidence_refs = []
+    timeline_events = item.get("timeline_events", [])
+    if not isinstance(timeline_events, list):
+        timeline_events = []
+    return {
+        "id": str(item.get("id", "beat-1")),
+        "narration": _normalise(narration),
+        "visual": _normalise(str(item.get("visual", "Host analysis"))),
+        "evidence_refs": [_normalise(str(ref))[:500] for ref in evidence_refs[:8] if ref],
+        "visual_mode": mode,
+        "graphic_data": graphic_data,
+        "duration_seconds": duration,
+        "timeline_events": timeline_events,
+    }
+
+
+def _clean_asset_needs(items: Any) -> list[dict[str, Any]]:
+    """Validate model-supplied variable-media needs; invalid entries are dropped."""
+    asset_needs: list[dict[str, Any]] = []
+    if not isinstance(items, list):
+        return asset_needs
+    for item in items[:3]:
+        if not isinstance(item, dict):
+            continue
+        resource_type = item.get("resource_type")
+        purpose = item.get("purpose")
+        if resource_type not in {"image", "video"} or purpose not in {
+            "match_analysis_evidence", "player_context", "visual_context"
+        }:
+            continue
+        query = _normalise(str(item.get("query", "")))[:250]
+        if not query:
+            continue
+        try:
+            quantity = max(1, min(int(item.get("quantity", 1)), 3))
+        except (TypeError, ValueError):
+            quantity = 1
+        asset_needs.append(
+            {
+                "requirement_id": f"variable-media-{len(asset_needs) + 1}",
+                "resource_type": resource_type,
+                "purpose": purpose,
+                "quantity": quantity,
+                "discovery_query": query,
+                "context": _normalise(str(item.get("exact_context", ""))) or None,
+                "reason": _normalise(str(item.get("reason", ""))),
+            }
+        )
+    return asset_needs
+
+
+def _outline_beat(topic: str, arc: list[Any], index: int, target_seconds: int) -> dict[str, Any]:
+    """Deterministic per-beat fallback; never invents facts the owner must verify."""
+    return {
+        "id": f"beat-{index + 1}",
+        "narration": (
+            f"{topic}{'' if topic.endswith(('?', '!', '…', '.')) else '?'} Đây là câu hỏi cần trả lời trước."
+            if index == 0
+            else "[CẦN NGUỒN] Thêm một quan sát cụ thể hoặc nguồn có ngày tháng."
+            if index < len(arc) - 1
+            else "[KẾT LUẬN CỦA ALLEN] Một góc nhìn ngắn gọn, có giới hạn rõ ràng."
+        ),
+        "visual": (
+            "Allen mở đầu trực diện"
+            if index == 0
+            else "Bảng chiến thuật thuộc Template Foundation"
+            if index < len(arc) - 1
+            else "Allen chốt ý và wordmark cố định"
+        ),
+        "evidence_refs": [],
+        "visual_mode": "tactical_explainer",
+        "graphic_data": {},
+        "duration_seconds": max(1, int(target_seconds) // max(1, len(arc))),
+        "timeline_events": [],
+    }
+
+
+def _ollama_beat(
+    env: dict[str, str],
+    *,
+    topic: str,
+    beat_id: str,
+    purpose: str,
+    position: str,
+    previous_summary: str,
+    evidence: list[str],
+    duration_hint: int,
+    num_predict: int,
+) -> tuple[dict[str, Any] | None, int]:
+    """Generate one beat; returns (segment, attempts). None means beat failed."""
+    lo = max(1, duration_hint // 4)
+    hi = max(10, duration_hint * 2)
+    system = (
+        "You write ONE beat of a Vietnamese soccer-analysis video script for Allen Knows Ball. "
+        "Sound conversational, specific, calm, and human; avoid broadcast clichés and forced CTAs. "
+        "Only state football facts supported by supplied evidence. Never invent match details, "
+        "statistics, quotes, or sources. If evidence is insufficient, "
+        "write a clear [CẦN NGUỒN] placeholder instead of an assertion. "
+        "Return only a JSON object with narration (Vietnamese voiceover), visual "
+        "(short shot description), evidence_refs (array of supplied evidence used), "
+        "visual_mode (tactical_explainer, statline_scorecard, source_card, "
+        "chart_comparison, or chart_timeline), graphic_data (values and source only "
+        "when explicitly present in supplied evidence, else {}), duration_seconds "
+        f"(integer {lo}-{hi}), and timeline_events (on-screen items with item_id, "
+        "item_type among caption, stat_card, tactical_diagram, media, lower_third, "
+        "text, start_offset_seconds, end_offset_seconds, enter, exit, transition_in, "
+        "effect, evidence_ref; offsets relative to this beat). "
+        "Use a data visual only when its values and source are explicitly present "
+        "in supplied evidence. For statline_scorecard include graphic_data.metrics "
+        "(label, home, away). For charts include graphic_data with headline, source, "
+        "date, values (label, value), and chart_type among bar, column, pie, donut, "
+        "line. Use bar for ranked comparisons; column for a few discrete categories; "
+        "line only for ordered observations over match time or dates with visual_mode "
+        "chart_timeline. Use pie or donut ONLY for mutually exclusive parts of one "
+        "known whole with no more than four categories; otherwise choose bar or column. "
+        "Never estimate or invent missing values, units, order, dates, or sources."
+    )
+    user_payload = {
+        "locale": "vi-VN",
+        "topic": topic,
+        "beat_id": beat_id,
+        "beat_purpose": purpose,
+        "position": position,
+        "previous_beat_summary": previous_summary,
+        "evidence": _cap_evidence(evidence),
+    }
+    attempts = 0
+    while attempts < BEAT_ATTEMPTS:
+        attempts += 1
+        body = _ollama_call(
+            env, system, user_payload,
+            num_predict=num_predict, timeout=BEAT_TIMEOUT_SECONDS,
+        )
+        if body is None:
+            continue
+        segment = _clean_segment(body)
+        if segment is not None:
+            segment["id"] = beat_id
+            return segment, attempts
+    return None, attempts
+
+
+def _ollama_asset_needs(
+    env: dict[str, str],
+    topic: str,
+    beat_visuals: list[str],
+    content_type: str,
+) -> list[dict[str, Any]]:
+    system = (
+        "You suggest variable real media for a Vietnamese soccer-analysis video. "
+        "Return only a JSON object with asset_needs: a list of only variable real "
+        "media that materially improves this exact topic; each need has "
+        "resource_type (image or video), purpose (match_analysis_evidence, "
+        "player_context, or visual_context for venue/atmosphere only; never "
+        "represent contextual media as exact-match evidence), quantity (1-3), "
+        "query, exact_context, and reason. Use an empty list when the locked "
+        "authored pitch-board is enough."
+    )
+    body = _ollama_call(
+        env, system,
+        {"locale": "vi-VN", "topic": topic, "beats": beat_visuals,
+         "content_type": content_type},
+        num_predict=512, timeout=ASSET_NEEDS_TIMEOUT_SECONDS,
+    )
+    if body is None:
+        return []
+    return _clean_asset_needs(body.get("asset_needs", []))
+
+
+def _draft_budget_seconds(env: dict[str, str], content_type: str) -> int:
+    """Wall-clock budget; override per machine via DRAFT_BUDGET_*_SECONDS."""
+    key = "DRAFT_BUDGET_LONG_SECONDS" if content_type == "long" else "DRAFT_BUDGET_SHORT_SECONDS"
+    default = LONG_BUDGET_SECONDS if content_type == "long" else SHORT_BUDGET_SECONDS
+    try:
+        return max(1, int(env.get(key, default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _ollama_draft(
+    env: dict[str, str],
+    topic: str,
+    form: dict[str, Any],
+    evidence: list[str],
+    content_type: str,
+    *,
+    on_beat: Any = None,
+    budget_seconds: int | None = None,
+) -> dict[str, Any] | None:
+    """Draft beat by beat; None only when the model produced nothing usable."""
+    arc = form.get("arc", [])
+    if not arc:
+        return None
+    target = int(form.get("target_seconds", 45))
+    duration_hint = max(1, target // max(1, len(arc)))
+    num_predict = 1024 if content_type == "short" else 1536
+    total = len(arc)
+    budget = budget_seconds if budget_seconds is not None else _draft_budget_seconds(env, content_type)
+    started = time.monotonic()
+
+    segments: list[dict[str, Any]] = []
+    fallback_beats: list[str] = []
+    previous_summary = ""
+    model_beats = 0
+    for index, purpose in enumerate(arc):
+        beat_id = f"beat-{index + 1}"
+        position = f"beat {index + 1} of {total}"
+        elapsed = time.monotonic() - started
+        if elapsed >= budget:
+            # Budget spent: remaining beats use the deterministic outline so
+            # the draft still completes instead of stalling the pipeline.
+            segment = _outline_beat(topic, arc, index, target)
+            segment["generation"] = {"mode": "outline_fallback", "attempts": 0}
+            fallback_beats.append(beat_id)
+        else:
+            segment, attempts = _ollama_beat(
+                env, topic=topic, beat_id=beat_id,
+                purpose=str(purpose), position=position,
+                previous_summary=previous_summary, evidence=evidence,
+                duration_hint=duration_hint, num_predict=num_predict,
+            )
+            if segment is None:
+                segment = _outline_beat(topic, arc, index, target)
+                segment["generation"] = {"mode": "outline_fallback", "attempts": attempts}
+                fallback_beats.append(beat_id)
+            else:
+                model_beats += 1
+                segment["generation"] = {"mode": "local_ollama", "attempts": attempts}
+                previous_summary = segment["narration"][:300]
+        segments.append(segment)
+        if on_beat is not None:
+            on_beat(index, total, segment["generation"]["mode"],
+                     segment["generation"]["attempts"], time.monotonic() - started)
+
+    if model_beats == 0:
+        return None
+    beat_visuals = [str(item.get("visual", ""))[:200] for item in segments]
+    asset_needs = _ollama_asset_needs(env, topic, beat_visuals, content_type)
+    return {
+        "segments": segments,
+        "asset_needs": asset_needs,
+        "fallback_beats": fallback_beats,
+    }
 
 
 def create_script_draft(
@@ -305,6 +504,9 @@ def create_script_draft(
     evidence_text: str = "",
     content_type: str = "short",
     colorway: str = "match-night",
+    *,
+    on_beat: Any = None,
+    budget_seconds: int | None = None,
 ) -> dict[str, Any]:
     topic = _normalise(topic)
     if len(topic) < 4 or len(topic) > 500:
@@ -328,35 +530,24 @@ def create_script_draft(
         for line in evidence_text.splitlines()
         if _normalise(line)
     ][:12]
-    generated = _ollama_draft(_local_env(root), topic, form, evidence, content_type)
+    generated = _ollama_draft(
+        _local_env(root), topic, form, evidence, content_type,
+        on_beat=on_beat, budget_seconds=budget_seconds,
+    )
     asset_needs: list[dict[str, Any]] = []
     chapter_events: list[dict[str, Any]] = []
+    fallback_beats: list[str] = []
     if generated:
         segments = generated["segments"]
         asset_needs = generated["asset_needs"]
-        mode = "local_ollama"
+        fallback_beats = generated["fallback_beats"]
+        mode = "local_ollama" if not fallback_beats else "local_ollama_partial"
     else:
         arc = form.get("arc", [])
         segments = [
             {
-                "id": f"beat-{index + 1}",
-                "narration": (
-                    f"{topic}{'' if topic.endswith(('?', '!', '…', '.')) else '?'} Đây là câu hỏi cần trả lời trước."
-                    if index == 0
-                    else "[CẦN NGUỒN] Thêm một quan sát cụ thể hoặc nguồn có ngày tháng."
-                    if index < len(arc) - 1
-                    else "[KẾT LUẬN CỦA ALLEN] Một góc nhìn ngắn gọn, có giới hạn rõ ràng."
-                ),
-                "visual": (
-                    "Allen mở đầu trực diện"
-                    if index == 0
-                    else "Bảng chiến thuật thuộc Template Foundation"
-                    if index < len(arc) - 1
-                    else "Allen chốt ý và wordmark cố định"
-                ),
-                    "evidence_refs": [],
-                    "duration_seconds": max(1, int(form.get("target_seconds", 45)) // max(1, len(arc))),
-                    "timeline_events": [],
+                **_outline_beat(topic, arc, index, int(form.get("target_seconds", 45))),
+                "generation": {"mode": "outline_fallback", "attempts": 0},
             }
             for index, _ in enumerate(arc)
         ]
@@ -400,6 +591,7 @@ def create_script_draft(
     result["timeline"] = package.timeline
     result["chapter_events"] = chapter_events
     result["timeline_events"] = [event for segment in segments for event in segment["timeline_events"]] + chapter_events
+    result["fallback_beats"] = fallback_beats
     return result
 
 
@@ -415,7 +607,55 @@ def run_content_agent(
     """Run the bounded local agent and stop before owner-controlled actions."""
     from apps.voice_tts import voice_profile_status
 
-    draft = create_script_draft(root, topic, story_form_id, evidence_text, content_type, colorway)
+    run_id = uuid.uuid4().hex[:12]
+    runs_dir = root / "runtime/runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    run_path = runs_dir / f"{run_id}.json"
+
+    def _save_progress(run: dict[str, Any]) -> None:
+        run_path.write_text(
+            json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+
+    # Publish the run immediately so Runs & queue shows live progress while
+    # the local model drafts (minutes on CPU) instead of appearing only at
+    # the end. Owner review still gates everything downstream.
+    run: dict[str, Any] = {
+        "run_id": run_id,
+        "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "status": "DRAFTING_SCRIPT",
+        "steps": [
+            {"id": "script", "status": "RUNNING"},
+            {"id": "asset_needs", "status": "PENDING", "count": 0},
+            {"id": "library", "status": "PENDING", "count": 0},
+            {"id": "owner_checkpoint", "status": "WAITING"},
+        ],
+        "draft": None,
+        "asset_checks": [],
+        "human_approval_required": True,
+        "no_assets_saved_or_selected": True,
+    }
+    _save_progress(run)
+
+    try:
+        def _report_beat(index: int, total: int, mode: str, attempts: int, elapsed: float) -> None:
+            run["current_beat"] = index + 1
+            run["total_beats"] = total
+            run["last_beat_mode"] = mode
+            _save_progress(run)
+
+        draft = create_script_draft(
+            root, topic, story_form_id, evidence_text, content_type, colorway,
+            on_beat=_report_beat,
+        )
+    except Exception as error:
+        run["status"] = "DRAFT_FAILED"
+        run["error"] = str(error)
+        _save_progress(run)
+        raise
+    run["status"] = "CHECKING_ASSETS"
+    run["steps"][0] = {"id": "script", "status": draft["status"], "local_model": draft["generation_mode"]}
+    _save_progress(run)
     checks: list[dict[str, Any]] = []
     conn = connect(db_path)
     try:
@@ -461,26 +701,22 @@ def run_content_agent(
     finally:
         conn.close()
 
-    run_id = uuid.uuid4().hex[:12]
-    run = {
-        "run_id": run_id,
-        "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-        "status": "WAITING_FOR_OWNER_REVIEW",
-        "steps": [
-            {"id": "script", "status": draft["status"], "local_model": draft["generation_mode"]},
-            {"id": "asset_needs", "status": "ASSESSED", "count": len(draft["asset_needs"])},
-            {"id": "library", "status": "ASSESSED_AND_DISCOVERY_OFFERED", "count": len(checks)},
-            {"id": "owner_checkpoint", "status": "WAITING"},
-        ],
-        "draft": draft,
-        "asset_checks": checks,
-        "human_approval_required": True,
-        "no_assets_saved_or_selected": True,
-        "voice_status": voice_profile_status(root),
-    }
-    runs_dir = root / "runtime/runs"
-    runs_dir.mkdir(parents=True, exist_ok=True)
-    (runs_dir / f"{run_id}.json").write_text(
-        json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    run_id = run["run_id"]
+    run.update(
+        {
+            "status": "WAITING_FOR_OWNER_REVIEW",
+            "steps": [
+                {"id": "script", "status": draft["status"], "local_model": draft["generation_mode"]},
+                {"id": "asset_needs", "status": "ASSESSED", "count": len(draft["asset_needs"])},
+                {"id": "library", "status": "ASSESSED_AND_DISCOVERY_OFFERED", "count": len(checks)},
+                {"id": "owner_checkpoint", "status": "WAITING"},
+            ],
+            "draft": draft,
+            "asset_checks": checks,
+            "human_approval_required": True,
+            "no_assets_saved_or_selected": True,
+            "voice_status": voice_profile_status(root),
+        }
     )
+    _save_progress(run)
     return run

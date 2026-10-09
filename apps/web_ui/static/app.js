@@ -463,7 +463,9 @@ async function loadStats() {
 
 function runStatusPill(status) {
   const s = String(status || "unknown");
-  const cls = /APPROVED|RENDERED|COMPLETE|VERIFIED/.test(s) ? "status-ok" : "status-muted";
+  let cls = "status-muted";
+  if (/APPROVED|RENDERED|COMPLETE|VERIFIED/.test(s)) cls = "status-ok";
+  else if (/DRAFTING|CHECKING|RENDERING/.test(s)) cls = "status-live";
   return `<span class="status-pill ${cls}" title="${escapeHtml(s)}">${escapeHtml(s.replaceAll("_", " ").slice(0, 28))}</span>`;
 }
 
@@ -595,6 +597,20 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
   const button = draftForm.querySelector("button[type=submit]");
   button.disabled = true;
   button.textContent = "Drafting locally and checking the library…";
+  const progress = document.getElementById("draft-progress");
+  if (progress) progress.textContent = "Engine đang draft — xem tiến trình live ở tab Runs & queue.";
+  const draftPoll = setInterval(async () => {
+    try {
+      const poll = await fetch("/api/runs", { cache: "no-store" });
+      const data = await poll.json();
+      const active = (data.runs || []).find((run) => /DRAFTING|CHECKING/.test(String(run.status || "")));
+      if (active && progress) {
+        const beat = active.current_beat && active.total_beats ? ` · beat ${active.current_beat}/${active.total_beats}` : "";
+        progress.textContent = `Đang chạy: ${active.status.replaceAll("_", " ")}${beat} · run ${String(active.run_id).slice(0, 8)}…`;
+      }
+      loadRuns();
+    } catch { /* the main draft request is still the source of truth */ }
+  }, 5000);
   try {
     const response = await fetch("/api/content/agent-runs", {
       method: "POST",
@@ -610,7 +626,7 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not create a script draft.");
     const draft = result.draft;
-    document.getElementById("draft-mode-pill").textContent = `${draft.content_type.toUpperCase()} · ${draft.generation_mode === "local_ollama" ? "LOCAL MODEL" : "OUTLINE ONLY"}`;
+    document.getElementById("draft-mode-pill").textContent = `${draft.content_type.toUpperCase()} · ${draft.generation_mode === "local_ollama" ? "LOCAL MODEL" : draft.generation_mode === "local_ollama_partial" ? "LOCAL MODEL · PARTIAL" : "OUTLINE ONLY"}`;
     currentRunId = result.run_id;
     document.getElementById("evidence-verified").checked = false;
     document.getElementById("approve-script").disabled = false;
@@ -675,6 +691,8 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
   } catch (error) {
     showToast(error.message || "Could not create a script draft.");
   } finally {
+    clearInterval(draftPoll);
+    if (progress) progress.textContent = "";
     button.disabled = false;
     button.innerHTML = 'Draft script &amp; check assets <svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>';
   }
