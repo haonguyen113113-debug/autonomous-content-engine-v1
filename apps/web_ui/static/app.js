@@ -139,10 +139,10 @@ function showEvaluation(result, requirement) {
     DO_NOT_RECOMMEND: "Inventory contains assets, but none match the required context. The library will not recommend one.",
   };
   const reasons = (result.reasons || []).map((reason) => `<span class="reason-chip">${escapeHtml(reason.replaceAll("_", " "))}</span>`).join("");
-  const discovery = result.recommendation === "ACQUIRE" && requirement.resource_type === "image"
-    ? `<div class="discovery-section"><div class="eyebrow">EXTERNAL DISCOVERY</div><h4>Search openly licensed image collections</h4><p>Openverse searches across multiple indexed providers. Large images with commercial-use licenses are prioritized, then the dominant provider is excluded for a more varied second pass. Wikimedia Commons is a fallback. Results are suggestions only; nothing downloads until you choose.</p><form id="discovery-form" class="discovery-form"><input name="query" required maxlength="250" value="${escapeHtml(requirement.discovery_query || requirement.context || requirement.entity_id || requirement.purpose || requirement.content_objective || requirement.requirement_id)}" aria-label="Web search query" /><button class="button button-secondary" type="submit">Search images</button></form><div class="candidate-grid" id="candidate-grid"></div></div>`
+  const discovery = result.recommendation === "ACQUIRE" && ["image", "video"].includes(requirement.resource_type)
+    ? `<div class="discovery-section"><div class="eyebrow">EXTERNAL DISCOVERY</div><h4>Search openly licensed collections</h4><p>Openverse and Pexels images, Wikimedia Commons images and video. Large commercial-use files are prioritized and sources are interleaved for variety. Results are suggestions only; nothing downloads until you choose.</p><div class="discovery-tabs" role="group" aria-label="Media type">${["image", "video"].map((t) => `<button type="button" class="range-tab${requirement.resource_type === t ? " active" : ""}" data-dtype="${t}">${t === "image" ? "Images" : "Videos"}</button>`).join("")}</div><form id="discovery-form" class="discovery-form"><input name="query" required maxlength="250" value="${escapeHtml(requirement.discovery_query || requirement.context || requirement.entity_id || requirement.purpose || requirement.content_objective || requirement.requirement_id)}" aria-label="Web search query" /><button class="button button-secondary" type="submit">Search</button></form><div class="candidate-grid" id="candidate-grid"></div></div>`
     : result.recommendation === "ACQUIRE"
-      ? '<p class="result-detail">External discovery currently supports images only.</p>'
+      ? '<p class="result-detail">External discovery currently supports images and video.</p>'
       : "";
   panel.innerHTML = `<div class="result-header"><h3 class="result-title">${escapeHtml(result.status.replaceAll("_", " "))}</h3><span class="result-badge ${classes[result.recommendation] || "result-block"}">${escapeHtml(result.recommendation)}</span></div>
     <p class="result-detail">${escapeHtml(explanation[result.recommendation] || "Review the library evaluation before proceeding.")}</p>
@@ -150,13 +150,22 @@ function showEvaluation(result, requirement) {
   panel.hidden = false;
   const searchForm = panel.querySelector("#discovery-form");
   if (searchForm) searchForm.addEventListener("submit", (event) => searchCandidates(event, requirement));
+  const dtypeButtons = panel.querySelectorAll("[data-dtype]");
+  dtypeButtons.forEach((tab) => tab.addEventListener("click", () => {
+    dtypeButtons.forEach((item) => item.classList.toggle("active", item === tab));
+    if (searchForm) searchForm.dataset.dtype = tab.dataset.dtype;
+  }));
+  if (searchForm && !searchForm.dataset.dtype) {
+    searchForm.dataset.dtype = requirement.resource_type === "video" ? "video" : "image";
+  }
   panel.querySelectorAll("[data-approve]").forEach((button) => button.addEventListener("click", () => approveCandidate(button, requirement)));
   panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function candidateCard(candidate) {
-  const dimensions = candidate.width && candidate.height ? `${candidate.width} ? ${candidate.height}` : "Dimensions unavailable";
+  const dimensions = candidate.width && candidate.height ? `${candidate.width} × ${candidate.height}` : "Dimensions unavailable";
   const size = candidate.size_bytes ? `${(candidate.size_bytes / 1024 / 1024).toFixed(1)} MB` : "Size unavailable";
+  const duration = candidate.duration_seconds ? `${candidate.duration_seconds}s` : "";
   const license = candidate.license_name || "No license metadata found";
   const creator = candidate.creator || "Creator not listed";
   const sourceUrl = safeExternalUrl(candidate.source_url);
@@ -164,8 +173,8 @@ function candidateCard(candidate) {
   const thumbnailUrl = safeExternalUrl(candidate.thumbnail_url);
   return `<article class="candidate-card" data-candidate-card="${escapeHtml(candidate.candidate_id)}">
     ${thumbnailUrl ? `<img class="candidate-image" src="${escapeHtml(thumbnailUrl)}" alt="Preview of ${escapeHtml(candidate.title)}" loading="lazy" />` : '<div class="candidate-image candidate-image-empty">Preview unavailable</div>'}
-    <div class="candidate-content"><div class="candidate-provider">${escapeHtml(candidate.provider)}</div>${sourceUrl ? `<a class="candidate-title" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(candidate.title)}</a>` : `<strong class="candidate-title">${escapeHtml(candidate.title)}</strong>`}
-      <div class="candidate-meta">${escapeHtml(dimensions)} ? ${escapeHtml(size)}</div>
+    <div class="candidate-content"><div class="candidate-provider">${escapeHtml(candidate.provider)}${candidate.media_type === "VIDEO" ? ' <span class="candidate-kind">VIDEO</span>' : ""}</div>${sourceUrl ? `<a class="candidate-title" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(candidate.title)}</a>` : `<strong class="candidate-title">${escapeHtml(candidate.title)}</strong>`}
+      <div class="candidate-meta">${escapeHtml(dimensions)} · ${escapeHtml(size)}${duration ? ` · ${escapeHtml(duration)}` : ""}</div>
       <div class="candidate-license"><strong>License</strong><span>${licenseUrl ? `<a href="${escapeHtml(licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(license)}</a>` : escapeHtml(license)}</span></div>
       <div class="candidate-meta"><strong>Creator:</strong> ${escapeHtml(creator)}</div>
       ${candidate.credit ? `<div class="candidate-meta"><strong>Attribution:</strong> ${escapeHtml(candidate.credit)}</div>` : ""}
@@ -180,28 +189,34 @@ async function searchCandidates(event, requirement) {
   event.preventDefault();
   const form = event.currentTarget;
   const query = new FormData(form).get("query").trim();
+  const dtype = form.dataset.dtype === "video" ? "video" : "image";
   const button = form.querySelector("button[type=submit]");
   const grid = document.getElementById("candidate-grid");
   button.disabled = true;
   button.textContent = "Searching…";
-  grid.innerHTML = '<div class="candidate-message">Searching Wikimedia Commons…</div>';
+  grid.innerHTML = `<div class="candidate-message">Searching ${dtype === "video" ? "videos" : "images"}…</div>`;
   try {
     const response = await fetch("/api/discovery-search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit: 24 }),
+      body: JSON.stringify({ query, limit: 24, resource_type: dtype }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Web discovery failed.");
-    grid.innerHTML = result.candidates.length
+    const sources = (result.provider_status || []).map((s) => {
+      const state = s.state === "ready" ? "ready" : s.state === "needs_key" ? "needs key" : s.state;
+      return `${s.label} (${s.media}): ${state}`;
+    }).join(" · ");
+    const header = sources ? `<div class="provider-line">Sources — ${escapeHtml(sources)}</div>` : "";
+    grid.innerHTML = header + (result.candidates.length
       ? result.candidates.map(candidateCard).join("")
-      : '<div class="candidate-message">No supported images found. Try a broader search phrase.</div>';
+      : `<div class="candidate-message">No supported ${dtype === "video" ? "videos" : "images"} found. Try a broader search phrase.</div>`);
     grid.querySelectorAll("[data-approve]").forEach((approveButton) => approveButton.addEventListener("click", () => approveCandidate(approveButton, requirement)));
   } catch (error) {
     grid.innerHTML = `<div class="candidate-message candidate-error">${escapeHtml(error.message || "Web discovery failed.")}</div>`;
   } finally {
     button.disabled = false;
-    button.textContent = "Search images";
+    button.textContent = "Search";
   }
 }
 
@@ -673,9 +688,9 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
       const inventoryCount = (evaluation.eligible_assets || []).length;
       block.innerHTML = `<strong>${escapeHtml(check.need.discovery_query)}</strong><span>${inventoryCount
         ? `Library has ${inventoryCount}/${check.required_count} eligible saved asset(s); choose which to use.`
-        : check.need.resource_type === "image"
+        : ["image", "video"].includes(check.need.resource_type)
           ? `No eligible library match. ${check.web_candidates.length} web suggestion(s) found; choose which to save/use.`
-          : "No eligible library match. Current web discovery supports still images for this slot."}${check.discovery_error ? ` Search issue: ${escapeHtml(check.discovery_error)}` : ""}</span>`;
+          : "No eligible library match. Web discovery supports images and video for this slot."}${check.discovery_error ? ` Search issue: ${escapeHtml(check.discovery_error)}` : ""}</span>`;
       if (check.web_candidates.length) {
         const grid = document.createElement("div");
         grid.className = "candidate-grid";

@@ -20,7 +20,7 @@ from apps.asset_library.asset_intelligence import ResourceRequirement
 from apps.asset_library.discovery import (
     DiscoveryError,
     save_commons_candidate,
-    search_image_candidates,
+    search_candidates,
 )
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
@@ -201,6 +201,19 @@ def _attach_segment_media(root: Path, db_path: Path, payload: dict[str, Any]) ->
         segment.pop("media_caption", None)
     run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {"status": "MEDIA_ATTACHED", "run_id": run_id, "segment_id": segment_id, "asset_id": asset_id}
+
+
+def _read_api_keys(root: Path) -> dict[str, str]:
+    """Optional provider keys from the environment and the local .env file."""
+    keys = dict(os.environ)
+    env_file = root / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                keys.setdefault(key.strip(), value.strip().strip("\"'"))
+    return {name: keys[name] for name in ("PEXELS_API_KEY",) if keys.get(name)}
 
 
 def _overview(db_path: Path) -> dict[str, Any]:
@@ -698,13 +711,20 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     raise ValueError("Request must be a JSON object.")
 
                 if path == "/api/discovery-search":
-                    candidates = search_image_candidates(
+                    resource_type = str(payload.get("resource_type", "image")).strip().lower()
+                    if resource_type not in {"image", "video"}:
+                        raise ValueError("Discovery supports image and video requests.")
+                    candidates, statuses = search_candidates(
                         str(payload.get("query", "")),
+                        resource_type=resource_type,
                         limit=int(payload.get("limit", 24)),
+                        api_keys=_read_api_keys(db_path.parent.parent),
                     )
+                    ready = sorted({item["label"] for item in statuses if item["state"] == "ready"})
                     self._send_json(
                         {
-                            "provider": "Openverse + Wikimedia Commons",
+                            "provider": " + ".join(ready) if ready else "No providers available",
+                            "provider_status": statuses,
                             "candidates": [asdict(item) for item in candidates],
                         }
                     )
@@ -759,6 +779,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         str(payload.get("candidate_id", "")),
                         ResourceRequirement(**requirement_data),
                         rights_reviewed=rights_reviewed,
+                        api_keys=_read_api_keys(db_path.parent.parent),
                     )
                     self._send_json(result, HTTPStatus.CREATED)
                     return

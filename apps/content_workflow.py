@@ -14,7 +14,7 @@ from typing import Any
 
 from template_foundation import resolve_template
 from apps.asset_library.asset_intelligence import ResourceRequirement
-from apps.asset_library.discovery import DiscoveryError, search_image_candidates
+from apps.asset_library.discovery import DiscoveryError, search_candidates
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.asset_library.registry import connect
 
@@ -675,14 +675,14 @@ def run_content_agent(
             eligible_count = len(evaluation.eligible_assets)
             candidates = []
             discovery_error = None
-            if eligible_count < quantity and requirement.resource_type == "image":
+            if eligible_count < quantity and requirement.resource_type in {"image", "video"}:
                 try:
-                    candidates = [
-                        asdict(item)
-                        for item in search_image_candidates(
-                            requirement.discovery_query or draft["topic"], limit=12
-                        )
-                    ]
+                    found, _ = search_candidates(
+                        requirement.discovery_query or draft["topic"],
+                        resource_type=requirement.resource_type,
+                        limit=12,
+                    )
+                    candidates = [asdict(item) for item in found]
                 except DiscoveryError as error:
                     discovery_error = str(error)
             checks.append(

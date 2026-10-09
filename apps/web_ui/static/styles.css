@@ -735,6 +735,14 @@ table a:hover { color: #c4b5fd; }
 }
 .discovery-form input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(124, 92, 255, .25); }
 .discovery-form .button { white-space: nowrap; padding: 0 14px; font-size: 12px; }
+.discovery-tabs { display: flex; gap: 6px; margin-bottom: 11px; }
+.provider-line { font-size: 10.5px; color: var(--muted); padding: 9px 12px; border: 1px dashed #3a4157; border-radius: 9px; background: rgba(255, 255, 255, .025); }
+.candidate-kind {
+  display: inline-block; margin-left: 7px; padding: 2px 8px; border-radius: 999px;
+  font-size: 9px; font-weight: 800; letter-spacing: .06em; color: #fff;
+  background: var(--grad-warm); box-shadow: 0 0 10px rgba(255, 94, 122, .4);
+  vertical-align: 1px;
+}
 .candidate-grid { display: grid; gap: 11px; }
 .candidate-message { color: var(--muted); font-size: 12px; padding: 16px; border-radius: 12px; background: rgba(255, 255, 255, .03); text-align: center; border: 1px dashed #3a4157; }
 .candidate-error { color: #ff8fa0; background: rgba(255, 94, 122, .08); border: 1px solid rgba(255, 94, 122, .4); }
