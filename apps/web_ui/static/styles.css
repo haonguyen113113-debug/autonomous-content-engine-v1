@@ -32,6 +32,7 @@
   --shadow: 0 14px 36px rgba(0, 0, 0, .42);
   --shadow-lift: 0 22px 55px rgba(0, 0, 0, .55);
   --font: system-ui, -apple-system, 'Segoe UI', 'Be Vietnam Pro', Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'JetBrains Mono', Consolas, 'Courier New', monospace;
 }
 
 @font-face {
@@ -164,6 +165,47 @@ button:disabled { opacity: .45; cursor: not-allowed; transform: none !important;
   box-shadow: 0 0 14px rgba(255, 94, 122, .4);
 }
 .more { margin-left: auto; color: #5f687f; font-size: 18px; letter-spacing: 1px; }
+
+/* ============ Unified icon system (single stroke set, no emoji) ============ */
+
+.ic {
+  width: 18px; height: 18px; flex: 0 0 auto;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.nav-item .ic { width: 19px; height: 19px; }
+.nav-icon { display: grid; place-items: center; }
+.metric-icon .ic { width: 16px; height: 16px; }
+.flow-icon .ic { width: 17px; height: 17px; }
+.empty-illustration .ic { width: 26px; height: 26px; }
+.icon-button .ic { width: 17px; height: 17px; }
+.button .ic, .text-button .ic { width: 14px; height: 14px; }
+.banner-actions .ic { width: 15px; height: 15px; }
+.orbit-node .ic { width: 15px; height: 15px; }
+.asset-thumb .ic { width: 15px; height: 15px; }
+.candidate-saved .ic { width: 14px; height: 14px; }
+.privacy-note .ic { width: 16px; height: 16px; }
+
+/* ============ Technical typography (mono labels + display headings) ============ */
+
+.eyebrow, .workspace-label, .banner-label, .brand-copy small,
+.flow-state, .step-number, .nav-badge, .range-tab,
+.status-pill, .result-badge, .render-check-status,
+.legend-count, .hbar-count, .inventory-count, .run-id,
+.metric-card > strong, .script-segment-top > span,
+.candidate-provider, .reason-chip, .step-list li > span,
+.workflow-step-list li > span {
+  font-family: var(--font-mono);
+}
+.eyebrow, .workspace-label, .banner-label, .flow-state, .candidate-provider {
+  letter-spacing: .16em;
+}
+.page-heading h1, .welcome-banner h2, .section-heading h2,
+.panel-heading h2, .flow-aside h2, .empty-state h2,
+.script-result-heading h2, .template-preview-heading h2 {
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
 
 /* ============ Main area / topbar ============ */
 

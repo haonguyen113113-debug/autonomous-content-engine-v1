@@ -90,6 +90,11 @@ function statusPill(value, successValue) {
   return `<span class="status-pill ${success ? "status-ok" : "status-muted"}">${escapeHtml(value || "unknown")}</span>`;
 }
 
+function thumbIcon(type) {
+  const map = { image: "i-image", video: "i-video", audio: "i-audio", font: "i-type" };
+  return `<svg class="ic" aria-hidden="true"><use href="#${map[type] || "i-file"}"/></svg>`;
+}
+
 async function loadAssets() {
   const body = document.getElementById("asset-rows");
   body.innerHTML = '<tr><td colspan="9" class="empty-cell">Loading library inventory…</td></tr>';
@@ -103,7 +108,7 @@ async function loadAssets() {
       return;
     }
     body.innerHTML = assets.map((asset) => `<tr>
-      <td><div class="asset-name"><span class="asset-thumb">${asset.asset_type === "image" ? "?" : "?"}</span>${escapeHtml(asset.original_name)}</div></td>
+      <td><div class="asset-name"><span class="asset-thumb">${thumbIcon(asset.asset_type)}</span>${escapeHtml(asset.original_name)}</div></td>
       <td>${escapeHtml(asset.asset_type)}</td>
       <td>${escapeHtml(asset.purpose_code || "?")}</td>
       <td>${statusPill(asset.rights_state, "verified")}</td>
@@ -221,7 +226,7 @@ async function approveCandidate(button, requirement) {
     const message = result.status === "ALREADY_IN_LIBRARY"
       ? `Already in library as ${result.asset_id}; existing rights metadata was left unchanged.`
       : `Saved ${result.asset_id} with rights state “${result.rights_state}”.`;
-    card.innerHTML = `<div class="candidate-saved"><span>✓</span><div><strong>${escapeHtml(result.status.replaceAll("_", " "))}</strong><small>${escapeHtml(message)}</small></div></div>`;
+    card.innerHTML = `<div class="candidate-saved"><span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><div><strong>${escapeHtml(result.status.replaceAll("_", " "))}</strong><small>${escapeHtml(message)}</small></div></div>`;
     showToast(message);
     await loadAssets();
     if (rightsReviewed && result.status === "SAVED") await evaluateRequirement(requirement);
@@ -289,7 +294,7 @@ document.getElementById("requirement-form").addEventListener("submit", async (ev
     showToast(error.message || "Could not evaluate the requirement.");
   } finally {
     button.disabled = false;
-    button.innerHTML = "<span>⌕</span> Check library inventory";
+    button.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Check library inventory';
   }
 });
 
@@ -671,7 +676,7 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
     showToast(error.message || "Could not create a script draft.");
   } finally {
     button.disabled = false;
-    button.innerHTML = "Draft script &amp; check assets <span>&rarr;</span>";
+    button.innerHTML = 'Draft script &amp; check assets <svg class="ic" aria-hidden="true"><use href="#i-chev"/></svg>';
   }
 });
 
