@@ -300,6 +300,15 @@ def _overlap_ratio(previous: str, current: str) -> float:
     return len(earlier & later) / min(len(earlier), len(later))
 
 
+def _fact_signature(text: str) -> set[str]:
+    """Number-like fact tokens (1,94m, 25 triệu euro, 4 bàn...).
+
+    Beats paraphrase shared facts without tripping the wording guard, so
+    facts themselves are tracked separately.
+    """
+    return set(re.findall(r"\d+(?:[.,]\d+)?\s*(?:m\b|triệu|trieu|euro|bàn|ban|trận|tran|tuổi|tuoi|%|ngày|ngay|tháng|thang|năm|nam)?", text.lower()))
+
+
 MAX_BEAT_OVERLAP = 0.7
 
 
@@ -342,6 +351,7 @@ def _ollama_beat(
     num_predict: int,
     ledger: dict[str, Any],
     previous_narration: str = "",
+    used_facts: frozenset[str] = frozenset(),
 ) -> tuple[dict[str, Any] | None, int, dict[str, Any], str]:
     """Generate one beat; returns (segment, attempts, usage, last_error)."""
     lo = max(1, duration_hint // 4)
@@ -354,6 +364,8 @@ def _ollama_beat(
         "write a clear [CẦN NGUỒN] placeholder instead of an assertion. "
         "Open with a different sentence than the previous beat and do not "
         "restate facts it already stated; advance the idea instead. "
+        "When facts_already_stated are supplied, treat them as used up: "
+        "do not repeat them unless this beat adds a new fact of its own. "
         "Return only a JSON object with narration (Vietnamese voiceover), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
         "visual_mode (tactical_explainer, statline_scorecard, source_card, "
         "chart_comparison, or chart_timeline), graphic_data (values and source only "
@@ -381,6 +393,8 @@ def _ollama_beat(
         "previous_beat_summary": previous_summary,
         "evidence": _cap_evidence(evidence),
     }
+    if used_facts:
+        user_payload["facts_already_stated"] = sorted(used_facts)[:20]
     attempts = 0
     usage: dict[str, Any] = {"provider": "", "model": "", "prompt_tokens": 0,
                              "completion_tokens": 0, "cost_usd": 0.0}
@@ -402,6 +416,11 @@ def _ollama_beat(
         if (previous_narration
                 and _overlap_ratio(previous_narration, segment["narration"]) > MAX_BEAT_OVERLAP):
             last_error = "repetitive_beat"
+            segment = None
+            continue
+        signature = _fact_signature(segment["narration"])
+        if used_facts and signature and signature <= used_facts:
+            last_error = "repeated_facts"
             segment = None
             continue
         segment["id"] = beat_id
@@ -482,6 +501,7 @@ def _ollama_draft(
     fallback_beats: list[str] = []
     previous_summary = ""
     previous_full = ""
+    used_facts: set[str] = set()
     model_beats = 0
     budget_fallbacks = 0
     ledger = _new_ledger(env)
@@ -503,6 +523,7 @@ def _ollama_draft(
                 previous_summary=previous_summary, evidence=evidence,
                 duration_hint=duration_hint, num_predict=num_predict,
                 ledger=ledger, previous_narration=previous_full,
+                used_facts=frozenset(used_facts),
             )
             if segment is None:
                 segment = _outline_beat(topic, arc, index, target)
@@ -515,6 +536,7 @@ def _ollama_draft(
                                          "usage": usage}
                 previous_summary = segment["narration"][:300]
                 previous_full = segment["narration"]
+                used_facts |= _fact_signature(segment["narration"])
         segments.append(segment)
         if on_beat is not None:
             on_beat(index, total, segment["generation"]["mode"],

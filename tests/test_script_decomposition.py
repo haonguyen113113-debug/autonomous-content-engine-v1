@@ -364,3 +364,46 @@ def test_overlap_ratio_unit():
     assert workflow._overlap_ratio("a b c d e f", "a b c d e f") == 1.0
     assert workflow._overlap_ratio("hoan toan khac", "chuyen hoan toan moi") < 0.7
     assert workflow._overlap_ratio("", "non-empty") == 0.0
+
+
+def test_fact_signature_unit():
+    signature = workflow._fact_signature("Cao 1,94m, phi 25 triệu euro, 4 ban/2 tran.")
+    assert "1,94m" in signature
+    assert "25 triệu" in signature
+    assert "4 ban" in signature
+    assert workflow._fact_signature("Khong co con so nao.") == set()
+
+
+def test_repeated_facts_rejected_and_listed(monkeypatch):
+    first = _chat_content(_beat_payload("Espi cao 1,94m, gia 25 triệu euro.", 7))
+    repeat = _chat_content(_beat_payload("Voi chieu cao 1,94m va muc phi 25 triệu euro, Espi manh.", 7))
+    fresh = _chat_content(_beat_payload("Espi ghi 4 ban sau 2 tran U21.", 7))
+    rest = [_chat_content(_beat_payload(f"Chuyen moi {i}.", 7)) for i in range(4)]
+    calls = _install(monkeypatch, [first, repeat, fresh] + rest
+                     + [_chat_content({"asset_needs": []})])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    beat2 = next(s for s in result["segments"] if s["id"] == "beat-2")
+    assert "4 ban" in beat2["narration"]
+    assert beat2["generation"]["attempts"] == 2
+    # Facts already stated travel with later calls.
+    third_user = json.loads(json.loads(calls[2]["data"].decode("utf-8"))["messages"][1]["content"])
+    assert "facts_already_stated" in third_user
+    assert any("1,94m" in fact for fact in third_user["facts_already_stated"])
+
+
+def test_persistent_fact_repetition_falls_back(monkeypatch):
+    first = _chat_content(_beat_payload("Espi cao 1,94m, gia 25 triệu euro.", 7))
+    paraphrase = _chat_content(_beat_payload(
+        "Voi chieu cao 1,94m, Espi co gia 25 triệu euro.", 7))
+    paraphrase2 = _chat_content(_beat_payload(
+        "Chieu cao 1,94m cung muc phi 25 triệu euro noi bat.", 7))
+    _install(monkeypatch, [first, paraphrase, paraphrase2]
+             + [_chat_content(_beat_payload(f"Chuyen moi {i}.", 7)) for i in range(4)]
+             + [_chat_content({"asset_needs": []})])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    failed = next(s for s in result["segments"] if s["id"] == "beat-2")
+    assert failed["generation"]["error"] == "repeated_facts"
