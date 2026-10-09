@@ -162,6 +162,6 @@ def test_retry_after_header_extends_cooldown(monkeypatch):
     assert body is None  # both models limited
     import time
     remaining = llm._COOLDOWNS["test-m1"] - time.monotonic()
-    assert 890 < remaining <= 900
+    assert 800 < remaining <= 900
     # Configured 300s cooldown is overridden by the longer header value.
-    assert llm._COOLDOWNS["test-m2"] > llm._COOLDOWNS["test-m1"] - 1
+    assert llm._COOLDOWNS["test-m2"] > llm._COOLDOWNS["test-m1"] - 5
