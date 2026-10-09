@@ -36,8 +36,12 @@ LLM_MODEL=<a low-cost model id from your provider>
 LLM_API_KEY=<paste the provider key here>
 ```
 
-Low-cost starting points: a mini-tier model on OpenAI, or a cheap fast
-model through an OpenRouter/Groq/DeepSeek-compatible key. The engine sends
+Low-cost starting points: a mini-tier model on OpenAI, a cheap fast
+model through an OpenRouter/Groq/DeepSeek-compatible key, or Groq's fast
+free tier (`https://api.groq.com/openai/v1` with ids like
+`openai/gpt-oss-20b`, `qwen/qwen3.8-27b`, `openai/gpt-oss-120b` — re-check
+`console.groq.com/docs/models`, dead ids are skipped automatically).
+The engine sends
 the same small per-beat JSON prompts and records prompt/completion tokens
 plus estimated cost per segment and per run (see `llm_cost_usd` in the saved
 run file and under the draft notes in Workflows). `LLM_BUDGET_USD_PER_RUN`
