@@ -113,6 +113,8 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
         [str(runtime_python), str(worker), str(reference), str(output_dir / output_name)],
         input=text,
         text=True,
+        encoding="utf-8",
+        errors="strict",
         capture_output=True,
         timeout=3600,
         cwd=root,
