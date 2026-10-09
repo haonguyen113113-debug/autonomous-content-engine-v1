@@ -391,9 +391,20 @@ button:disabled { opacity: .45; cursor: not-allowed; transform: none !important;
   text-shadow: 0 3px 30px rgba(0, 0, 0, .5), 0 0 44px rgba(124, 92, 255, .3);
 }
 .grad-text {
-  background: var(--grad-text);
+  background: linear-gradient(90deg, #a78bfa, #6ea8fe, #ff8fa0, #ffa44d, #a78bfa);
+  background-size: 250% auto;
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
+  animation: grad-pan 8s linear infinite;
+}
+@keyframes grad-pan {
+  to { background-position: 250% center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grad-text { animation: none; }
+  .welcome-banner, .welcome-banner::after, .orbit-core,
+  .orbit-node, .connection-dot, .banner-dot,
+  .render-check-status.pending-owner-audit { animation: none; }
 }
 .welcome-banner p { color: #a7b0c5; line-height: 1.7; font-size: 13.5px; max-width: 520px; margin: 0 0 22px; }
 .banner-actions { display: flex; gap: 12px; flex-wrap: wrap; }
