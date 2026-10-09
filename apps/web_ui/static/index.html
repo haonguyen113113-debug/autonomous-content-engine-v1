@@ -54,7 +54,7 @@
           <div class="welcome-banner">
             <div class="welcome-copy">
               <div class="banner-label"><span class="banner-dot"></span> ENGINE WORKSPACE</div>
-              <h2>Build the workflow, one real run at a time.</h2>
+              <h2>Build the workflow, <span class="grad-text">one real run</span> at a time.</h2>
               <p>Start with a content resource need. The library checks what is already available before the engine looks elsewhere.</p>
               <div class="banner-actions">
                 <button class="button button-light" data-go="library">Open asset library <span>→</span></button>
@@ -82,7 +82,7 @@
           <div class="section-heading section-heading-spaced"><div><div class="eyebrow">TRENDS &amp; PIPELINE</div><h2>Analytics</h2></div></div>
           <div class="chart-grid">
             <section class="panel chart-panel chart-wide">
-              <div class="panel-heading"><div><div class="eyebrow">TREND</div><h2>Asset growth</h2><p>Registered assets per day.</p></div>
+              <div class="panel-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">TREND</div><h2>Asset growth</h2><p>Registered assets per day.</p></div>
                 <div class="range-tabs" role="group" aria-label="Chart range">
                   <button class="range-tab" type="button" data-range="7">7D</button>
                   <button class="range-tab active" type="button" data-range="14">14D</button>
@@ -93,17 +93,17 @@
               <div class="chart-empty" id="chart-assets-empty" hidden>No assets registered yet.</div>
             </section>
             <section class="panel chart-panel">
-              <div class="panel-heading"><div><div class="eyebrow">PIPELINE</div><h2>Runs by status</h2><p>All saved engine runs.</p></div></div>
+              <div class="panel-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">PIPELINE</div><h2>Runs by status</h2><p>All saved engine runs.</p></div></div>
               <div class="donut-wrap"><svg id="chart-runs" viewBox="0 0 120 120" role="img" aria-label="Runs by status"></svg><div class="donut-legend" id="runs-legend"></div></div>
               <div class="chart-empty" id="chart-runs-empty" hidden>No runs yet — create a video draft.</div>
             </section>
             <section class="panel chart-panel">
-              <div class="panel-heading"><div><div class="eyebrow">RIGHTS MIX</div><h2>Top licenses</h2><p>Most common licenses in inventory.</p></div></div>
+              <div class="panel-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">RIGHTS MIX</div><h2>Top licenses</h2><p>Most common licenses in inventory.</p></div></div>
               <div class="hbar-list" id="license-bars"></div>
               <div class="chart-empty" id="license-empty" hidden>No license data yet.</div>
             </section>
             <section class="panel chart-panel chart-wide">
-              <div class="panel-heading"><div><div class="eyebrow">LATEST ACTIVITY</div><h2>Recent runs</h2><p>Newest engine runs across short and long targets.</p></div><button class="text-button" data-go="runs">View all <span>→</span></button></div>
+              <div class="panel-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">LATEST ACTIVITY</div><h2>Recent runs</h2><p>Newest engine runs across short and long targets.</p></div><button class="text-button" data-go="runs">View all <span>→</span></button></div>
               <div class="table-wrap"><table><thead><tr><th>Run</th><th>Topic</th><th>Type</th><th>Status</th><th>Media</th><th>Outputs</th></tr></thead><tbody id="recent-runs-rows"><tr><td colspan="6" class="empty-cell">No runs yet — create a video draft.</td></tr></tbody></table></div>
             </section>
           </div>
@@ -164,7 +164,7 @@
             </section>
           </div>
           <section class="panel script-result-panel" id="script-result-panel" hidden>
-            <div class="script-result-heading"><div><div class="eyebrow">DRAFT OUTPUT</div><h2 id="draft-status-heading">Script and asset check</h2></div><span class="status-pill status-muted" id="draft-mode-pill"></span></div>
+            <div class="script-result-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">DRAFT OUTPUT</div><h2 id="draft-status-heading">Script and asset check</h2></div><span class="status-pill status-muted" id="draft-mode-pill"></span></div>
             <p class="form-helper">Review and edit the Vietnamese narration. Resolve every research marker and verify factual claims before approving the script for TTS.</p>
             <div id="draft-timeline" class="draft-timeline" hidden></div>
             <div id="script-segments" class="script-segments"></div>
@@ -188,7 +188,7 @@
         <section class="view" id="view-runs">
           <div class="page-heading"><div><div class="eyebrow">EXECUTION</div><h1>Runs &amp; queue</h1><p class="page-subtitle">Every saved engine run, newest first. Videos and reports open when rendered.</p></div><button class="button button-secondary" id="refresh-runs"><span>↻</span> Refresh</button></div>
           <section class="panel runs-panel">
-            <div class="panel-heading inventory-heading"><div><div class="eyebrow">PIPELINE HISTORY</div><h2>All runs</h2><p>Status, media attachments, voice and render outputs.</p></div><div class="inventory-count" id="runs-count">— runs</div></div>
+            <div class="panel-heading inventory-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">PIPELINE HISTORY</div><h2>All runs</h2><p>Status, media attachments, voice and render outputs.</p></div><div class="inventory-count" id="runs-count">— runs</div></div>
             <div class="table-wrap"><table class="runs-table"><thead><tr><th>Run</th><th>Topic</th><th>Type</th><th>Status</th><th>Created</th><th>Seg</th><th>Media</th><th>Voice</th><th>Outputs</th></tr></thead><tbody id="run-rows"><tr><td colspan="9" class="empty-cell">Loading runs…</td></tr></tbody></table></div>
           </section>
         </section>
