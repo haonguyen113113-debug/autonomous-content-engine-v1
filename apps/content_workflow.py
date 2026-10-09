@@ -217,14 +217,12 @@ def _cap_evidence(evidence: list[str], limit: int = EVIDENCE_CHARS_PER_CALL) -> 
     return kept
 
 
-def _clean_segment(item: Any, max_chars: int | None = None) -> dict[str, Any] | None:
-    """Validate one model-supplied beat; None means this attempt failed."""
+def _clean_segment(item: Any) -> dict[str, Any] | None:
+    """Validate one model-supplied beat shape; None means this attempt failed."""
     if not isinstance(item, dict):
         return None
     narration = item.get("narration")
     if not isinstance(narration, str) or not narration.strip():
-        return None
-    if max_chars is not None and len(_normalise(narration)) > max_chars:
         return None
     try:
         duration = max(1, min(int(item.get("duration_seconds", 8)), 900))
@@ -363,6 +361,7 @@ def _ollama_beat(
     lo = max(1, duration_hint // 4)
     hi = max(10, duration_hint * 2)
     speech_budget = max(40, duration_hint * CHARS_PER_SECOND)
+    speech_floor = max(30, int(speech_budget * 0.55))
     system = (
         "You write ONE beat of a Vietnamese soccer-analysis video script for Allen Knows Ball. "
         "Sound conversational, specific, calm, and human; avoid broadcast clichés and forced CTAs. "
@@ -374,7 +373,8 @@ def _ollama_beat(
         "When facts_already_stated are supplied, treat them as used up: "
         "do not repeat them unless this beat adds a new fact of its own. "
         "Return only a JSON object with narration (Vietnamese voiceover, "
-        f"at most {speech_budget} characters so it fits {duration_hint}s aloud), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
+        f"between {speech_floor} and {speech_budget} characters so it fills "
+        f"{duration_hint}s aloud without padding), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
         "visual_mode (tactical_explainer, statline_scorecard, source_card, "
         "chart_comparison, or chart_timeline), graphic_data (values and source only "
         "when explicitly present in supplied evidence, else {}), duration_seconds "
@@ -417,9 +417,14 @@ def _ollama_beat(
         if body is None:
             last_error = "transport_or_provider_error"
             continue
-        segment = _clean_segment(body, max_chars=max(40, duration_hint * CHARS_PER_SECOND))
+        segment = _clean_segment(body)
         if segment is None:
             last_error = "invalid_segment_reply"
+            continue
+        length_issue = _length_error(segment["narration"], duration_hint)
+        if length_issue:
+            last_error = length_issue
+            segment = None
             continue
         if (previous_narration
                 and _overlap_ratio(previous_narration, segment["narration"]) > MAX_BEAT_OVERLAP):
@@ -434,6 +439,16 @@ def _ollama_beat(
         segment["id"] = beat_id
         return segment, attempts, usage, ""
     return None, attempts, usage, last_error
+
+def _length_error(narration: str, duration_hint: int) -> str:
+    """Speech-length verdict for a beat: too_long, too_brief, or empty."""
+    size = len(_normalise(narration))
+    if size > max(40, duration_hint * CHARS_PER_SECOND):
+        return "too_long"
+    if size < max(30, int(duration_hint * CHARS_PER_SECOND * 0.55)):
+        return "too_brief"
+    return ""
+
 
 def _ollama_asset_needs(
     env: dict[str, str],

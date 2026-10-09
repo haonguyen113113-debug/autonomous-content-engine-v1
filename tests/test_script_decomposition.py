@@ -50,7 +50,17 @@ def _chat_content(inner: dict) -> bytes:
     return json.dumps({"message": {"content": json.dumps(inner)}}).encode("utf-8")
 
 
-def _beat_payload(narration="Nhịp phân tích.", duration=8):
+def _rest_beats():
+    """Four mutually distinct filler beats (no digits, low mutual overlap)."""
+    return [_chat_content(_beat_payload(text, 7)) for text in (
+        "Chien thuat pressing tam cao tao ra dot bien lien tuc.",
+        "Hang thu doi phuong de lo khoang trong chet nguoi.",
+        "Tien ve canh khai thac hanh lang bien khong ngung nghi.",
+        "Thu mon bat luc truoc suc ep khung thanh doi khach.",
+    )]
+
+
+def _beat_payload(narration="Nhịp phân tích chiến thuật với đầy đủ dẫn chứng cụ thể.", duration=8):
     return {
         "id": "beat-x",
         "narration": narration,
@@ -91,7 +101,7 @@ def _draft_kwargs():
 
 
 def test_beats_assemble_with_per_segment_provenance(monkeypatch):
-    beats = [_chat_content(_beat_payload(f"Narration {i}.", 7)) for i in range(6)]
+    beats = [_chat_content(_beat_payload(f"Narration {i} with enough substance to fill its slot.", 7)) for i in range(6)]
     assets = _chat_content({"asset_needs": []})
     calls = _install(monkeypatch, beats + [assets])
 
@@ -110,12 +120,12 @@ def test_beats_assemble_with_per_segment_provenance(monkeypatch):
     assert all(c["timeout"] <= 300 for c in calls)
     # Coherence: beat 2+ receives the previous narration as context.
     second_user = json.loads(json.loads(calls[1]["data"].decode("utf-8"))["messages"][1]["content"])
-    assert "Narration 0." in second_user["previous_beat_summary"]
+    assert "Narration 0 with enough" in second_user["previous_beat_summary"]
 
 
 def test_failed_beat_retries_then_falls_back_per_beat(monkeypatch):
-    good = [_chat_content(_beat_payload("Good beat.", 7)) for _ in range(5)]
-    script = [good[0], b"{invalid", _chat_content(_beat_payload("Recovered.", 7))] + good[1:]
+    good = [_chat_content(_beat_payload(f"Good beat {i} with enough substance to fill its slot.", 7)) for i in range(5)]
+    script = [good[0], b"{invalid", _chat_content(_beat_payload("Recovered with a brand new angle never stated before.", 7))] + good[1:]
     calls = _install(monkeypatch, script + [_chat_content({"asset_needs": []})])
 
     result = workflow.create_script_draft(ROOT, **_draft_kwargs())
@@ -123,7 +133,7 @@ def test_failed_beat_retries_then_falls_back_per_beat(monkeypatch):
     assert result["generation_mode"] == "local_ollama"
     assert len(result["segments"]) == 6
     recovered = next(s for s in result["segments"] if s["id"] == "beat-2")
-    assert recovered["narration"] == "Recovered."
+    assert recovered["narration"] == "Recovered with a brand new angle never stated before."
     assert recovered["generation"]["mode"] == "local_ollama"
     assert recovered["generation"]["attempts"] == 2
     assert result["fallback_beats"] == []
@@ -131,7 +141,7 @@ def test_failed_beat_retries_then_falls_back_per_beat(monkeypatch):
 
 
 def test_twice_failed_beat_uses_outline_placeholder(monkeypatch):
-    beats = [_chat_content(_beat_payload("Good beat.", 7)) for _ in range(5)]
+    beats = [_chat_content(_beat_payload(f"Good beat {i} with enough substance to fill its slot.", 7)) for i in range(5)]
     script = beats[:1] + [b"{bad-1", b"{bad-2"] + beats[1:]
     _install(monkeypatch, script + [_chat_content({"asset_needs": []})])
 
@@ -174,7 +184,7 @@ def test_total_failure_preserves_diagnostics(monkeypatch):
 
 
 def test_asset_needs_validated_and_capped(monkeypatch):
-    beats = [_chat_content(_beat_payload("Good beat.", 7)) for _ in range(6)]
+    beats = [_chat_content(_beat_payload(f"Good beat {i} with enough substance to fill its slot.", 7)) for i in range(6)]
     needs = _chat_content({"asset_needs": [
         {"resource_type": "image", "purpose": "player_context", "quantity": 9,
          "query": "striker pressing", "exact_context": "trận derby",
@@ -264,7 +274,7 @@ def test_progress_records_listed_with_zero_counts(tmp_path):
 
 
 def test_asset_needs_failure_degrades_to_empty(monkeypatch):
-    beats = [_chat_content(_beat_payload("Good beat.", 7)) for _ in range(6)]
+    beats = [_chat_content(_beat_payload(f"Good beat {i} with enough substance to fill its slot.", 7)) for i in range(6)]
     _install(monkeypatch, beats + [URLError("timeout")])
 
     result = workflow.create_script_draft(ROOT, **_draft_kwargs())
@@ -287,7 +297,7 @@ def test_zero_budget_skips_model_calls_entirely(monkeypatch):
 
 
 def test_on_beat_reports_progress_sequence(monkeypatch):
-    beats = [_chat_content(_beat_payload("Good beat.", 7)) for _ in range(6)]
+    beats = [_chat_content(_beat_payload(f"Good beat {i} with enough substance to fill its slot.", 7)) for i in range(6)]
     _install(monkeypatch, beats + [_chat_content({"asset_needs": []})])
     seen = []
 
@@ -335,7 +345,7 @@ def test_overlap_guard_retries_repetitive_beat(monkeypatch):
         "Carlos Espi ghi ban cho Real Madrid tu duong chuyen vao!", 7))
     fresh = _chat_content(_beat_payload(
         "O tuoi 21, Espi mang den toc do va kha nang khong chien vuot troi.", 7))
-    rest = [_chat_content(_beat_payload(f"Beat rieng {i}.", 7)) for i in range(4)]
+    rest = _rest_beats()
     _install(monkeypatch, [first, repeat, fresh] + rest
              + [_chat_content({"asset_needs": []})])
 
@@ -348,9 +358,9 @@ def test_overlap_guard_retries_repetitive_beat(monkeypatch):
 
 
 def test_persistent_repetition_falls_back_with_reason(monkeypatch):
-    same = _chat_content(_beat_payload("Lap lai y tuong cu.", 7))
+    same = _chat_content(_beat_payload("Dien dat lap lai y tuong cu khong co gi moi o day.", 7))
     _install(monkeypatch, [same, same, same]
-             + [_chat_content(_beat_payload(f"Tot {i}.", 7)) for i in range(4)]
+             + _rest_beats()
              + [_chat_content({"asset_needs": []})])
 
     result = workflow.create_script_draft(ROOT, **_draft_kwargs())
@@ -366,12 +376,11 @@ def test_overlap_ratio_unit():
     assert workflow._overlap_ratio("", "non-empty") == 0.0
 
 
-def test_clean_segment_enforces_speech_budget():
-    ok = workflow._clean_segment(_beat_payload("Ngan gon vua slot.", 7), max_chars=200)
-    assert ok is not None
-    long_text = "x" * 201
-    assert workflow._clean_segment(_beat_payload(long_text, 7), max_chars=200) is None
-    assert workflow._clean_segment(_beat_payload(long_text, 7)) is not None
+def test_length_error_enforces_speech_budget():
+    assert workflow._length_error("x" * 60, 6) == ""
+    assert workflow._length_error("x" * 201, 6) == "too_long"
+    assert workflow._length_error("Too short.", 6) == "too_brief"
+    assert workflow._clean_segment(_beat_payload("Ngan gon vua slot.", 7)) is not None
 
 
 def test_fact_signature_unit():
@@ -383,11 +392,10 @@ def test_fact_signature_unit():
 
 
 def test_repeated_facts_rejected_and_listed(monkeypatch):
-    first = _chat_content(_beat_payload("Espi cao 1,94m, gia 25 triệu euro.", 7))
+    first = _chat_content(_beat_payload("Espi cao 1,94m, gia 25 triệu euro, rat manh me.", 7))
     repeat = _chat_content(_beat_payload("Voi chieu cao 1,94m va muc phi 25 triệu euro, Espi manh.", 7))
-    fresh = _chat_content(_beat_payload("Espi ghi 4 ban sau 2 tran U21.", 7))
-    rest = [_chat_content(_beat_payload(f"Chuyen moi {i}.", 7)) for i in range(4)]
-    calls = _install(monkeypatch, [first, repeat, fresh] + rest
+    fresh = _chat_content(_beat_payload("Espi ghi 4 ban sau 2 tran U21 day an tuong manh.", 7))
+    calls = _install(monkeypatch, [first, repeat, fresh] + _rest_beats()
                      + [_chat_content({"asset_needs": []})])
 
     result = workflow.create_script_draft(ROOT, **_draft_kwargs())
@@ -402,13 +410,13 @@ def test_repeated_facts_rejected_and_listed(monkeypatch):
 
 
 def test_persistent_fact_repetition_falls_back(monkeypatch):
-    first = _chat_content(_beat_payload("Espi cao 1,94m, gia 25 triệu euro.", 7))
+    first = _chat_content(_beat_payload("Espi cao 1,94m, gia 25 triệu euro, rat manh me.", 7))
     paraphrase = _chat_content(_beat_payload(
         "Voi chieu cao 1,94m, Espi co gia 25 triệu euro.", 7))
     paraphrase2 = _chat_content(_beat_payload(
         "Chieu cao 1,94m cung muc phi 25 triệu euro noi bat.", 7))
     _install(monkeypatch, [first, paraphrase, paraphrase2]
-             + [_chat_content(_beat_payload(f"Chuyen moi {i}.", 7)) for i in range(4)]
+             + _rest_beats()
              + [_chat_content({"asset_needs": []})])
 
     result = workflow.create_script_draft(ROOT, **_draft_kwargs())
