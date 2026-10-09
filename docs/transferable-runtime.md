@@ -23,6 +23,28 @@ engine; do not copy credentials or personal voice recordings into Git.
 The engine sends script prompts only to the configured local Ollama endpoint.
 Its bounded workflow generates script drafts and asset-need suggestions.
 
+## Optional cloud drafting
+
+When local inference is too weak or slow for script quality, point the same
+bounded workflow at any OpenAI-compatible endpoint by editing `.env` only —
+no code changes, and Ollama stays the default:
+
+```powershell
+LLM_PROVIDER=openai_compatible
+LLM_BASE_URL=https://openrouter.ai/api/v1
+LLM_MODEL=<a low-cost model id from your provider>
+LLM_API_KEY=<paste the provider key here>
+```
+
+Low-cost starting points: a mini-tier model on OpenAI, or a cheap fast
+model through an OpenRouter/Groq/DeepSeek-compatible key. The engine sends
+the same small per-beat JSON prompts and records prompt/completion tokens
+plus estimated cost per segment and per run (see `llm_cost_usd` in the saved
+run file and under the draft notes in Workflows). `LLM_BUDGET_USD_PER_RUN`
+(default `0.25`) caps spend per draft; exhausted budgets degrade to the
+deterministic outline instead of spending more. The API key lives only in
+the machine-local `.env`, which is never committed to Git.
+
 ## Optional local voice preview
 
 Python 3.10 or newer is recommended. From the repository root:

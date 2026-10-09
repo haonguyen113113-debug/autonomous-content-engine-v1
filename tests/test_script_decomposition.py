@@ -22,7 +22,7 @@ class FakeResponse:
     def __exit__(self, *exc):
         return False
 
-    def read(self):
+    def read(self, *args):
         return self._payload
 
 
@@ -56,7 +56,7 @@ def _install(monkeypatch, script):
             raise item
         return FakeResponse(item)
 
-    monkeypatch.setattr(workflow, "urlopen", fake_urlopen)
+    monkeypatch.setattr("apps.llm.urlopen", fake_urlopen)
     return calls
 
 
@@ -104,7 +104,8 @@ def test_failed_beat_retries_then_falls_back_per_beat(monkeypatch):
     assert len(result["segments"]) == 6
     recovered = next(s for s in result["segments"] if s["id"] == "beat-2")
     assert recovered["narration"] == "Recovered."
-    assert recovered["generation"] == {"mode": "local_ollama", "attempts": 2}
+    assert recovered["generation"]["mode"] == "local_ollama"
+    assert recovered["generation"]["attempts"] == 2
     assert result["fallback_beats"] == []
     assert len(calls) == 8  # one retry for beat-2
 
