@@ -377,17 +377,22 @@ if (draftForm) draftForm.addEventListener("submit", async (event) => {
     document.getElementById("voice-preview-audited").checked = false;
     document.getElementById("voice-preview-audited").disabled = true;
     document.getElementById("render-preview-result").hidden = true;
+    document.getElementById("render-visual-result").hidden = true;
     document.getElementById("render-full-result").hidden = true;
     document.getElementById("script-review-status").textContent = "";
     document.getElementById("voice-preview-status").textContent = "";
     document.getElementById("voice-preview-audio").hidden = true;
     document.getElementById("render-preview-status").textContent = "";
+    document.getElementById("render-visual-status").textContent = "";
     document.getElementById("render-full-status").textContent = "";
     document.getElementById("draft-status-heading").textContent = `${draft.content_type.toUpperCase()} · ${draft.duration_target_seconds}s · ${draft.status.replaceAll("_", " ")} · run ${result.run_id}`;
     document.getElementById("script-segments").innerHTML = draft.segments.map((segment, index) => `
       <article class="script-segment" data-segment-id="${escapeHtml(segment.id)}"><div class="script-segment-top"><span>${String(index + 1).padStart(2, "0")}</span><strong>${escapeHtml(segment.id.replaceAll("-", " "))}</strong><small>${escapeHtml(segment.start_seconds)}–${escapeHtml(segment.end_seconds)} sec · ${escapeHtml(segment.duration_seconds)} sec</small></div>
       <label>Voiceover<textarea lang="vi">${escapeHtml(segment.narration)}</textarea></label><small>${escapeHtml(segment.visual)}</small>
+      <div class="segment-media"><label>Library image (verified, active)<input name="media_asset_id" placeholder="Copy an asset ID from the library" value="${escapeHtml(segment.media_asset_id || "")}" /></label><label>On-screen caption<input name="media_caption" maxlength="500" placeholder="Vietnamese caption shown with the photo" value="${escapeHtml(segment.media_caption || "")}" /></label><div class="voice-preview-actions"><button class="button button-secondary button-small" type="button" data-attach-media="${escapeHtml(segment.id)}">Attach media</button><span class="segment-media-status" role="status">${segment.media_asset_id ? `Attached: ${escapeHtml(segment.media_asset_id)}` : ""}</span></div><small>Only rights-verified, active library images. The photo is contextual B-roll, never presented as match footage. Leave the asset ID empty to detach.</small></div>
       ${(segment.timeline_events || []).map((item) => `<div class="timeline-event"><strong>${escapeHtml(item.item_type)} · ${escapeHtml(item.item_id)}</strong><span>${escapeHtml(item.start_seconds)}–${escapeHtml(item.end_seconds)}s · ${escapeHtml(item.enter)} / ${escapeHtml(item.exit)} · ${escapeHtml(item.transition_in)} · ${escapeHtml(item.effect)}</span><small>${escapeHtml(item.text || "")}</small></div>`).join("")}</article>`).join("");
+    document.querySelectorAll("[data-attach-media]").forEach((button) => button.addEventListener("click", () => attachSegmentMedia(button)));
+    document.getElementById("render-visual-benchmark").disabled = false;
     const chapterEvents = draft.chapter_events || [];
     document.getElementById("draft-timeline").hidden = !chapterEvents.length;
     document.getElementById("draft-timeline").innerHTML = chapterEvents.length
@@ -515,7 +520,36 @@ if (voiceAuditCheckbox) voiceAuditCheckbox.addEventListener("change", async () =
   }
 });
 
-async function renderVideo(endpoint, button, status, resultPanel, video, isPreview) {
+async function attachSegmentMedia(button) {
+  if (!currentRunId) return showToast("Create a script draft first.");
+  const card = button.closest(".script-segment");
+  if (!card) return;
+  const segmentId = card.dataset.segmentId;
+  const assetInput = card.querySelector('input[name="media_asset_id"]');
+  const captionInput = card.querySelector('input[name="media_caption"]');
+  const status = card.querySelector(".segment-media-status");
+  const assetId = assetInput ? assetInput.value.trim() : "";
+  const caption = captionInput ? captionInput.value.trim().normalize("NFC") : "";
+  button.disabled = true;
+  if (status) status.textContent = assetId ? "Attaching…" : "Detaching…";
+  try {
+    const response = await fetch("/api/content/attach-media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ run_id: currentRunId, segment_id: segmentId, asset_id: assetId, media_caption: caption }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not attach media.");
+    if (status) status.textContent = result.status === "MEDIA_DETACHED" ? "Detached." : `Attached: ${result.asset_id}`;
+    showToast(result.status === "MEDIA_DETACHED" ? "Media detached from segment." : "Media attached to segment.");
+  } catch (error) {
+    if (status) status.textContent = error.message || "Could not attach media.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function renderVideo(endpoint, button, status, resultPanel, video, isPreview, reportElementId = "render-quality-report") {
   if (!currentRunId) return showToast("Create a script draft first.");
   button.disabled = true;
   status.textContent = "Rendering locally with FFmpeg…";
@@ -531,7 +565,7 @@ async function renderVideo(endpoint, button, status, resultPanel, video, isPrevi
     resultPanel.hidden = false;
     if (isPreview) {
       const report = result.report;
-      document.getElementById("render-quality-report").innerHTML = `
+      document.getElementById(reportElementId).innerHTML = `
         <div class="render-report-heading"><strong>Visual render report</strong><a href="/api/render/${escapeHtml(currentRunId)}/report" target="_blank" rel="noopener noreferrer">Open JSON</a></div>
         <div class="render-report-grid">${report.quality_checks.map((check) => `<div class="render-check"><span class="render-check-status ${escapeHtml(check.status.toLowerCase().replaceAll(" ", "-"))}">${escapeHtml(check.status)}</span><strong>${escapeHtml(check.criterion)}</strong><small>${escapeHtml(check.detail)}</small></div>`).join("")}</div>
         <p class="render-limitations">${report.limitations.map(escapeHtml).join(" ")}</p>`;
@@ -550,6 +584,15 @@ if (renderPreviewButton) renderPreviewButton.addEventListener("click", () => ren
   document.getElementById("render-preview-status"),
   document.getElementById("render-preview-result"),
   document.getElementById("render-preview-video"), true,
+));
+
+const renderVisualButton = document.getElementById("render-visual-benchmark");
+if (renderVisualButton) renderVisualButton.addEventListener("click", () => renderVideo(
+  "/api/content/render-visual-benchmark", renderVisualButton,
+  document.getElementById("render-visual-status"),
+  document.getElementById("render-visual-result"),
+  document.getElementById("render-visual-video"), true,
+  "render-visual-report",
 ));
 
 const renderFullButton = document.getElementById("render-full-video");

@@ -25,7 +25,7 @@ from apps.asset_library.discovery import (
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.voice_tts import save_voice_reference, synthesize_voice_preview, voice_profile_status
-from apps.video_renderer import render_full_run, render_template_preview, render_graphic_template_previews
+from apps.video_renderer import render_full_run, render_template_preview, render_graphic_template_previews, render_visual_only_run
 from template_foundation import resolve_template
 
 
@@ -139,6 +139,68 @@ def _approve_voice_preview(root: Path, payload: dict[str, Any]) -> dict[str, Any
     run["voice_preview_audited_at"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {"status": "VOICE_PREVIEW_APPROVED", "run_id": run_id}
+
+
+def _attach_segment_media(root: Path, db_path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    segment_id = payload.get("segment_id")
+    if not isinstance(segment_id, str) or not segment_id.strip() or len(segment_id) > 80:
+        raise ValueError("A segment ID is required.")
+    segment_id = unicodedata.normalize("NFC", segment_id.strip())
+    asset_id = payload.get("asset_id")
+    if not isinstance(asset_id, str):
+        raise ValueError("An asset ID is required.")
+    asset_id = asset_id.strip()
+    caption = unicodedata.normalize("NFC", str(payload.get("media_caption", ""))).strip()[:500]
+
+    run_path = root / "runtime/runs" / f"{run_id}.json"
+    if not run_path.is_file():
+        raise ValueError("Production run was not found.")
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    segments = run.get("draft", {}).get("segments", [])
+    if not isinstance(segments, list):
+        raise ValueError("Production run has no script segments.")
+    segment = next((item for item in segments if isinstance(item, dict) and item.get("id") == segment_id), None)
+    if segment is None:
+        raise ValueError("Script segment was not found in this run.")
+
+    if not asset_id:
+        segment.pop("media_asset_id", None)
+        segment.pop("media_caption", None)
+        run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return {"status": "MEDIA_DETACHED", "run_id": run_id, "segment_id": segment_id}
+
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT asset_id, asset_type, rights_state, lifecycle_state, stored_path "
+            "FROM assets WHERE asset_id = ?",
+            (asset_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        raise ValueError("Asset was not found in the library.")
+    if row["asset_type"] != "image":
+        raise ValueError("Only verified image assets can be attached as segment media.")
+    if row["rights_state"] != "verified":
+        raise ValueError("Asset rights must be verified before attaching it to a segment.")
+    if row["lifecycle_state"] != "active":
+        raise ValueError("Only active library assets can be attached to a segment.")
+    library_root = (root / "runtime/assets/library").resolve()
+    image_path = (root / row["stored_path"]).resolve()
+    if library_root not in image_path.parents or not image_path.is_file():
+        raise ValueError("Selected library image is missing or outside the library.")
+
+    segment["media_asset_id"] = asset_id
+    if caption:
+        segment["media_caption"] = caption
+    else:
+        segment.pop("media_caption", None)
+    run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {"status": "MEDIA_ATTACHED", "run_id": run_id, "segment_id": segment_id, "asset_id": asset_id}
 
 
 def _overview(db_path: Path) -> dict[str, Any]:
@@ -319,7 +381,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 self.end_headers()
                 self.wfile.write(body)
                 return
-            render_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/(template-preview\.mp4|full-render\.mp4)", path)
+            render_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/(template-preview\.mp4|visual-benchmark-silent\.mp4|full-render\.mp4)", path)
             if render_match:
                 run_id, filename = render_match.groups()
                 video_file = (db_path.parent.parent / "runtime/renders" / run_id / filename).resolve()
@@ -487,6 +549,8 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 "/api/assets/approve-candidate",
                 "/api/assets/review-rights",
                 "/api/content/agent-runs",
+                "/api/content/attach-media",
+                "/api/content/render-visual-benchmark",
                 "/api/content/script-review",
                 "/api/content/voice-review",
                 "/api/content/render-preview",
@@ -541,8 +605,16 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     self._send_json(_approve_voice_preview(db_path.parent.parent, payload))
                     return
 
+                if path == "/api/content/attach-media":
+                    self._send_json(_attach_segment_media(db_path.parent.parent, db_path, payload))
+                    return
+
                 if path == "/api/content/render-preview":
                     self._send_json(render_template_preview(db_path.parent.parent, str(payload.get("run_id", ""))))
+                    return
+
+                if path == "/api/content/render-visual-benchmark":
+                    self._send_json(render_visual_only_run(db_path.parent.parent, str(payload.get("run_id", ""))))
                     return
 
                 if path == "/api/content/render-full":
