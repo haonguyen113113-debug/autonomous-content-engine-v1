@@ -6,6 +6,26 @@ from urllib.error import URLError
 import pytest
 
 import apps.content_workflow as workflow
+from apps import llm as llm_module
+
+
+@pytest.fixture(autouse=True)
+def _clean_llm_state():
+    llm_module._COOLDOWNS.clear()
+    llm_module._SKIPPED.clear()
+    yield
+    llm_module._COOLDOWNS.clear()
+    llm_module._SKIPPED.clear()
+
+
+@pytest.fixture(autouse=True)
+def _pin_local_provider(monkeypatch):
+    """Hermetic provider config: the real .env must not leak into tests."""
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("LLM_MODEL", "qwen3.5:2b")
+    monkeypatch.setenv("LLM_MODELS", "")
+    monkeypatch.setenv("LLM_API_KEY", "")
+    monkeypatch.setenv("LLM_BUDGET_USD_PER_RUN", "0.25")
 from apps.web_ui.server import _list_runs
 
 
@@ -122,6 +142,7 @@ def test_twice_failed_beat_uses_outline_placeholder(monkeypatch):
     failed = next(s for s in result["segments"] if s["id"] == "beat-2")
     assert "[CẦN NGUỒN]" in failed["narration"]
     assert failed["generation"]["mode"] == "outline_fallback"
+    assert failed["generation"]["error"] in {"transport_or_provider_error", "invalid_segment_reply"}
     # Successful beats are kept, not discarded.
     assert sum(1 for s in result["segments"] if s["generation"]["mode"] == "local_ollama") == 5
 

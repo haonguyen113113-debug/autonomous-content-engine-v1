@@ -10,6 +10,7 @@ environment, never in logs, results, or Git.
 
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -30,6 +31,62 @@ _INDICATIVE_PRICES = {
 
 class LLMError(RuntimeError):
     """A model call failed; never carries credentials."""
+
+    def __init__(self, message: str, status: int | None = None,
+                 retry_after: int = 0):
+        super().__init__(message)
+        self.status = status
+        self.retry_after = retry_after
+
+
+# Models cooling down after a rate-limit/quota hit, and model IDs that 404.
+_COOLDOWNS: dict[str, float] = {}
+_SKIPPED: set[str] = set()
+
+# Switch to the next model on these failures. 401 (bad key) fails fast:
+# every model would fail the same way.
+_SWITCHABLE_STATUS = {402, 403, 404, 408, 409, 429, 500, 502, 503, 529}
+
+
+def parse_models(config: dict[str, str]) -> list[str]:
+    """Ordered rotation chain; LLM_MODELS wins, LLM_MODEL is the fallback."""
+    raw = config.get("LLM_MODELS", "")
+    models = [item.strip() for item in raw.split(",") if item.strip()]
+    if not models:
+        single = config.get("LLM_MODEL", "").strip()
+        models = [single] if single else []
+    return models
+
+
+def cooldown_seconds(config: dict[str, str]) -> int:
+    try:
+        return max(0, int(config.get("LLM_COOLDOWN_SECONDS", 300)))
+    except (TypeError, ValueError):
+        return 300
+
+
+def _prune_cooldowns() -> None:
+    now = time.monotonic()
+    for model in [m for m, until in _COOLDOWNS.items() if until <= now]:
+        del _COOLDOWNS[model]
+
+
+def available_models(config: dict[str, str]) -> list[str]:
+    _prune_cooldowns()
+    return [m for m in parse_models(config) if m not in _SKIPPED and m not in _COOLDOWNS]
+
+
+def note_limited(model: str, config: dict[str, str], extra_seconds: int = 0) -> None:
+    _COOLDOWNS[model] = (time.monotonic()
+                         + max(cooldown_seconds(config), extra_seconds))
+
+
+def _switchable(error: LLMError) -> bool:
+    if error.status is None:
+        return True
+    if error.status == 401:
+        return False
+    return error.status in _SWITCHABLE_STATUS or error.status >= 500
 
 
 def load_config(root: Path | None = None, env: dict[str, str] | None = None) -> dict[str, str]:
@@ -83,7 +140,13 @@ def _post_json(url: str, payload: dict[str, Any], headers: dict[str, str], timeo
         with urlopen(request, timeout=timeout) as response:
             raw = response.read(4 * 1024 * 1024)
     except HTTPError as error:
-        raise LLMError(f"Model endpoint returned HTTP {error.code}.") from error
+        retry_after = 0
+        try:
+            retry_after = max(0, int(str(error.headers.get("Retry-After") or 0)))
+        except (TypeError, ValueError, AttributeError):
+            retry_after = 0
+        raise LLMError(f"Model endpoint returned HTTP {error.code}.",
+                       status=error.code, retry_after=retry_after) from error
     except (URLError, TimeoutError, OSError) as error:
         raise LLMError(f"Model endpoint unreachable: {type(error).__name__}.") from error
     try:
@@ -95,9 +158,11 @@ def _post_json(url: str, payload: dict[str, Any], headers: dict[str, str], timeo
     return result
 
 
-def _ollama_chat(config: dict[str, str], system: str, user_payload: dict[str, Any],
+def _ollama_chat(config: dict[str, str], model: str, system: str,
+                 user_payload: dict[str, Any],
                  num_predict: int, timeout: int) -> tuple[dict[str, Any], dict[str, int]]:
-    model = config.get("LLM_MODEL", "").strip() or "qwen3.5:2b"
+    if not model:
+        raise LLMError("Ollama needs LLM_MODEL.")
     base_url = config.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
     result = _post_json(
         f"{base_url}/api/chat",
@@ -130,9 +195,9 @@ def _ollama_chat(config: dict[str, str], system: str, user_payload: dict[str, An
     return body, usage
 
 
-def _openai_compatible_chat(config: dict[str, str], system: str, user_payload: dict[str, Any],
+def _openai_compatible_chat(config: dict[str, str], model: str, system: str,
+                            user_payload: dict[str, Any],
                             num_predict: int, timeout: int) -> tuple[dict[str, Any], dict[str, int]]:
-    model = config.get("LLM_MODEL", "").strip()
     base_url = config.get("LLM_BASE_URL", "").strip().rstrip("/")
     api_key = config.get("LLM_API_KEY", "").strip()
     if not model or not base_url or not api_key:
@@ -174,16 +239,37 @@ def _openai_compatible_chat(config: dict[str, str], system: str, user_payload: d
 
 def chat_json(config: dict[str, str], system: str, user_payload: dict[str, Any],
               *, num_predict: int, timeout: int) -> tuple[dict[str, Any] | None, dict[str, int]]:
-    """One bounded model call. Returns (body, usage); None body means failure."""
+    """One bounded model call with automatic rotation.
+
+    Tries each available model in chain order; rate-limit/quota/server
+    failures rotate to the next model (with cooldown), auth failures fail
+    fast. Usage always carries the model that actually answered.
+    """
     provider = config.get("LLM_PROVIDER", "ollama").strip().lower()
-    try:
-        if provider == "openai_compatible":
-            return _openai_compatible_chat(config, system, user_payload, num_predict, timeout)
-        if provider == "ollama":
-            return _ollama_chat(config, system, user_payload, num_predict, timeout)
-        return None, {"prompt_tokens": 0, "completion_tokens": 0}
-    except LLMError:
-        return None, {"prompt_tokens": 0, "completion_tokens": 0}
+    if provider not in {"ollama", "openai_compatible"}:
+        return None, {"prompt_tokens": 0, "completion_tokens": 0, "model": ""}
+    for model in available_models(config):
+        try:
+            if provider == "openai_compatible":
+                body, usage = _openai_compatible_chat(
+                    config, model, system, user_payload, num_predict, timeout)
+            else:
+                body, usage = _ollama_chat(
+                    config, model, system, user_payload, num_predict, timeout)
+        except LLMError as error:
+            if error.status == 404:
+                _SKIPPED.add(model)
+            if not _switchable(error):
+                return None, {"prompt_tokens": 0, "completion_tokens": 0, "model": ""}
+            if error.status in {429, 402, 529}:
+                # Quota/rate states persist; transient blips do not cool down,
+                # so one bad reply cannot sideline the model for the draft.
+                # Honor the provider's Retry-After when it asks for longer.
+                note_limited(model, config, error.retry_after)
+            continue
+        usage["model"] = model
+        return body, usage
+    return None, {"prompt_tokens": 0, "completion_tokens": 0, "model": ""}
 
 
 def price_per_million(config: dict[str, str]) -> tuple[float, float, bool]:

@@ -45,6 +45,26 @@ run file and under the draft notes in Workflows). `LLM_BUDGET_USD_PER_RUN`
 deterministic outline instead of spending more. The API key lives only in
 the machine-local `.env`, which is never committed to Git.
 
+## Model rotation
+
+`LLM_MODELS` holds a comma-separated fallback chain (first id is primary).
+When a model answers 429/402/quota or 5xx errors, the engine moves to the
+next id and cools the limited one down for `LLM_COOLDOWN_SECONDS` (default
+300), honoring the provider's `Retry-After` header when it asks for longer.
+Unknown model ids are skipped after their first 404, and a bad key
+(401) fails fast instead of burning the chain. Each segment records the
+model that actually produced it (`generation.usage.model`), and the draft
+lists every model used (`llm_models_used`, shown in Workflows when a draft
+rotates). Free-model rosters change often; re-check your provider's model
+list and prune dead ids (they are skipped automatically, but dead weight
+slows the first attempt of each call).
+
+On OpenRouter, free models share 20 requests/min and 50 requests/day
+(1000/day after a one-time $10+ credit purchase resets the tier). More ids
+in the chain spread per-minute and provider-side load; they do not multiply
+the daily cap. At ~7 calls per short draft, the free tier covers about
+7 drafts/day, or ~140/day after the one-time purchase.
+
 ## Optional local voice preview
 
 Python 3.10 or newer is recommended. From the repository root:

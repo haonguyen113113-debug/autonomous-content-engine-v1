@@ -104,14 +104,14 @@ def test_openai_compatible_missing_key_fails_closed(monkeypatch):
               "LLM_BASE_URL": "https://api.example.com/v1", "LLM_API_KEY": ""}
     body, usage = chat_json(config, "s", {}, num_predict=8, timeout=5)
     assert body is None
-    assert usage == {"prompt_tokens": 0, "completion_tokens": 0}
+    assert usage == {"prompt_tokens": 0, "completion_tokens": 0, "model": ""}
     assert calls == []
 
 
 def test_unknown_provider_fails_closed():
     body, usage = chat_json({"LLM_PROVIDER": "nope"}, "s", {}, num_predict=8, timeout=5)
     assert body is None
-    assert usage == {"prompt_tokens": 0, "completion_tokens": 0}
+    assert usage == {"prompt_tokens": 0, "completion_tokens": 0, "model": ""}
 
 
 def test_http_error_never_leaks_key(monkeypatch):

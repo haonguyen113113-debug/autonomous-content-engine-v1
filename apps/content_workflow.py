@@ -194,6 +194,7 @@ def _ollama_call(
     )
     cost, _ = cost_usd(env, usage)
     record.update(
+        model=usage.get("model") or record["model"],
         prompt_tokens=usage.get("prompt_tokens", 0),
         completion_tokens=usage.get("completion_tokens", 0),
         cost_usd=cost,
@@ -323,8 +324,8 @@ def _ollama_beat(
     duration_hint: int,
     num_predict: int,
     ledger: dict[str, Any],
-) -> tuple[dict[str, Any] | None, int, dict[str, Any]]:
-    """Generate one beat; returns (segment, attempts, usage). None means failed."""
+) -> tuple[dict[str, Any] | None, int, dict[str, Any], str]:
+    """Generate one beat; returns (segment, attempts, usage, last_error)."""
     lo = max(1, duration_hint // 4)
     hi = max(10, duration_hint * 2)
     system = (
@@ -364,6 +365,7 @@ def _ollama_beat(
     attempts = 0
     usage: dict[str, Any] = {"provider": "", "model": "", "prompt_tokens": 0,
                              "completion_tokens": 0, "cost_usd": 0.0}
+    last_error = ""
     while attempts < BEAT_ATTEMPTS:
         attempts += 1
         body, usage = _ollama_call(
@@ -372,12 +374,14 @@ def _ollama_beat(
             ledger=ledger,
         )
         if body is None:
+            last_error = "transport_or_provider_error"
             continue
         segment = _clean_segment(body)
         if segment is not None:
             segment["id"] = beat_id
-            return segment, attempts, usage
-    return None, attempts, usage
+            return segment, attempts, usage, ""
+        last_error = "invalid_segment_reply"
+    return None, attempts, usage, last_error
 
 
 def _ollama_asset_needs(
@@ -458,7 +462,7 @@ def _ollama_draft(
             fallback_beats.append(beat_id)
             budget_fallbacks += 1
         else:
-            segment, attempts, usage = _ollama_beat(
+            segment, attempts, usage, last_error = _ollama_beat(
                 env, topic=topic, beat_id=beat_id,
                 purpose=str(purpose), position=position,
                 previous_summary=previous_summary, evidence=evidence,
@@ -467,7 +471,8 @@ def _ollama_draft(
             )
             if segment is None:
                 segment = _outline_beat(topic, arc, index, target)
-                segment["generation"] = {"mode": "outline_fallback", "attempts": attempts}
+                segment["generation"] = {"mode": "outline_fallback", "attempts": attempts,
+                                         "error": last_error}
                 fallback_beats.append(beat_id)
             else:
                 model_beats += 1
@@ -483,6 +488,10 @@ def _ollama_draft(
         return None
     beat_visuals = [str(item.get("visual", ""))[:200] for item in segments]
     asset_needs = _ollama_asset_needs(env, topic, beat_visuals, content_type, ledger)
+    models_used = sorted({
+        call["model"] for call in ledger["calls"]
+        if call.get("completion_tokens", 0) > 0 and call.get("model")
+    })
     return {
         "segments": segments,
         "asset_needs": asset_needs,
@@ -492,6 +501,7 @@ def _ollama_draft(
         "llm_calls": len(ledger["calls"]),
         "llm_provider": env.get("LLM_PROVIDER", "ollama").strip().lower(),
         "llm_model": env.get("LLM_MODEL", "").strip(),
+        "llm_models_used": models_used,
     }
 
 
@@ -539,6 +549,7 @@ def create_script_draft(
     llm_calls = 0
     llm_provider = "ollama"
     llm_model = ""
+    llm_models_used: list[str] = []
     budget_exceeded = False
     if generated:
         segments = generated["segments"]
@@ -548,6 +559,7 @@ def create_script_draft(
         llm_calls = generated["llm_calls"]
         llm_provider = generated["llm_provider"]
         llm_model = generated["llm_model"]
+        llm_models_used = generated["llm_models_used"]
         budget_exceeded = generated["budget_exceeded"]
         mode = "local_ollama" if not fallback_beats else "local_ollama_partial"
     else:
@@ -605,6 +617,7 @@ def create_script_draft(
     result["llm_calls"] = llm_calls
     result["llm_provider"] = llm_provider
     result["llm_model"] = llm_model
+    result["llm_models_used"] = llm_models_used
     return result
 
 
