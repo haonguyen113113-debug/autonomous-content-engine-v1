@@ -104,14 +104,14 @@ def test_openai_compatible_missing_key_fails_closed(monkeypatch):
               "LLM_BASE_URL": "https://api.example.com/v1", "LLM_API_KEY": ""}
     body, usage = chat_json(config, "s", {}, num_predict=8, timeout=5)
     assert body is None
-    assert usage == {"prompt_tokens": 0, "completion_tokens": 0}
+    assert usage == {"prompt_tokens": 0, "completion_tokens": 0, "model": ""}
     assert calls == []
 
 
 def test_unknown_provider_fails_closed():
     body, usage = chat_json({"LLM_PROVIDER": "nope"}, "s", {}, num_predict=8, timeout=5)
     assert body is None
-    assert usage == {"prompt_tokens": 0, "completion_tokens": 0}
+    assert usage == {"prompt_tokens": 0, "completion_tokens": 0, "model": ""}
 
 
 def test_http_error_never_leaks_key(monkeypatch):
@@ -168,3 +168,14 @@ def test_budget_defaults_and_config_merge(tmp_path):
     assert config["LLM_MODEL"] == "test-model"
     assert config["LLM_PROVIDER"] == "ollama"
     assert config["OLLAMA_BASE_URL"] == "http://localhost:11434"
+
+
+def test_openai_body_json_mode_and_reasoning():
+    from apps.llm import _openai_body
+    strict = _openai_body({}, "m", "s", {"a": 1}, 64)
+    assert strict["response_format"] == {"type": "json_object"}
+    assert "reasoning_effort" not in strict
+    relaxed = _openai_body({"LLM_JSON_MODE": "off", "LLM_REASONING_EFFORT": "low"},
+                           "m", "s", {"a": 1}, 64)
+    assert "response_format" not in relaxed
+    assert relaxed["reasoning_effort"] == "low"

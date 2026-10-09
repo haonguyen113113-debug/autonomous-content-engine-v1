@@ -9,6 +9,7 @@ from vieneu import Vieneu
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit("usage: tts_preview_worker.py REFERENCE OUTPUT")
+    sys.stdin.reconfigure(encoding="utf-8")
     reference_path, output_path = sys.argv[1:]
     text = unicodedata.normalize("NFC", sys.stdin.read()).strip()
     engine = Vieneu(mode="v3turbo", backend="onnx")

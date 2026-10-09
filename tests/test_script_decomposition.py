@@ -6,6 +6,26 @@ from urllib.error import URLError
 import pytest
 
 import apps.content_workflow as workflow
+from apps import llm as llm_module
+
+
+@pytest.fixture(autouse=True)
+def _clean_llm_state():
+    llm_module._COOLDOWNS.clear()
+    llm_module._SKIPPED.clear()
+    yield
+    llm_module._COOLDOWNS.clear()
+    llm_module._SKIPPED.clear()
+
+
+@pytest.fixture(autouse=True)
+def _pin_local_provider(monkeypatch):
+    """Hermetic provider config: the real .env must not leak into tests."""
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("LLM_MODEL", "qwen3.5:2b")
+    monkeypatch.setenv("LLM_MODELS", "")
+    monkeypatch.setenv("LLM_API_KEY", "")
+    monkeypatch.setenv("LLM_BUDGET_USD_PER_RUN", "0.25")
 from apps.web_ui.server import _list_runs
 
 
@@ -122,6 +142,7 @@ def test_twice_failed_beat_uses_outline_placeholder(monkeypatch):
     failed = next(s for s in result["segments"] if s["id"] == "beat-2")
     assert "[CẦN NGUỒN]" in failed["narration"]
     assert failed["generation"]["mode"] == "outline_fallback"
+    assert failed["generation"]["error"] in {"transport_or_provider_error", "invalid_segment_reply"}
     # Successful beats are kept, not discarded.
     assert sum(1 for s in result["segments"] if s["generation"]["mode"] == "local_ollama") == 5
 
@@ -134,6 +155,22 @@ def test_model_down_keeps_deterministic_outline_fallback(monkeypatch):
     assert result["generation_mode"] == "outline_fallback"
     assert len(result["segments"]) == 6
     assert result["status"] == "NEEDS_EVIDENCE"
+
+
+def test_total_failure_preserves_diagnostics(monkeypatch):
+    """Regression: a total model failure must keep fallback reasons and
+    spend evidence instead of a bare outline with attempts=0 everywhere."""
+    _install(monkeypatch, [URLError("connection refused")])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    assert result["fallback_beats"] == [f"beat-{i + 1}" for i in range(6)]
+    for segment in result["segments"]:
+        assert segment["generation"]["mode"] == "outline_fallback"
+        assert segment["generation"]["attempts"] == 2
+        assert segment["generation"]["error"] == "transport_or_provider_error"
+    assert result["llm_calls"] == 12  # 6 beats x 2 attempts, all recorded
+    assert result["budget_exceeded"] is False
 
 
 def test_asset_needs_validated_and_capped(monkeypatch):
@@ -289,3 +326,84 @@ def test_agent_run_records_beat_progress(monkeypatch, tmp_path):
     listed = _list_runs(root)
     assert listed[0]["current_beat"] == 3
     assert listed[0]["total_beats"] == 6
+
+
+def test_overlap_guard_retries_repetitive_beat(monkeypatch):
+    first = _chat_content(_beat_payload(
+        "Carlos Espi ghi ban cho Real Madrid tu duong chuyen vao.", 7))
+    repeat = _chat_content(_beat_payload(
+        "Carlos Espi ghi ban cho Real Madrid tu duong chuyen vao!", 7))
+    fresh = _chat_content(_beat_payload(
+        "O tuoi 21, Espi mang den toc do va kha nang khong chien vuot troi.", 7))
+    rest = [_chat_content(_beat_payload(f"Beat rieng {i}.", 7)) for i in range(4)]
+    _install(monkeypatch, [first, repeat, fresh] + rest
+             + [_chat_content({"asset_needs": []})])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    assert result["generation_mode"] == "local_ollama"
+    beat2 = next(s for s in result["segments"] if s["id"] == "beat-2")
+    assert "toc do" in beat2["narration"]
+    assert beat2["generation"]["attempts"] == 2
+
+
+def test_persistent_repetition_falls_back_with_reason(monkeypatch):
+    same = _chat_content(_beat_payload("Lap lai y tuong cu.", 7))
+    _install(monkeypatch, [same, same, same]
+             + [_chat_content(_beat_payload(f"Tot {i}.", 7)) for i in range(4)]
+             + [_chat_content({"asset_needs": []})])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    assert result["generation_mode"] == "local_ollama_partial"
+    failed = next(s for s in result["segments"] if s["id"] == "beat-2")
+    assert failed["generation"]["error"] == "repetitive_beat"
+
+
+def test_overlap_ratio_unit():
+    assert workflow._overlap_ratio("a b c d e f", "a b c d e f") == 1.0
+    assert workflow._overlap_ratio("hoan toan khac", "chuyen hoan toan moi") < 0.7
+    assert workflow._overlap_ratio("", "non-empty") == 0.0
+
+
+def test_fact_signature_unit():
+    signature = workflow._fact_signature("Cao 1,94m, phi 25 triệu euro, 4 ban/2 tran.")
+    assert "1,94m" in signature
+    assert "25 triệu" in signature
+    assert "4 ban" in signature
+    assert workflow._fact_signature("Khong co con so nao.") == set()
+
+
+def test_repeated_facts_rejected_and_listed(monkeypatch):
+    first = _chat_content(_beat_payload("Espi cao 1,94m, gia 25 triệu euro.", 7))
+    repeat = _chat_content(_beat_payload("Voi chieu cao 1,94m va muc phi 25 triệu euro, Espi manh.", 7))
+    fresh = _chat_content(_beat_payload("Espi ghi 4 ban sau 2 tran U21.", 7))
+    rest = [_chat_content(_beat_payload(f"Chuyen moi {i}.", 7)) for i in range(4)]
+    calls = _install(monkeypatch, [first, repeat, fresh] + rest
+                     + [_chat_content({"asset_needs": []})])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    beat2 = next(s for s in result["segments"] if s["id"] == "beat-2")
+    assert "4 ban" in beat2["narration"]
+    assert beat2["generation"]["attempts"] == 2
+    # Facts already stated travel with later calls.
+    third_user = json.loads(json.loads(calls[2]["data"].decode("utf-8"))["messages"][1]["content"])
+    assert "facts_already_stated" in third_user
+    assert any("1,94m" in fact for fact in third_user["facts_already_stated"])
+
+
+def test_persistent_fact_repetition_falls_back(monkeypatch):
+    first = _chat_content(_beat_payload("Espi cao 1,94m, gia 25 triệu euro.", 7))
+    paraphrase = _chat_content(_beat_payload(
+        "Voi chieu cao 1,94m, Espi co gia 25 triệu euro.", 7))
+    paraphrase2 = _chat_content(_beat_payload(
+        "Chieu cao 1,94m cung muc phi 25 triệu euro noi bat.", 7))
+    _install(monkeypatch, [first, paraphrase, paraphrase2]
+             + [_chat_content(_beat_payload(f"Chuyen moi {i}.", 7)) for i in range(4)]
+             + [_chat_content({"asset_needs": []})])
+
+    result = workflow.create_script_draft(ROOT, **_draft_kwargs())
+
+    failed = next(s for s in result["segments"] if s["id"] == "beat-2")
+    assert failed["generation"]["error"] == "repeated_facts"

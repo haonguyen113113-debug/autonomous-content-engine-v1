@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 import json
+import re
 import time
 from pathlib import Path
 import uuid
@@ -194,6 +195,7 @@ def _ollama_call(
     )
     cost, _ = cost_usd(env, usage)
     record.update(
+        model=usage.get("model") or record["model"],
         prompt_tokens=usage.get("prompt_tokens", 0),
         completion_tokens=usage.get("completion_tokens", 0),
         cost_usd=cost,
@@ -285,6 +287,31 @@ def _clean_asset_needs(items: Any) -> list[dict[str, Any]]:
     return asset_needs
 
 
+def _word_5grams(text: str) -> set[tuple[str, ...]]:
+    tokens = re.findall(r"\w+", text.lower())
+    return {tuple(tokens[i:i + 5]) for i in range(len(tokens) - 4)}
+
+
+def _overlap_ratio(previous: str, current: str) -> float:
+    """Shared 5-gram overlap; guards against beats restating each other."""
+    earlier, later = _word_5grams(previous), _word_5grams(current)
+    if not earlier or not later:
+        return 0.0
+    return len(earlier & later) / min(len(earlier), len(later))
+
+
+def _fact_signature(text: str) -> set[str]:
+    """Number-like fact tokens (1,94m, 25 triệu euro, 4 bàn...).
+
+    Beats paraphrase shared facts without tripping the wording guard, so
+    facts themselves are tracked separately.
+    """
+    return set(re.findall(r"\d+(?:[.,]\d+)?\s*(?:m\b|triệu|trieu|euro|bàn|ban|trận|tran|tuổi|tuoi|%|ngày|ngay|tháng|thang|năm|nam)?", text.lower()))
+
+
+MAX_BEAT_OVERLAP = 0.7
+
+
 def _outline_beat(topic: str, arc: list[Any], index: int, target_seconds: int) -> dict[str, Any]:
     """Deterministic per-beat fallback; never invents facts the owner must verify."""
     return {
@@ -323,8 +350,10 @@ def _ollama_beat(
     duration_hint: int,
     num_predict: int,
     ledger: dict[str, Any],
-) -> tuple[dict[str, Any] | None, int, dict[str, Any]]:
-    """Generate one beat; returns (segment, attempts, usage). None means failed."""
+    previous_narration: str = "",
+    used_facts: frozenset[str] = frozenset(),
+) -> tuple[dict[str, Any] | None, int, dict[str, Any], str]:
+    """Generate one beat; returns (segment, attempts, usage, last_error)."""
     lo = max(1, duration_hint // 4)
     hi = max(10, duration_hint * 2)
     system = (
@@ -333,8 +362,11 @@ def _ollama_beat(
         "Only state football facts supported by supplied evidence. Never invent match details, "
         "statistics, quotes, or sources. If evidence is insufficient, "
         "write a clear [CẦN NGUỒN] placeholder instead of an assertion. "
-        "Return only a JSON object with narration (Vietnamese voiceover), visual "
-        "(short shot description), evidence_refs (array of supplied evidence used), "
+        "Open with a different sentence than the previous beat and do not "
+        "restate facts it already stated; advance the idea instead. "
+        "When facts_already_stated are supplied, treat them as used up: "
+        "do not repeat them unless this beat adds a new fact of its own. "
+        "Return only a JSON object with narration (Vietnamese voiceover), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
         "visual_mode (tactical_explainer, statline_scorecard, source_card, "
         "chart_comparison, or chart_timeline), graphic_data (values and source only "
         "when explicitly present in supplied evidence, else {}), duration_seconds "
@@ -361,9 +393,12 @@ def _ollama_beat(
         "previous_beat_summary": previous_summary,
         "evidence": _cap_evidence(evidence),
     }
+    if used_facts:
+        user_payload["facts_already_stated"] = sorted(used_facts)[:20]
     attempts = 0
     usage: dict[str, Any] = {"provider": "", "model": "", "prompt_tokens": 0,
                              "completion_tokens": 0, "cost_usd": 0.0}
+    last_error = ""
     while attempts < BEAT_ATTEMPTS:
         attempts += 1
         body, usage = _ollama_call(
@@ -372,13 +407,25 @@ def _ollama_beat(
             ledger=ledger,
         )
         if body is None:
+            last_error = "transport_or_provider_error"
             continue
         segment = _clean_segment(body)
-        if segment is not None:
-            segment["id"] = beat_id
-            return segment, attempts, usage
-    return None, attempts, usage
-
+        if segment is None:
+            last_error = "invalid_segment_reply"
+            continue
+        if (previous_narration
+                and _overlap_ratio(previous_narration, segment["narration"]) > MAX_BEAT_OVERLAP):
+            last_error = "repetitive_beat"
+            segment = None
+            continue
+        signature = _fact_signature(segment["narration"])
+        if used_facts and signature and signature <= used_facts:
+            last_error = "repeated_facts"
+            segment = None
+            continue
+        segment["id"] = beat_id
+        return segment, attempts, usage, ""
+    return None, attempts, usage, last_error
 
 def _ollama_asset_needs(
     env: dict[str, str],
@@ -428,11 +475,21 @@ def _ollama_draft(
     *,
     on_beat: Any = None,
     budget_seconds: int | None = None,
-) -> dict[str, Any] | None:
-    """Draft beat by beat; None only when the model produced nothing usable."""
+) -> dict[str, Any]:
+    """Draft beat by beat; always returns the draft with per-beat provenance.
+
+    Even a total model failure returns usable outline segments plus the
+    fallback list, spend ledger, and failure reasons — never a bare None
+    that discards all diagnostics.
+    """
     arc = form.get("arc", [])
     if not arc:
-        return None
+        return {"model_beats": 0, "segments": [], "asset_needs": [],
+                "fallback_beats": [], "budget_exceeded": False,
+                "llm_cost_usd": 0.0, "llm_calls": 0,
+                "llm_provider": env.get("LLM_PROVIDER", "ollama").strip().lower(),
+                "llm_model": env.get("LLM_MODEL", "").strip(),
+                "llm_models_used": []}
     target = int(form.get("target_seconds", 45))
     duration_hint = max(1, target // max(1, len(arc)))
     num_predict = 1024 if content_type == "short" else 1536
@@ -443,6 +500,8 @@ def _ollama_draft(
     segments: list[dict[str, Any]] = []
     fallback_beats: list[str] = []
     previous_summary = ""
+    previous_full = ""
+    used_facts: set[str] = set()
     model_beats = 0
     budget_fallbacks = 0
     ledger = _new_ledger(env)
@@ -458,32 +517,43 @@ def _ollama_draft(
             fallback_beats.append(beat_id)
             budget_fallbacks += 1
         else:
-            segment, attempts, usage = _ollama_beat(
+            segment, attempts, usage, last_error = _ollama_beat(
                 env, topic=topic, beat_id=beat_id,
                 purpose=str(purpose), position=position,
                 previous_summary=previous_summary, evidence=evidence,
                 duration_hint=duration_hint, num_predict=num_predict,
-                ledger=ledger,
+                ledger=ledger, previous_narration=previous_full,
+                used_facts=frozenset(used_facts),
             )
             if segment is None:
                 segment = _outline_beat(topic, arc, index, target)
-                segment["generation"] = {"mode": "outline_fallback", "attempts": attempts}
+                segment["generation"] = {"mode": "outline_fallback", "attempts": attempts,
+                                         "error": last_error}
                 fallback_beats.append(beat_id)
             else:
                 model_beats += 1
                 segment["generation"] = {"mode": "local_ollama", "attempts": attempts,
                                          "usage": usage}
                 previous_summary = segment["narration"][:300]
+                previous_full = segment["narration"]
+                used_facts |= _fact_signature(segment["narration"])
         segments.append(segment)
         if on_beat is not None:
             on_beat(index, total, segment["generation"]["mode"],
                      segment["generation"]["attempts"], time.monotonic() - started)
 
-    if model_beats == 0:
-        return None
     beat_visuals = [str(item.get("visual", ""))[:200] for item in segments]
-    asset_needs = _ollama_asset_needs(env, topic, beat_visuals, content_type, ledger)
+    asset_needs: list[dict[str, Any]] = []
+    if model_beats > 0:
+        # No model output means no grounded media needs; skip the extra call
+        # instead of burning quota to decorate an outline.
+        asset_needs = _ollama_asset_needs(env, topic, beat_visuals, content_type, ledger)
+    models_used = sorted({
+        call["model"] for call in ledger["calls"]
+        if call.get("completion_tokens", 0) > 0 and call.get("model")
+    })
     return {
+        "model_beats": model_beats,
         "segments": segments,
         "asset_needs": asset_needs,
         "fallback_beats": fallback_beats,
@@ -492,6 +562,7 @@ def _ollama_draft(
         "llm_calls": len(ledger["calls"]),
         "llm_provider": env.get("LLM_PROVIDER", "ollama").strip().lower(),
         "llm_model": env.get("LLM_MODEL", "").strip(),
+        "llm_models_used": models_used,
     }
 
 
@@ -539,27 +610,23 @@ def create_script_draft(
     llm_calls = 0
     llm_provider = "ollama"
     llm_model = ""
+    llm_models_used: list[str] = []
     budget_exceeded = False
-    if generated:
-        segments = generated["segments"]
-        asset_needs = generated["asset_needs"]
-        fallback_beats = generated["fallback_beats"]
-        llm_cost_usd = generated["llm_cost_usd"]
-        llm_calls = generated["llm_calls"]
-        llm_provider = generated["llm_provider"]
-        llm_model = generated["llm_model"]
-        budget_exceeded = generated["budget_exceeded"]
-        mode = "local_ollama" if not fallback_beats else "local_ollama_partial"
-    else:
-        arc = form.get("arc", [])
-        segments = [
-            {
-                **_outline_beat(topic, arc, index, int(form.get("target_seconds", 45))),
-                "generation": {"mode": "outline_fallback", "attempts": 0},
-            }
-            for index, _ in enumerate(arc)
-        ]
+    segments = generated["segments"]
+    asset_needs = generated["asset_needs"]
+    fallback_beats = generated["fallback_beats"]
+    llm_cost_usd = generated["llm_cost_usd"]
+    llm_calls = generated["llm_calls"]
+    llm_provider = generated["llm_provider"]
+    llm_model = generated["llm_model"]
+    llm_models_used = generated["llm_models_used"]
+    budget_exceeded = generated["budget_exceeded"]
+    if generated["model_beats"] == 0:
+        # Total model failure keeps the per-beat outline segments with their
+        # failure reasons instead of a bare outline with no diagnostics.
         mode = "outline_fallback"
+    else:
+        mode = "local_ollama" if not fallback_beats else "local_ollama_partial"
 
     total_duration = int(form.get("target_seconds", 45))
     segments, chapter_events = _add_production_timeline(segments, total_duration, package.timeline)
@@ -605,6 +672,7 @@ def create_script_draft(
     result["llm_calls"] = llm_calls
     result["llm_provider"] = llm_provider
     result["llm_model"] = llm_model
+    result["llm_models_used"] = llm_models_used
     return result
 
 

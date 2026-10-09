@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import unicodedata
 import subprocess
@@ -75,6 +76,18 @@ def save_voice_reference(root: Path, filename: str, content_type: str, data: byt
     return voice_profile_status(root)
 
 
+def _clean_for_tts(text: str) -> str:
+    """Make narration safe for the local TTS stack on any OS locale.
+
+    A single stray byte (e.g. 0x81 inside a UTF-8 sequence decoded as
+    cp1252) once produced a lone surrogate that crashed the Rust text
+    normalizer, so belt (UTF-8 pipes) and suspenders (sanitize) both apply.
+    """
+    text = unicodedata.normalize("NFC", text)
+    text = re.sub(r"[\ud800-\udfff]", "", text)
+    return "".join(ch for ch in text if ch == "\n" or ch == "\t" or not unicodedata.category(ch).startswith("C"))
+
+
 def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     if not run_id.isalnum() or len(run_id) != 12:
         raise ValueError("Production run ID is invalid.")
@@ -90,7 +103,7 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     )
     if "[CẦN NGUỒN]" in text or "[KẾT LUẬN CỦA ALLEN]" in text:
         raise ValueError("Complete the research placeholders and edit the conclusion before TTS.")
-    text = unicodedata.normalize("NFC", text).strip()
+    text = _clean_for_tts(unicodedata.normalize("NFC", text).strip())
     if len(text) < 12 or len(text) > 24000:
         raise ValueError("The voice preview needs 12–24,000 characters of reviewed script.")
     profile_status = voice_profile_status(root)
@@ -109,10 +122,14 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     child_env = dict(os.environ)
     child_env["HF_HUB_DISABLE_TELEMETRY"] = "1"
     child_env["HF_HOME"] = str(root / "runtime/model-cache")
+    child_env["PYTHONUTF8"] = "1"
+    child_env["PYTHONIOENCODING"] = "utf-8"
     process = subprocess.run(
         [str(runtime_python), str(worker), str(reference), str(output_dir / output_name)],
         input=text,
         text=True,
+        encoding="utf-8",
+        errors="strict",
         capture_output=True,
         timeout=3600,
         cwd=root,

@@ -36,14 +36,38 @@ LLM_MODEL=<a low-cost model id from your provider>
 LLM_API_KEY=<paste the provider key here>
 ```
 
-Low-cost starting points: a mini-tier model on OpenAI, or a cheap fast
-model through an OpenRouter/Groq/DeepSeek-compatible key. The engine sends
+Low-cost starting points: a mini-tier model on OpenAI, a cheap fast
+model through an OpenRouter/Groq/DeepSeek-compatible key, or Groq's fast
+free tier (`https://api.groq.com/openai/v1` with ids like
+`openai/gpt-oss-20b`, `qwen/qwen3.8-27b`, `openai/gpt-oss-120b` — re-check
+`console.groq.com/docs/models`, dead ids are skipped automatically).
+The engine sends
 the same small per-beat JSON prompts and records prompt/completion tokens
 plus estimated cost per segment and per run (see `llm_cost_usd` in the saved
 run file and under the draft notes in Workflows). `LLM_BUDGET_USD_PER_RUN`
 (default `0.25`) caps spend per draft; exhausted budgets degrade to the
 deterministic outline instead of spending more. The API key lives only in
 the machine-local `.env`, which is never committed to Git.
+
+## Model rotation
+
+`LLM_MODELS` holds a comma-separated fallback chain (first id is primary).
+When a model answers 429/402/quota or 5xx errors, the engine moves to the
+next id and cools the limited one down for `LLM_COOLDOWN_SECONDS` (default
+300), honoring the provider's `Retry-After` header when it asks for longer.
+Unknown model ids are skipped after their first 404, and a bad key
+(401) fails fast instead of burning the chain. Each segment records the
+model that actually produced it (`generation.usage.model`), and the draft
+lists every model used (`llm_models_used`, shown in Workflows when a draft
+rotates). Free-model rosters change often; re-check your provider's model
+list and prune dead ids (they are skipped automatically, but dead weight
+slows the first attempt of each call).
+
+On OpenRouter, free models share 20 requests/min and 50 requests/day
+(1000/day after a one-time $10+ credit purchase resets the tier). More ids
+in the chain spread per-minute and provider-side load; they do not multiply
+the daily cap. At ~7 calls per short draft, the free tier covers about
+7 drafts/day, or ~140/day after the one-time purchase.
 
 ## Optional local voice preview
 
