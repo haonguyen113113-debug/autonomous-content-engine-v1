@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 import html
 import ipaddress
@@ -88,6 +88,10 @@ class ExternalAssetCandidate:
     duration_seconds: int | None = None
     uploaded_at: str | None = None
     identity: str | None = None
+    # Cost tier that served this candidate (Visibly-style data_source
+    # transparency). Stamped by search_candidates_tiered; "unknown" when
+    # the candidate came through the un-tiered search_candidates path.
+    source_tier: str = "unknown"
 
 
 def _license_label(license_code: Any, version: Any) -> str | None:
@@ -1329,6 +1333,45 @@ def search_candidates(
     portrait/landscape to providers that support it. Raises only when every
     queried provider failed.
     """
+    normalized_query = _validate_search_args(query, resource_type, limit, sort, orientation)
+    statuses = provider_status(api_keys)
+    collected, failures = _collect_from_providers(
+        statuses, api_keys, normalized_query, resource_type, limit, sort, orientation)
+    if not collected and failures:
+        raise DiscoveryError("; ".join(failures))
+    ranked = _rank_collected(collected, normalized_query, limit, sort)
+    return ranked, statuses
+
+
+# Cost tiers, cheapest first. Mirrors the Visibly "Google-first" pattern:
+# free sources serve every request; quota-limited keyed sources run only
+# when the free tier cannot satisfy the need.
+FREE_PROVIDER_KEYS = frozenset({"openverse_image", "commons_image", "commons_video"})
+KEYED_PROVIDER_KEYS = frozenset({"pexels_image", "pexels_video", "pixabay_image", "pixabay_video"})
+
+
+def tier_of_provider_key(key: str) -> str:
+    """Cost tier for a provider status key: keyless, keyed, or unknown."""
+    if key in FREE_PROVIDER_KEYS:
+        return "keyless"
+    if key in KEYED_PROVIDER_KEYS:
+        return "keyed"
+    return "unknown"
+
+
+def tier_of_provider(label: str) -> str:
+    """Cost tier for a candidate provider label (prefix match)."""
+    text = (label or "").lower()
+    if text.startswith("openverse") or text.startswith("wikimedia"):
+        return "keyless"
+    if text.startswith("pexels") or text.startswith("pixabay"):
+        return "keyed"
+    return "unknown"
+
+
+def _validate_search_args(
+    query: str, resource_type: str, limit: int, sort: str, orientation: str | None,
+) -> str:
     normalized_query = " ".join(query.split())
     if not normalized_query:
         raise ValueError("Search query is required.")
@@ -1342,8 +1385,20 @@ def search_candidates(
         raise ValueError("Orientation must be landscape, portrait, or square.")
     if not 1 <= limit <= MAX_RESULTS:
         raise ValueError(f"Result limit must be between 1 and {MAX_RESULTS}.")
+    return normalized_query
 
-    statuses = provider_status(api_keys)
+
+def _collect_from_providers(
+    statuses: list[dict[str, str]],
+    api_keys: dict | None,
+    normalized_query: str,
+    resource_type: str,
+    limit: int,
+    sort: str,
+    orientation: str | None,
+    provider_keys: frozenset[str] | set[str] | None = None,
+) -> tuple[list[ExternalAssetCandidate], list[str]]:
+    """Query one tier of providers; None means every eligible provider."""
     ready = {item["key"] for item in statuses if item["state"] == "ready"}
     wanted = resource_type
     collected: list[ExternalAssetCandidate] = []
@@ -1351,6 +1406,8 @@ def search_candidates(
     per_key = dict(api_keys or {})
 
     def run(key: str, media: str, search: Any) -> None:
+        if provider_keys is not None and key not in provider_keys:
+            return
         for status in statuses:
             if status["key"] != key:
                 continue
@@ -1383,9 +1440,15 @@ def search_candidates(
                                            pixabay_order, pixabay_orientation))
         run("pixabay_video", "video",
             lambda: _search_pixabay_videos(normalized_query, pixabay_key, limit, pixabay_order))
+    return collected, failures
 
-    if not collected and failures:
-        raise DiscoveryError("; ".join(failures))
+
+def _rank_collected(
+    collected: list[ExternalAssetCandidate],
+    normalized_query: str,
+    limit: int,
+    sort: str,
+) -> list[ExternalAssetCandidate]:
     ranked = _rank_candidates(collected, normalized_query, limit=limit)
     if sort == "newest":
         # Dated uploads newest-first; undated keep their relevance order.
@@ -1393,4 +1456,83 @@ def search_candidates(
         undated = [item for item in ranked if not item.uploaded_at]
         dated.sort(key=lambda item: str(item.uploaded_at), reverse=True)
         ranked = dated + undated
-    return ranked, statuses
+    return ranked
+
+
+def _stamp_tiers(
+    candidates: list[ExternalAssetCandidate],
+) -> list[ExternalAssetCandidate]:
+    return [replace(item, source_tier=tier_of_provider(item.provider)) for item in candidates]
+
+
+def search_candidates_tiered(
+    query: str,
+    *,
+    resource_type: str = "image",
+    limit: int = 24,
+    api_keys: dict | None = None,
+    sort: str = "relevance",
+    orientation: str | None = None,
+    min_free: int = 6,
+) -> tuple[list[ExternalAssetCandidate], list[dict[str, str]], dict[str, Any]]:
+    """Free-first discovery with keyed-tier escalation.
+
+    Phase 1 queries only keyless providers (Openverse, Wikimedia Commons:
+    no quota, no key). Phase 2 (Pexels, Pixabay) runs only when the free
+    tier returns fewer than ``min_free`` usable candidates, so configured
+    keys stop burning quota on requests free sources already satisfy.
+    ``min_free=0`` means free-only (keyed tier never queried).
+
+    Returns (candidates, provider_status, tier_report) where tier_report
+    carries ``tiers_queried``, ``free_count``, ``keyed_count``,
+    ``escalated``, ``escalation_reason`` and ``keyed_available`` — the
+    transparency counterpart to Visibly's ``data_source`` field. Every
+    returned candidate is stamped with ``source_tier``. Raises only when
+    every queried provider failed.
+    """
+    normalized_query = _validate_search_args(query, resource_type, limit, sort, orientation)
+    statuses = provider_status(api_keys)
+    keyed_available = any(
+        item["key"] in KEYED_PROVIDER_KEYS and item["state"] == "ready"
+        and item.get("media") == resource_type
+        for item in statuses
+    )
+    effective_min = max(0, min(int(min_free), limit))
+
+    free_collected, free_failures = _collect_from_providers(
+        statuses, api_keys, normalized_query, resource_type, limit, sort,
+        orientation, FREE_PROVIDER_KEYS)
+    free_ranked = _rank_collected(free_collected, normalized_query, limit, sort)
+
+    if len(free_ranked) >= effective_min or not keyed_available:
+        if not free_ranked and free_failures:
+            raise DiscoveryError("; ".join(free_failures))
+        reason = None
+        if len(free_ranked) < effective_min:
+            reason = "keyed tier unavailable (needs_key); free tier served what it could"
+        report = {
+            "tiers_queried": ["free"],
+            "free_count": len(free_ranked),
+            "keyed_count": 0,
+            "escalated": False,
+            "escalation_reason": reason,
+            "keyed_available": keyed_available,
+        }
+        return _stamp_tiers(free_ranked), statuses, report
+
+    keyed_collected, keyed_failures = _collect_from_providers(
+        statuses, api_keys, normalized_query, resource_type, limit, sort,
+        orientation, KEYED_PROVIDER_KEYS)
+    merged = _rank_collected(free_collected + keyed_collected, normalized_query, limit, sort)
+    if not merged and free_failures + keyed_failures:
+        raise DiscoveryError("; ".join(free_failures + keyed_failures))
+    report = {
+        "tiers_queried": ["free", "keyed"],
+        "free_count": len(free_ranked),
+        "keyed_count": max(0, len(merged) - len(free_ranked)),
+        "escalated": True,
+        "escalation_reason": (
+            f"free tier returned {len(free_ranked)} < min_free {effective_min}"),
+        "keyed_available": keyed_available,
+    }
+    return _stamp_tiers(merged), statuses, report

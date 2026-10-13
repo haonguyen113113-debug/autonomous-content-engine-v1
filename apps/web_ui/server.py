@@ -20,7 +20,7 @@ from apps.asset_library.asset_intelligence import ResourceRequirement
 from apps.asset_library.discovery import (
     DiscoveryError,
     save_commons_candidate,
-    search_candidates,
+    search_candidates_tiered,
 )
 from apps.asset_library.identity import apply_identity_filter
 from apps.asset_library.registry import connect
@@ -1107,7 +1107,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     sort = str(payload.get("sort", "relevance")).strip().lower()
                     if sort not in {"relevance", "newest"}:
                         raise ValueError("Sort must be relevance or newest.")
-                    candidates, statuses = search_candidates(
+                    candidates, statuses, tiers = search_candidates_tiered(
                         str(payload.get("query", "")),
                         resource_type=resource_type,
                         limit=int(payload.get("limit", 24)),
@@ -1125,6 +1125,10 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         {
                             "provider": " + ".join(ready) if ready else "No providers available",
                             "provider_status": statuses,
+                            "tiers_queried": tiers["tiers_queried"],
+                            "escalated": tiers["escalated"],
+                            "escalation_reason": tiers["escalation_reason"],
+                            "keyed_available": tiers["keyed_available"],
                             "identity": identity,
                             "candidates": [asdict(item) for item in candidates],
                         }
