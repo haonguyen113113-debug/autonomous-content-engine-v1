@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_ai_backdrop_ships_with_license():
-    package_dir = ROOT / "template_foundation/templates/allen-knows-ball/4.0.0"
+    package_dir = ROOT / "template_foundation/templates/allen-knows-ball/9.0.0"
     photo = package_dir / "resources/ai-night-pitch-p.jpg"
     assert photo.is_file() and photo.stat().st_size > 10000
     import json
@@ -26,7 +26,7 @@ def test_hook_uses_photo_bed_when_present(tmp_path):
     from template_foundation import resolve_template
     from apps.video_renderer import _write_editorial_data_scene
     package = resolve_template(ROOT, "allen-knows-ball.shortform-analyst",
-                               version="4.0.0", allow_draft=True)
+                               version="9.0.0", allow_draft=True)
     out = tmp_path / "hook.png"
     _write_editorial_data_scene(
         out, mode="hook_card", data={"hook_text": "Test *accent* here"},

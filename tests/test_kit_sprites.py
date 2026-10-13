@@ -7,7 +7,7 @@ from PIL import Image
 from apps.video_renderer import _kit, _sprite
 
 ROOT = Path(__file__).resolve().parent.parent
-KIT = ROOT / "template_foundation/templates/allen-knows-ball/5.0.0/resources/kit"
+KIT = ROOT / "template_foundation/templates/allen-knows-ball/9.0.0/resources/kit"
 
 
 def test_kit_ships_complete():
@@ -31,6 +31,6 @@ def test_sprite_tints_and_skips_missing(tmp_path):
 def test_kit_resolves_beside_fonts():
     from template_foundation import resolve_template
     package = resolve_template(ROOT, "allen-knows-ball.shortform-analyst",
-                               version="5.0.0", allow_draft=True)
+                               version="9.0.0", allow_draft=True)
     font = package.root / "resources/fonts/BeVietnamPro-Bold.ttf"
     assert _kit("flare_01.png", font).is_file()
