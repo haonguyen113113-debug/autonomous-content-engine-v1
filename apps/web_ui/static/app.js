@@ -1015,3 +1015,86 @@ loadOverview();
 loadStats();
 loadRuns();
 if (location.hash.length > 1) showView(location.hash.slice(1));
+
+function summaryFixTargets(summary, section) {
+  if (section === "script") return (summary.sections.script.beats || []).map((b) => b.id).join(", ");
+  if (section === "asset") return (summary.sections.asset.needs || []).map((n) => n.requirement_id).join(", ");
+  if (section === "template") return (summary.sections.template.decisions || []).map((d) => d.segment_id).join(", ");
+  return "—";
+}
+
+function renderSummary(summary) {
+  const pill = document.getElementById("summary-status-pill");
+  pill.textContent = `${summary.overall_status.toUpperCase()}${summary.approved ? " · APPROVED" : ""}`;
+  const sections = summary.sections;
+  const cards = [
+    ["script", "Script", `${sections.script.beats.length} beats · score ${sections.script.score}/100 · unresolved: ${sections.script.unresolved_beats.join(", ") || "none"}`],
+    ["narrative", "Narrative", `${sections.narrative.topic} · ${sections.narrative.total_seconds}s / target ${sections.narrative.target_seconds || "?"}s`],
+    ["asset", "Assets", `${sections.asset.needs.length} needs · autosave ${sections.asset.autosave_enabled ? "on" : "off"}`],
+    ["template", "Template", `${sections.template.decisions.length} cards · starters ${(sections.template.starters || []).join(", ") || "—"}`],
+    ["voice", "Voice", `${sections.voice.total_chars} chars ≈ ${sections.voice.est_seconds}s · ${sections.voice.preset_or_reference}`],
+  ];
+  document.getElementById("summary-sections").innerHTML = cards.map(([section, title, line]) => `
+    <div class="script-segment" data-summary-section="${section}">
+      <div><strong>${title}</strong> <span class="status-pill status-muted">${sections[section].status}</span><br><small>${escapeHtml(line)}</small></div>
+      <label class="evidence-verification"><input type="checkbox" data-fix-check="${section}"><span>Cần sửa phần này</span></label>
+      <label>Target (id beat / need)<input name="fix_target" placeholder="${escapeHtml(summaryFixTargets(summary, section))}"></label>
+      <label>Ghi chú sửa<input name="fix_note" maxlength="500" placeholder="Ghi rõ cần sửa gì"></label>
+    </div>`).join("");
+  const applied = (summary.fix_requests || []).map((f) => `${f.section}:${f.target} — ${f.action}`).join(" · ");
+  document.getElementById("summary-review-status").textContent = applied
+    || (summary.approved ? "Summary approved. Voice, render and attach ran automatically." : "");
+  document.getElementById("summary-panel").hidden = false;
+}
+
+async function loadSummary() {
+  if (!currentRunId) return showToast("Create a script draft first.");
+  const status = document.getElementById("summary-review-status");
+  status.textContent = "Building summary…";
+  try {
+    const response = await fetch(`/api/content/summary/${currentRunId}`, { cache: "no-store" });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not build the summary.");
+    renderSummary(result);
+    loadRuns();
+  } catch (error) {
+    status.textContent = error.message || "Could not build the summary.";
+  }
+}
+
+function collectSummaryFixes() {
+  return [...document.querySelectorAll("#summary-sections .script-segment")].filter((card) =>
+    card.querySelector("[data-fix-check]").checked).map((card) => ({
+    section: card.dataset.summarySection,
+    target: card.querySelector('[name="fix_target"]').value.trim(),
+    note: card.querySelector('[name="fix_note"]').value.trim(),
+  }));
+}
+
+async function submitSummaryReview(approved) {
+  if (!currentRunId) return showToast("Create a script draft first.");
+  const fixes = approved ? [] : collectSummaryFixes();
+  if (!approved && !fixes.length) return showToast("Tick at least one section to fix, or approve everything.");
+  const status = document.getElementById("summary-review-status");
+  status.textContent = approved ? "Approving everything — script, assets, voice and render run automatically…" : "Sending fix requests…";
+  try {
+    const response = await fetch("/api/content/summary-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ run_id: currentRunId, approved, fixes }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not review the summary.");
+    renderSummary(result);
+    loadRuns();
+  } catch (error) {
+    status.textContent = error.message || "Could not review the summary.";
+  }
+}
+
+const buildSummaryButton = document.getElementById("build-summary");
+if (buildSummaryButton) buildSummaryButton.addEventListener("click", loadSummary);
+const approveSummaryButton = document.getElementById("approve-summary");
+if (approveSummaryButton) approveSummaryButton.addEventListener("click", () => submitSummaryReview(true));
+const sendFixesButton = document.getElementById("send-summary-fixes");
+if (sendFixesButton) sendFixesButton.addEventListener("click", () => submitSummaryReview(false));

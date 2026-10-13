@@ -872,3 +872,75 @@ def run_content_agent(
     )
     _save_progress(run)
     return run
+
+
+def regenerate_beat(root: Path, run: dict[str, Any], beat_id: str, note: str) -> dict[str, Any]:
+    """Regenerate one beat per an owner fix note; persists the run file.
+
+    Reuses the same per-beat machinery (and guards) as drafting: the new
+    narration must pass length/overlap/fact checks or a RuntimeError names
+    the reason loudly. Slot timing (duration/start/end/chapter) is carried
+    over so the production timeline stays stable; any attached media is
+    dropped because the visual may have changed (reported in findings).
+    Returns {"segment": ..., "llm_cost_usd": ...}.
+    """
+    from apps.llm import load_config
+
+    if not isinstance(note, str) or not 1 <= len(note.strip()) <= 500:
+        raise ValueError("Each script fix needs a note of 1-500 characters.")
+    draft = run.get("draft")
+    if not isinstance(draft, dict) or not isinstance(draft.get("segments"), list):
+        raise ValueError("Production run has no script draft to fix.")
+    segments = [s for s in draft["segments"] if isinstance(s, dict)]
+    index = next((i for i, s in enumerate(segments) if str(s.get("id")) == beat_id), None)
+    if index is None:
+        raise ValueError(f"Beat was not found in the draft: {beat_id}.")
+    old = segments[index]
+    total = len(segments)
+    position = f"beat {index + 1} of {total}"
+    previous = segments[index - 1].get("narration", "") if index > 0 and isinstance(
+        segments[index - 1].get("narration"), str) else ""
+    used_facts: set[str] = set()
+    for i, other in enumerate(segments):
+        if i != index and isinstance(other.get("narration"), str):
+            used_facts |= _fact_signature(other["narration"])
+    try:
+        duration_hint = max(1, int(old.get("duration_seconds", 8)))
+    except (TypeError, ValueError):
+        duration_hint = 8
+    content_type = str(draft.get("content_type", "short")).strip().lower() or "short"
+    env = load_config(root)
+    ledger = _new_ledger(env)
+    topic = str(draft.get("topic", run.get("topic", "")))
+    evidence = list(draft.get("evidence", []) or [])
+    segment, attempts, usage, last_error = _ollama_beat(
+        env, topic=topic, beat_id=beat_id,
+        purpose=(f"Revise {position} per owner note: {note.strip()}. "
+                 "Keep the beat's story role and advance the idea."),
+        position=position,
+        previous_summary=previous[:300],
+        evidence=evidence,
+        duration_hint=duration_hint,
+        num_predict=1024 if content_type == "short" else 1536,
+        ledger=ledger,
+        previous_narration=previous,
+        used_facts=frozenset(used_facts),
+    )
+    if segment is None:
+        raise RuntimeError(f"Beat {beat_id} could not be regenerated: {last_error}.")
+    for key in ("duration_seconds", "start_seconds", "end_seconds", "chapter_id"):
+        if key in old:
+            segment[key] = old[key]
+    segment["id"] = beat_id
+    segment["generation"] = {"mode": "owner_fix", "attempts": attempts,
+                             "usage": usage, "note": note.strip()[:500]}
+    dropped_media = bool(old.get("media_asset_id"))
+    segments[index] = segment
+    draft["segments"] = segments
+    fallback_beats = [b for b in draft.get("fallback_beats", []) if b != beat_id]
+    draft["fallback_beats"] = fallback_beats
+    cost = float(ledger.get("spent", 0.0) or 0.0)
+    run["llm_cost_usd"] = round(float(run.get("llm_cost_usd", 0.0) or 0.0) + cost, 6)
+    run_path = Path(root) / "runtime" / "runs" / f"{run.get('run_id', '')}.json"
+    run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {"segment": segment, "llm_cost_usd": cost, "dropped_media": dropped_media}

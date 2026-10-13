@@ -16,6 +16,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from apps.content_workflow import run_content_agent
+from apps.preproduction.summary import build_summary, review_summary
 from apps.worker.queue_store import MAX_BATCH as MAX_BATCH_JOBS
 from apps.worker.queue_store import enqueue_job, list_jobs, validate_draft_payload
 from apps.asset_library.asset_intelligence import ResourceRequirement
@@ -879,6 +880,20 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     )
                 return
 
+            summary_match = re.fullmatch(r"/api/content/summary/([a-f0-9]{12})", path)
+            if summary_match:
+                try:
+                    self._send_json(build_summary(
+                        db_path.parent.parent, summary_match.group(1)))
+                except ValueError as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not build the pre-production summary."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
             if path == "/api/stats":
                 try:
                     self._send_json(_stats(db_path.parent.parent, db_path))
@@ -1186,6 +1201,24 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     self._send_json(
                         {"job_ids": [item["id"] for item in enqueued],
                          "queued": len(enqueued)}, HTTPStatus.CREATED)
+                    return
+
+                if path == "/api/content/summary-review":
+                    try:
+                        result = review_summary(
+                            db_path.parent.parent,
+                            str(payload.get("run_id", "")),
+                            payload.get("approved", False) is True,
+                            payload.get("fixes", []),
+                        )
+                    except ValueError as error:
+                        self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                        return
+                    except RuntimeError as error:
+                        self._send_json({"error": str(error)},
+                                        HTTPStatus.SERVICE_UNAVAILABLE)
+                        return
+                    self._send_json(result)
                     return
 
                 if path == "/api/content/script-review":

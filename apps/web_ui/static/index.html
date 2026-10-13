@@ -206,6 +206,11 @@
             <div class="voice-preview-actions"><button class="button button-secondary" id="render-full-video" type="button" disabled>Render full reviewed video</button><span id="render-full-status" role="status"></span></div>
             <section class="render-result" id="render-full-result" hidden><video id="render-full-video-player" controls playsinline></video></section>
           </section>
+          <section class="panel script-result-panel" id="summary-panel" hidden>
+            <div class="script-result-heading"><div><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><div class="eyebrow">ONE-GATE REVIEW</div><h2>Pre-production summary</h2><p class="page-subtitle">Script, narrative, assets, template and voice in one report. Tick a section to request a fix, or approve everything at once — approval drives script sign-off, asset attach, voice and full render automatically.</p></div><span class="status-pill status-muted" id="summary-status-pill">NO SUMMARY</span></div>
+            <div class="voice-preview-actions"><button class="button button-secondary" id="build-summary" type="button">Build summary</button><button class="button button-secondary" id="send-summary-fixes" type="button">Send fix requests</button><button class="button button-primary" id="approve-summary" type="button">Approve everything</button><span id="summary-review-status" role="status"></span></div>
+            <div id="summary-sections" class="script-segments"></div>
+          </section>
         </section>
 
         <section class="view" id="view-sources"><div class="page-heading"><div><div class="eyebrow">EVIDENCE &amp; PROVENANCE</div><h1>Sources</h1><p class="page-subtitle">Registered sources and extracted evidence will appear here when the perception boundary is connected to the library workflow.</p></div></div><div class="empty-state panel"><div class="empty-illustration"><svg class="ic"><use href="#i-db"/></svg></div><div class="eyebrow">NOT CONNECTED</div><h2>Source intake is not part of this UI slice yet</h2><p>The new perception boundary can characterize and extract from raw HTML or JSON. Source retrieval, persisted evidence, and approval actions still need to be wired into an engine run.</p></div></section>
