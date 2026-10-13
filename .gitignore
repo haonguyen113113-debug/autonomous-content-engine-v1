@@ -36,6 +36,8 @@ artifacts/
 renders/
 downloads/
 models/
+# Manim build intermediates (regenerable, contain absolute local paths)
+partial_movie_files/
 
 # Media
 *.mp4

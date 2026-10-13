@@ -1,4 +1,0 @@
-# This file records the segment order used by Manim.
-file 'file:C:/Users/Infomation Technolog/Documents/Default Project/autonomous-content-engine-v1/template_foundation/templates/allen-knows-ball/9.0.0/previews/manim/videos/sportskit/1920p30/partial_movie_files/WelcomeCard/684b11587636d0b16af3c5176891744c52565f45e82555bbac638491b901b37f.mp4'
-file 'file:C:/Users/Infomation Technolog/Documents/Default Project/autonomous-content-engine-v1/template_foundation/templates/allen-knows-ball/9.0.0/previews/manim/videos/sportskit/1920p30/partial_movie_files/WelcomeCard/e097b0ee20387c72a558ea62f0d2715e4c68c43d4329893e4d1c2c6b0f4b18fd.mp4'
-file 'file:C:/Users/Infomation Technolog/Documents/Default Project/autonomous-content-engine-v1/template_foundation/templates/allen-knows-ball/9.0.0/previews/manim/videos/sportskit/1920p30/partial_movie_files/WelcomeCard/dadd34586a48e9dea44c9dad64a355d6a5fcff0a0d0bf3fca6c71c13e65153c0.mp4'
