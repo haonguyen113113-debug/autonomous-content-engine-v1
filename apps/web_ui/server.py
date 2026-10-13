@@ -16,6 +16,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 from apps.content_workflow import run_content_agent
+from apps.worker.queue_store import MAX_BATCH as MAX_BATCH_JOBS
+from apps.worker.queue_store import enqueue_job, list_jobs, validate_draft_payload
 from apps.asset_library.asset_intelligence import ResourceRequirement
 from apps.asset_library.discovery import (
     DiscoveryError,
@@ -839,6 +841,21 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     )
                 return
 
+            if path == "/api/jobs":
+                try:
+                    jobs = list_jobs(db_path.parent.parent)
+                    counts: dict[str, int] = {}
+                    for item in jobs:
+                        state = str(item.get("status", "?"))
+                        counts[state] = counts.get(state, 0) + 1
+                    self._send_json({"jobs": jobs, "counts": counts})
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not read worker jobs."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
             if path == "/api/runs":
                 try:
                     self._send_json({"runs": _list_runs(db_path.parent.parent)})
@@ -1146,6 +1163,29 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         str(payload.get("colorway", "san-dem")),
                     )
                     self._send_json(result, HTTPStatus.CREATED)
+                    return
+
+                if path == "/api/content/batch-runs":
+                    try:
+                        jobs = payload.get("jobs")
+                        if not isinstance(jobs, list) or not jobs:
+                            raise ValueError("jobs must be a non-empty list.")
+                        if len(jobs) > MAX_BATCH_JOBS:
+                            raise ValueError(
+                                f"Batch is limited to {MAX_BATCH_JOBS} jobs.")
+                        cleaned = [validate_draft_payload(item) for item in jobs]
+                    except ValueError as error:
+                        self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                        return
+                    try:
+                        enqueued = [enqueue_job(db_path.parent.parent, "draft", item)
+                                    for item in cleaned]
+                    except ValueError as error:
+                        self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                        return
+                    self._send_json(
+                        {"job_ids": [item["id"] for item in enqueued],
+                         "queued": len(enqueued)}, HTTPStatus.CREATED)
                     return
 
                 if path == "/api/content/script-review":
