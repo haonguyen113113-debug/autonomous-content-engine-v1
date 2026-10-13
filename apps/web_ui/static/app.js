@@ -1020,6 +1020,7 @@ function summaryFixTargets(summary, section) {
   if (section === "script") return (summary.sections.script.beats || []).map((b) => b.id).join(", ");
   if (section === "asset") return (summary.sections.asset.needs || []).map((n) => n.requirement_id).join(", ");
   if (section === "template") return (summary.sections.template.decisions || []).map((d) => d.segment_id).join(", ");
+  if (section === "sound") return ((summary.sections.sound.choices || []).join(", "));
   return "—";
 }
 
@@ -1033,6 +1034,7 @@ function renderSummary(summary) {
     ["asset", "Assets", `${sections.asset.needs.length} needs · autosave ${sections.asset.autosave_enabled ? "on" : "off"}`],
     ["template", "Template", `${sections.template.decisions.length} cards · starters ${(sections.template.starters || []).join(", ") || "—"}`],
     ["voice", "Voice", `${sections.voice.total_chars} chars ≈ ${sections.voice.est_seconds}s · ${sections.voice.preset_or_reference}`],
+    ["sound", "Sound", sections.sound.enabled ? `${sections.sound.bed_id} (${sections.sound.license}) + ${(sections.sound.stingers || []).length} stingers` : `off — ${sections.sound.note || ""}`],
   ];
   document.getElementById("summary-sections").innerHTML = cards.map(([section, title, line]) => `
     <div class="script-segment" data-summary-section="${section}">

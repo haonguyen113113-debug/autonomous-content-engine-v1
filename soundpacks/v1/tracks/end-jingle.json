@@ -1,0 +1,15 @@
+{
+ "slot": "end-jingle",
+ "file": "end-jingle.mp3",
+ "title": "jingle1",
+ "creator": "soneproject",
+ "license": "cc0",
+ "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+ "source_url": "https://cdn.freesound.org/previews/255/255100_2127539-hq.mp3",
+ "landing_url": "https://freesound.org/people/soneproject/sounds/255100",
+ "freesound_id": "ca11350e-41b4-486d-aac0-dd44d38934d5",
+ "duration_s": 1.56,
+ "sha256": "c49447cc1a9febacabcaafab23d663afff470d110cde7bcd697d3b1f33e95598",
+ "retrieved_at": "2026-10-13",
+ "commercial_use": "allowed (cc0)"
+}

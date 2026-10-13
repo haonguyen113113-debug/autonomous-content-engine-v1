@@ -1,6 +1,8 @@
 """Pre-production summary: one gate, fix checkboxes, bulk approval."""
 
 import json
+import shutil
+from pathlib import Path
 
 import pytest
 
@@ -8,6 +10,12 @@ import apps.preproduction.summary as summary
 from apps.preproduction.summary import build_summary, review_summary
 
 RUN_ID = "a" * 12
+REPO = Path(__file__).resolve().parent.parent
+
+
+def _with_soundpack(tmp_path):
+    shutil.copytree(REPO / "soundpacks/v1", tmp_path / "soundpacks/v1")
+    return tmp_path
 
 
 def _beat(narration, beat_id="beat-1", mode="hook_card", duration=8):
@@ -67,7 +75,7 @@ def test_build_sections_and_blocks_on_markers(tmp_path):
     ], [_check()]))
     out = build_summary(tmp_path, RUN_ID)
     assert out["version"] == "1.0" and out["approved"] is False
-    assert set(out["sections"]) == {"script", "narrative", "asset", "template", "voice"}
+    assert set(out["sections"]) == {"script", "narrative", "asset", "template", "voice", "sound"}
     assert out["sections"]["script"]["status"] == "blocked"
     assert out["sections"]["script"]["unresolved_beats"] == ["beat-2"]
     assert out["overall_status"] == "blocked"
@@ -207,3 +215,32 @@ def test_bulk_approve_refuses_markers(tmp_path):
     _write_run(tmp_path, _run([_beat("[CẦN NGUỒN] Them quan sat")]))
     with pytest.raises(ValueError, match="beat-1"):
         review_summary(tmp_path, RUN_ID, True, [])
+
+
+def test_summary_has_sound_section(tmp_path):
+    _with_soundpack(tmp_path)
+    _write_run(tmp_path, _run([_beat("Tran derby toi nay co gi dac biet")]))
+    out = build_summary(tmp_path, RUN_ID)
+    sound = out["sections"]["sound"]
+    assert sound["enabled"] is True
+    assert sound["bed_id"] == "tension-pad"
+    assert sound["license"] == "CC0"
+    assert set(sound["stingers"]) == {"hook-hit", "transition-whoosh", "end-jingle"}
+    assert "uplift-pad" in sound["choices"]
+
+
+def test_sound_fix_sets_override(tmp_path):
+    _with_soundpack(tmp_path)
+    _write_run(tmp_path, _run([_beat("Tran derby toi nay co gi dac biet")]))
+    out = review_summary(tmp_path, RUN_ID, False,
+                         [{"section": "sound", "target": "soundpack",
+                           "note": "uplift-pad"}])
+    assert out["sections"]["sound"]["bed_id"] == "uplift-pad"
+    stored = json.loads((tmp_path / "runtime/runs" / f"{RUN_ID}.json").read_text(encoding="utf-8"))
+    assert stored["soundpack_override"] == "uplift-pad"
+    with pytest.raises(ValueError, match="bed id"):
+        review_summary(tmp_path, RUN_ID, False,
+                       [{"section": "sound", "target": "soundpack", "note": "rock"}])
+    quiet = review_summary(tmp_path, RUN_ID, False,
+                           [{"section": "sound", "target": "soundpack", "note": "none"}])
+    assert quiet["sections"]["sound"]["enabled"] is False

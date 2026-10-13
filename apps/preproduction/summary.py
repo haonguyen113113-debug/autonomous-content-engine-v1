@@ -35,7 +35,7 @@ from apps.voice_tts import synthesize_voice_preview, voice_profile_status
 
 SUMMARY_VERSION = "1.0"
 
-FIXABLE_SECTIONS = ("script", "narrative", "asset", "template", "voice")
+FIXABLE_SECTIONS = ("script", "narrative", "asset", "template", "voice", "sound")
 
 UNRESOLVED_MARKERS = ("[CẦN NGUỒN]", "[KẾT LUẬN CỦA ALLEN]")
 
@@ -320,8 +320,11 @@ def build_summary(root: Path | str, run_id: str) -> dict[str, Any]:
         "Import a voice reference (or set TTS_VOICE) before approving the summary.",
     }
 
+    sound_section = _sound_section(root, run)
+
     sections = {"script": script_section, "narrative": narrative_section,
-                "asset": asset_section, "template": template_section, "voice": voice_section}
+                "asset": asset_section, "template": template_section,
+                "voice": voice_section, "sound": sound_section}
     overall = "ready"
     for section in sections.values():
         if section["status"] == "blocked":
@@ -409,6 +412,52 @@ def _apply_template_fix(root: Path, run: dict[str, Any], target: str, note: str)
     _write_run(root, run)
     return {"section": "template", "target": target,
             "action": f"visual mode set to {matches[0]}; card plan recomputed on rebuild"}
+
+
+def _sound_section(root: Path, run: dict[str, Any]) -> dict[str, Any]:
+    """Locked soundpack choice for this run (no discovery, no synthesis)."""
+    from apps.soundpack.pack import PACK_VERSION, bed_ids, resolve_sound, sound_enabled
+
+    draft = run.get("draft", {}) if isinstance(run.get("draft"), dict) else {}
+    override = run.get("soundpack_override")
+    if not sound_enabled(root):
+        return {"status": "ready", "enabled": False, "pack_version": PACK_VERSION,
+                "note": "SOUNDPACK_ENABLED=false: renders voice-only."}
+    try:
+        resolved = resolve_sound(root, str(draft.get("story_form", "")),
+                                 str(draft.get("content_type", "short")), override=override)
+    except ValueError as error:
+        return {"status": "attention", "enabled": False, "pack_version": PACK_VERSION,
+                "override": override, "note": f"{error} Renders voice-only."}
+    if not resolved.get("enabled"):
+        return {"status": "ready", "enabled": False, "pack_version": PACK_VERSION,
+                "note": str(resolved.get("reason", "disabled by owner override"))}
+    return {"status": "ready", "enabled": True, "pack_version": PACK_VERSION,
+            "bed_id": resolved["bed_id"], "mood": resolved.get("mood", ""),
+            "file": Path(resolved["bed_file"]).name, "license": resolved.get("license", ""),
+            "stingers": [s.get("sting_id") for s in resolved.get("stingers", [])],
+            "override": override,
+            "choices": bed_ids(root) + ["none"],
+            "note": "Fixed mapping story → bed. Fix with a bed id or none to change."}
+
+
+def _apply_sound_fix(root: Path, run: dict[str, Any], target: str, note: str) -> dict[str, Any]:
+    from apps.soundpack.pack import bed_ids, resolve_sound
+
+    _ = target
+    choice = note.strip().lower()
+    if choice != "none":
+        valid = bed_ids(root)
+        if choice not in valid:
+            raise ValueError("Sound fix note must be a bed id "
+                             f"({', '.join(valid)}) or none.")
+        draft = run.get("draft", {}) if isinstance(run.get("draft"), dict) else {}
+        resolve_sound(root, str(draft.get("story_form", "")),
+                      str(draft.get("content_type", "short")), override=choice)
+    run["soundpack_override"] = choice
+    _write_run(root, run)
+    return {"section": "sound", "target": "soundpack",
+            "action": f"sound override set to {choice}; applies at next render"}
 
 
 def _attach_suggested_assets(root: Path, run: dict[str, Any]) -> list[dict[str, Any]]:
@@ -523,6 +572,9 @@ def review_summary(
                 run = _load_run(root, run_id)
             elif section == "template":
                 applied.append(_apply_template_fix(root, run, target, note))
+                run = _load_run(root, run_id)
+            elif section == "sound":
+                applied.append(_apply_sound_fix(root, run, target, note))
                 run = _load_run(root, run_id)
             else:
                 applied.append({"section": section, "target": target,

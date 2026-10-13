@@ -1,0 +1,41 @@
+{
+  "pack_id": "allen-soundpack",
+  "version": "1.0.0",
+  "status": "draft",
+  "policy": "Locked like a template pack: fixed mood-to-story mapping, fixed files with recorded licenses. No discovery, no network, no per-video choices by the engine. A different bed set means a new pack version.",
+  "beds": [
+    {"bed_id": "tension-pad", "mood": "tense, narrow, investigative",
+     "file": "tracks/tension-pad.mp3", "license": "CC0", "mix_volume": 0.12},
+    {"bed_id": "neutral-pad", "mood": "calm, explanatory",
+     "file": "tracks/neutral-pad.mp3", "license": "CC0", "mix_volume": 0.1},
+    {"bed_id": "uplift-pad", "mood": "warm, human, upward",
+     "file": "tracks/uplift-pad.ogg", "license": "BY 4.0", "mix_volume": 0.1},
+    {"bed_id": "dramatic-pad", "mood": "weighty, long-form",
+     "file": "tracks/dramatic-pad.mp3", "license": "BY 4.0", "mix_volume": 0.12}
+  ],
+  "mapping": {
+    "one-moment-one-read": "tension-pad",
+    "explain-the-pattern": "neutral-pad",
+    "player-role-read": "uplift-pad",
+    "longform-tactical-deep-dive": "dramatic-pad",
+    "longform-player-role-study": "uplift-pad",
+    "default": "neutral-pad"
+  },
+  "stingers": [
+    {"sting_id": "hook-hit", "file": "tracks/hook-hit.mp3", "license": "CC0",
+     "place": "hook", "at_seconds": 0.0, "mix_volume": 0.5,
+     "purpose": "Impact hit under the frame-0 hook card and ident sting."},
+    {"sting_id": "transition-whoosh", "file": "tracks/transition-whoosh.mp3", "license": "CC0",
+     "place": "chapter", "at_seconds": null, "mix_volume": 0.4,
+     "purpose": "Whoosh at every chapter boundary after the opening."},
+    {"sting_id": "end-jingle", "file": "tracks/end-jingle.mp3", "license": "CC0",
+     "place": "endcard", "at_seconds": -2.0, "mix_volume": 0.5,
+     "purpose": "Short jingle over the branded end-card (last 2 seconds)."}
+  ],
+  "mix": {
+    "ducking": "sidechaincompress keyed by voice (music ducks under speech)",
+    "sidechain": {"threshold": 0.02, "ratio": 8, "attack_ms": 20, "release_ms": 400},
+    "loudness": "loudnorm single-pass I=-14:TP=-1.5:LRA=11 (YouTube Shorts target)",
+    "voice_codec": "aac 192k"
+  }
+}

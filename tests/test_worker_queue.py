@@ -94,8 +94,10 @@ def test_stale_claim_requeues_when_attempts_remain(tmp_path):
 def test_list_jobs_overview(tmp_path):
     first = enqueue_job(tmp_path, "draft", _job())
     second = enqueue_job(tmp_path, "draft", _job("Mot tran cau dinh doat khac"))
-    assert claim_job(tmp_path, "worker-a") is not None
-    finish_job(tmp_path, first["id"], "failed", error="boom")
+    claimed = claim_job(tmp_path, "worker-a")
+    assert claimed is not None
+    other = second["id"] if claimed["id"] == first["id"] else first["id"]
+    finish_job(tmp_path, claimed["id"], "failed", error="boom")
     jobs = list_jobs(tmp_path)
     by_id = {item["id"]: item["status"] for item in jobs}
-    assert by_id == {first["id"]: "failed", second["id"]: "queued"}
+    assert by_id == {claimed["id"]: "failed", other: "queued"}

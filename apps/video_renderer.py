@@ -2165,7 +2165,67 @@ def _render(
         if audio_path.parent != voice_root or not audio_path.is_file():
             raise ValueError("Generate and audit the local voice preview before rendering the full run.")
         command += ["-i", str(audio_path)]
+    sound = None
+    sound_note = None
+    if not preview and not visual_only:
+        # Locked soundpack: bed + fixed stingers under the voice. Any pack
+        # problem degrades to voice-only with a report note — music never
+        # blocks a video.
+        try:
+            from apps.soundpack.pack import (
+                audio_filter,
+                plan_stingers,
+                resolve_sound,
+                sound_enabled,
+            )
+            draft_for_sound = draft if isinstance(draft, dict) else {}
+            if sound_enabled(root):
+                resolved = resolve_sound(
+                    root,
+                    str(draft_for_sound.get("story_form", "")),
+                    str(draft_for_sound.get("content_type", "short")),
+                    override=run.get("soundpack_override"),
+                )
+                if resolved.get("enabled"):
+                    chapter_starts = [
+                        float(event.get("start_seconds", 0) or 0)
+                        for event in (draft_for_sound.get("chapter_events", []) or [])
+                        if isinstance(event, dict)]
+                    planned = plan_stingers(
+                        resolved.get("stingers", []), chapter_starts,
+                        float(duration),
+                        Path(root) / "soundpacks" / "v1" / "tracks")
+                    command += ["-stream_loop", "-1", "-i", resolved["bed_file"]]
+                    bed_index = 2
+                    sting_indices = []
+                    for planned_sting in planned:
+                        command += ["-i", planned_sting["file"]]
+                        sting_indices.append(bed_index + 1 + len(sting_indices))
+                    audio_mix = audio_filter(
+                        1, bed_index, sting_indices, planned, float(duration),
+                        float(resolved.get("mix_volume", 0.1) or 0.1),
+                        resolved.get("sidechain") or {})
+                    sound = {
+                        "pack_version": resolved.get("pack_version"),
+                        "bed_id": resolved.get("bed_id"),
+                        "bed_file": Path(resolved["bed_file"]).name,
+                        "mood": resolved.get("mood", ""),
+                        "license": resolved.get("license", ""),
+                        "stingers": [{
+                            "sting_id": item.get("sting_id"), "at": item.get("at"),
+                            "volume": item.get("volume")} for item in planned],
+                        "mix": "sidechain-ducked bed + fixed stings, loudnorm I=-14",
+                    }
+                else:
+                    sound_note = str(resolved.get("reason", "soundpack disabled"))
+            else:
+                sound_note = "SOUNDPACK_ENABLED=false"
+        except (ValueError, OSError) as error:
+            sound = None
+            sound_note = str(error)[:200]
     scene_input_start = 2 if not preview and not visual_only else 1
+    if sound is not None:
+        scene_input_start += 1 + len(sound["stingers"])
     for scene_path in scene_paths:
         command += ["-loop", "1", "-framerate", str(fps), "-i", str(scene_path)]
     ball_input_start = scene_input_start + len(scene_paths)
@@ -2418,10 +2478,14 @@ def _render(
         f"enable='gte(t,{end_start:.3f})'"
     )
     chains.append(f"[{current}]{','.join(filters)}[vout]")
+    if sound is not None:
+        chains.append(audio_mix[0])
     filter_complex = ";".join(chains)
     command += ["-filter_complex", filter_complex, "-map", "[vout]", "-t", str(duration), "-r", str(fps), "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22", "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"]
     if preview or visual_only:
         command += ["-an"]
+    elif sound is not None:
+        command += ["-map", audio_mix[1], "-c:a", "aac", "-b:a", "192k", "-shortest"]
     else:
         command += ["-map", "1:a:0", "-c:a", "aac", "-b:a", "192k", "-shortest"]
     command += ["-movflags", "+faststart", str(output_path)]
@@ -2482,6 +2546,22 @@ def _render(
         "status": "PASS" if audio_ok else "FAIL",
         "detail": "Silent preview is intentional." if preview else ("Narration audio stream is present." if audio_ok else "No audio stream was found."),
     })
+    if not preview and not visual_only:
+        if sound is not None:
+            run["soundpack"] = {**sound, "note": None}
+            checks.append({
+                "criterion": "Locked soundpack bed and stingers",
+                "status": "PASS" if audio_ok else "FAIL",
+                "detail": (f"Bed {sound['bed_id']} ({sound['license']}) ducked under voice plus "
+                           f"{len(sound['stingers'])} fixed stinger(s); loudnorm I=-14."),
+            })
+        else:
+            run["soundpack"] = {"enabled": False, "note": sound_note}
+            checks.append({
+                "criterion": "Locked soundpack bed and stingers",
+                "status": "NOT USED",
+                "detail": f"Voice-only render ({sound_note or 'soundpack off'}).",
+            })
     if not video_streams:
         raise RuntimeError("The rendered MP4 has no video stream.")
     report = {
@@ -2493,6 +2573,7 @@ def _render(
         "mode": "template_visual_preview" if preview else ("silent_longform_visual_benchmark" if visual_only else "full_script_render"),
         "output": output_path.name,
         "selected_media": selected_media,
+        "soundpack": run.get("soundpack"),
         "quality_checks": checks,
         "ffprobe": metadata,
         "limitations": ([
