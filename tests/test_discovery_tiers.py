@@ -6,16 +6,17 @@ import apps.asset_library.discovery as discovery
 from apps.asset_library.discovery import DiscoveryError
 
 
-def _fake(provider, index):
+def _fake(provider, index, *, title="Derby stadium night", license_name="CC BY 4.0",
+          width=2000, height=1200, size_bytes=500000):
     return discovery.ExternalAssetCandidate(
         candidate_id=f"{provider}:{index}",
         provider=provider,
-        title=f"Derby stadium night {index}",
+        title=f"{title} {index}",
         source_url=f"https://example.invalid/{provider}/{index}",
         thumbnail_url="https://example.invalid/thumb.jpg",
         media_type="IMAGE", mime_type="image/jpeg",
-        width=2000, height=1200, size_bytes=500000,
-        license_name="CC BY 4.0", license_url=None,
+        width=width, height=height, size_bytes=size_bytes,
+        license_name=license_name, license_url=None,
         creator=None, credit=None,
     )
 
@@ -96,7 +97,7 @@ def test_min_free_zero_is_free_only(monkeypatch):
     monkeypatch.setattr(discovery, "_search_pexels_images", boom)
     monkeypatch.setattr(discovery, "_search_pixabay_images", boom)
     ranked, statuses, report = discovery.search_candidates_tiered(
-        "derby", api_keys=_keys(), min_free=0)
+        "derby", api_keys=_keys(), min_free=0, min_good=0)
     assert report["tiers_queried"] == ["free"]
     assert len(ranked) == 1
 
@@ -121,6 +122,42 @@ def test_all_free_failures_raise(monkeypatch):
     monkeypatch.setattr(discovery, "search_commons_images", fail)
     with pytest.raises(DiscoveryError):
         discovery.search_candidates_tiered("derby")
+
+
+def test_plentiful_but_poor_free_still_escalates(monkeypatch):
+    _isolate(monkeypatch)
+    monkeypatch.setattr(discovery, "_search_openverse_page", lambda *a, **k: [
+        _fake("Openverse · flickr", i, title="Unrelated object photo",
+              license_name="Unknown license", width=1000, height=1000)
+        for i in range(8)])
+    monkeypatch.setattr(discovery, "search_commons_images", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_pexels_images",
+                        lambda *a, **k: [_fake("Pexels", i + 100) for i in range(4)])
+    monkeypatch.setattr(discovery, "_search_pexels_videos", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_pixabay_images", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_pixabay_videos", lambda *a, **k: [])
+    ranked, statuses, report = discovery.search_candidates_tiered(
+        "derby stadium", api_keys=_keys(), min_free=6)
+    assert report["tiers_queried"] == ["free", "keyed"]
+    assert report["escalated"] is True
+    assert "quality insufficient" in report["escalation_reason"]
+    assert report["free_good_count"] == 0
+
+
+def test_count_shortfall_escalates_despite_good_free(monkeypatch):
+    _isolate(monkeypatch)
+    monkeypatch.setattr(discovery, "_search_openverse_page",
+                        lambda *a, **k: [_fake("Openverse · flickr", i) for i in range(4)])
+    monkeypatch.setattr(discovery, "search_commons_images", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_pexels_images",
+                        lambda *a, **k: [_fake("Pexels", i + 100) for i in range(4)])
+    monkeypatch.setattr(discovery, "_search_pexels_videos", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_pixabay_images", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_pixabay_videos", lambda *a, **k: [])
+    ranked, statuses, report = discovery.search_candidates_tiered(
+        "derby stadium", api_keys=_keys(), min_free=6, min_good=3)
+    assert report["escalated"] is True
+    assert "min_free 6" in report["escalation_reason"]
 
 
 def test_tier_helpers():

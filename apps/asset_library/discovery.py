@@ -1474,21 +1474,26 @@ def search_candidates_tiered(
     sort: str = "relevance",
     orientation: str | None = None,
     min_free: int = 6,
+    min_good: int = 3,
+    good_score: float = 4.0,
 ) -> tuple[list[ExternalAssetCandidate], list[dict[str, str]], dict[str, Any]]:
     """Free-first discovery with keyed-tier escalation.
 
     Phase 1 queries only keyless providers (Openverse, Wikimedia Commons:
-    no quota, no key). Phase 2 (Pexels, Pixabay) runs only when the free
-    tier returns fewer than ``min_free`` usable candidates, so configured
-    keys stop burning quota on requests free sources already satisfy.
-    ``min_free=0`` means free-only (keyed tier never queried).
+    no quota, no key). Phase 2 (Pexels, Pixabay) runs when the free tier
+    is insufficient — by *count* (fewer than ``min_free`` usable
+    candidates) or by *quality* (fewer than ``min_good`` candidates
+    scoring at least ``good_score`` on the same relevance/license/size
+    basis as ranking). Count alone never hides better keyed results:
+    plentiful-but-poor free matches still escalate. ``min_free=0`` and
+    ``min_good=0`` together mean free-only (keyed tier never queried).
 
     Returns (candidates, provider_status, tier_report) where tier_report
-    carries ``tiers_queried``, ``free_count``, ``keyed_count``,
-    ``escalated``, ``escalation_reason`` and ``keyed_available`` — the
-    transparency counterpart to Visibly's ``data_source`` field. Every
-    returned candidate is stamped with ``source_tier``. Raises only when
-    every queried provider failed.
+    carries ``tiers_queried``, ``free_count``, ``free_good_count``,
+    ``keyed_count``, ``escalated``, ``escalation_reason`` and
+    ``keyed_available`` — the transparency counterpart to Visibly's
+    ``data_source`` field. Every returned candidate is stamped with
+    ``source_tier``. Raises only when every queried provider failed.
     """
     normalized_query = _validate_search_args(query, resource_type, limit, sort, orientation)
     statuses = provider_status(api_keys)
@@ -1498,21 +1503,28 @@ def search_candidates_tiered(
         for item in statuses
     )
     effective_min = max(0, min(int(min_free), limit))
+    effective_good = max(0, min(int(min_good), limit))
 
     free_collected, free_failures = _collect_from_providers(
         statuses, api_keys, normalized_query, resource_type, limit, sort,
         orientation, FREE_PROVIDER_KEYS)
     free_ranked = _rank_collected(free_collected, normalized_query, limit, sort)
+    query_tokens = set(re.findall(r"[a-z0-9]+", normalized_query.lower()))
+    free_good = sum(1 for item in free_ranked
+                    if _score_candidate(item, query_tokens) >= good_score)
 
-    if len(free_ranked) >= effective_min or not keyed_available:
+    short_on_count = len(free_ranked) < effective_min
+    short_on_quality = free_good < effective_good
+    if (not short_on_count and not short_on_quality) or not keyed_available:
         if not free_ranked and free_failures:
             raise DiscoveryError("; ".join(free_failures))
         reason = None
-        if len(free_ranked) < effective_min:
+        if short_on_count or short_on_quality:
             reason = "keyed tier unavailable (needs_key); free tier served what it could"
         report = {
             "tiers_queried": ["free"],
             "free_count": len(free_ranked),
+            "free_good_count": free_good,
             "keyed_count": 0,
             "escalated": False,
             "escalation_reason": reason,
@@ -1520,6 +1532,14 @@ def search_candidates_tiered(
         }
         return _stamp_tiers(free_ranked), statuses, report
 
+    if short_on_count and short_on_quality:
+        why = (f"free tier returned {len(free_ranked)} < min_free {effective_min} "
+               f"with only {free_good} good < min_good {effective_good}")
+    elif short_on_count:
+        why = f"free tier returned {len(free_ranked)} < min_free {effective_min}"
+    else:
+        why = (f"free tier quality insufficient: only {free_good} good "
+               f"< min_good {effective_good} (plentiful but poor matches)")
     keyed_collected, keyed_failures = _collect_from_providers(
         statuses, api_keys, normalized_query, resource_type, limit, sort,
         orientation, KEYED_PROVIDER_KEYS)
@@ -1529,10 +1549,10 @@ def search_candidates_tiered(
     report = {
         "tiers_queried": ["free", "keyed"],
         "free_count": len(free_ranked),
+        "free_good_count": free_good,
         "keyed_count": max(0, len(merged) - len(free_ranked)),
         "escalated": True,
-        "escalation_reason": (
-            f"free tier returned {len(free_ranked)} < min_free {effective_min}"),
+        "escalation_reason": why,
         "keyed_available": keyed_available,
     }
     return _stamp_tiers(merged), statuses, report
