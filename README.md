@@ -6,7 +6,7 @@ local voice preview → FFmpeg render. Every step runs on your machine; paid
 services are optional and never foundational.
 
 > Status: working vertical slice for Vietnamese soccer Shorts (Allen Knows
-> Ball, Template Nova 0.9.0 draft): draft → asset check → owner review →
+> Ball, Template Impact 1.0.0 draft): draft → asset check → owner review →
 > voice → render → distribution plan → measurement ledger. Real platform
 > publishing adapters (stubs return STAGED) and template release audit are next.
 

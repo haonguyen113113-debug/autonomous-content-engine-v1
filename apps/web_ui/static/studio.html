@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Allen Knows Ball — Studio (Polotno)</title>
+  <link href="https://unpkg.com/polotno@4/ui.css" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0b0d10; color: #f5f1e6;
+      font: 14px/1.5 Arial, sans-serif; }
+    #topbar { display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+      background: #14171c; border-bottom: 1px solid #2a2f36; flex-wrap: wrap; }
+    #topbar .brand { font-weight: 700; letter-spacing: 1px; margin-right: 8px; }
+    #topbar .brand span { color: #c8102e; }
+    #topbar label { color: #9aa3a8; font-size: 12px; }
+    #topbar select, #topbar input { background: #0b0d10; color: #f5f1e6;
+      border: 1px solid #2a2f36; border-radius: 4px; padding: 5px 8px; font-size: 13px; }
+    #topbar button { background: #c8102e; color: #fff; border: 0; border-radius: 4px;
+      padding: 6px 12px; font-size: 13px; cursor: pointer; }
+    #topbar button.secondary { background: #2a2f36; }
+    #topbar button:disabled { opacity: .45; cursor: default; }
+    #status { color: #9aa3a8; font-size: 12px; }
+    #status.ok { color: #8cff00; }
+    #status.err { color: #ff6b6b; }
+    #keywarn { display: none; width: 100%; background: #3a2a00; color: #ffd75e;
+      font-size: 12px; padding: 6px 12px; }
+    #offline { display: none; width: 100%; background: #3a0000; color: #ff9d9d;
+      font-size: 13px; padding: 10px 12px; }
+    #container { width: 100vw; height: calc(100vh - 52px); }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <span class="brand">AKB <span>STUDIO</span></span>
+    <label>Pack <input id="packVersion" value="10.0.0" size="8"></label>
+    <label>Layout
+      <select id="layoutId">
+        <optgroup label="Kit 9.0.0">
+          <option value="duel_columns">duel_columns</option>
+          <option value="stat_leader">stat_leader</option>
+          <option value="player_poster">player_poster</option>
+          <option value="goal_card">goal_card</option>
+          <option value="fixture_card">fixture_card</option>
+          <option value="score_card">score_card</option>
+          <option value="quote_card">quote_card</option>
+          <option value="potm_card">potm_card</option>
+          <option value="discipline_card">discipline_card</option>
+          <option value="welcome_card">welcome_card</option>
+        </optgroup>
+        <optgroup label="Sprint 1 short">
+          <option value="C-03">C-03</option>
+          <option value="C-04">C-04</option>
+          <option value="C-06">C-06</option>
+          <option value="C-07">C-07</option>
+          <option value="C-09">C-09</option>
+          <option value="C-10">C-10</option>
+          <option value="U-02">U-02</option>
+          <option value="U-03">U-03</option>
+          <option value="U-05">U-05</option>
+          <option value="MR-01">MR-01</option>
+          <option value="MR-02">MR-02</option>
+          <option value="MR-04">MR-04</option>
+          <option value="MR-06">MR-06</option>
+          <option value="MR-10">MR-10</option>
+          <option value="MR-12">MR-12</option>
+          <option value="BP-01">BP-01</option>
+          <option value="BP-02">BP-02</option>
+          <option value="BP-08">BP-08</option>
+          <option value="BP-13">BP-13</option>
+          <option value="BP-14">BP-14</option>
+          <option value="BP-16">BP-16</option>
+          <option value="BP-18">BP-18</option>
+          <option value="BP-19">BP-19</option>
+          <option value="BP-20">BP-20</option>
+        </optgroup>
+        <optgroup label="Sprint 3 short">
+          <option value="MR-03">MR-03</option>
+          <option value="MR-05">MR-05</option>
+          <option value="MR-07">MR-07</option>
+          <option value="MR-08">MR-08</option>
+          <option value="MR-09">MR-09</option>
+          <option value="MR-11">MR-11</option>
+          <option value="BP-03">BP-03</option>
+          <option value="BP-04">BP-04</option>
+          <option value="BP-05">BP-05</option>
+          <option value="BP-06">BP-06</option>
+          <option value="BP-07">BP-07</option>
+          <option value="BP-09">BP-09</option>
+          <option value="BP-10">BP-10</option>
+          <option value="BP-11">BP-11</option>
+          <option value="BP-12">BP-12</option>
+          <option value="BP-15">BP-15</option>
+          <option value="BP-17">BP-17</option>
+          <option value="C-01">C-01</option>
+          <option value="C-02">C-02</option>
+          <option value="C-05">C-05</option>
+          <option value="C-08">C-08</option>
+          <option value="U-01">U-01</option>
+          <option value="U-04">U-04</option>
+          <option value="U-06">U-06</option>
+          <option value="U-07">U-07</option>
+          <option value="U-08">U-08</option>
+        </optgroup>
+        <optgroup label="Sprint 1 long">
+          <option value="TA-01">TA-01</option>
+          <option value="TA-02">TA-02</option>
+          <option value="TA-03">TA-03</option>
+          <option value="TA-05">TA-05</option>
+          <option value="TA-06">TA-06</option>
+          <option value="TA-11">TA-11</option>
+          <option value="TA-12">TA-12</option>
+          <option value="TA-14">TA-14</option>
+          <option value="TA-16">TA-16</option>
+          <option value="TA-18">TA-18</option>
+          <option value="TA-19">TA-19</option>
+        </optgroup>
+        <optgroup label="Sprint 2 long">
+          <option value="TA-04">TA-04</option>
+          <option value="TA-07">TA-07</option>
+          <option value="TA-08">TA-08</option>
+          <option value="TA-09">TA-09</option>
+          <option value="TA-10">TA-10</option>
+          <option value="TA-13">TA-13</option>
+          <option value="TA-15">TA-15</option>
+          <option value="TA-17">TA-17</option>
+        </optgroup>
+      </select>
+    </label>
+    <label>Mẫu
+      <select id="starterId">
+        <option value="duel_columns:short">duel_columns (short)</option>
+        <optgroup label="Sprint 1 short">
+          <option value="C-03:short">C-03</option>
+          <option value="C-04:short">C-04</option>
+          <option value="C-06:short">C-06</option>
+          <option value="C-07:short" selected>C-07</option>
+          <option value="C-09:short">C-09</option>
+          <option value="C-10:short">C-10</option>
+          <option value="U-02:short">U-02</option>
+          <option value="U-03:short">U-03</option>
+          <option value="U-05:short">U-05</option>
+          <option value="MR-01:short">MR-01</option>
+          <option value="MR-02:short">MR-02</option>
+          <option value="MR-04:short">MR-04</option>
+          <option value="MR-06:short">MR-06</option>
+          <option value="MR-10:short">MR-10</option>
+          <option value="MR-12:short">MR-12</option>
+          <option value="BP-01:short">BP-01</option>
+          <option value="BP-02:short">BP-02</option>
+          <option value="BP-08:short">BP-08</option>
+          <option value="BP-13:short">BP-13</option>
+          <option value="BP-14:short">BP-14</option>
+          <option value="BP-16:short">BP-16</option>
+          <option value="BP-18:short">BP-18</option>
+          <option value="BP-19:short">BP-19</option>
+          <option value="BP-20:short">BP-20</option>
+        </optgroup>
+        <optgroup label="Sprint 3 short">
+          <option value="MR-03:short">MR-03</option>
+          <option value="MR-05:short">MR-05</option>
+          <option value="MR-07:short">MR-07</option>
+          <option value="MR-08:short">MR-08</option>
+          <option value="MR-09:short">MR-09</option>
+          <option value="MR-11:short">MR-11</option>
+          <option value="BP-03:short">BP-03</option>
+          <option value="BP-04:short">BP-04</option>
+          <option value="BP-05:short">BP-05</option>
+          <option value="BP-06:short">BP-06</option>
+          <option value="BP-07:short">BP-07</option>
+          <option value="BP-09:short">BP-09</option>
+          <option value="BP-10:short">BP-10</option>
+          <option value="BP-11:short">BP-11</option>
+          <option value="BP-12:short">BP-12</option>
+          <option value="BP-15:short">BP-15</option>
+          <option value="BP-17:short">BP-17</option>
+          <option value="C-01:short">C-01</option>
+          <option value="C-02:short">C-02</option>
+          <option value="C-05:short">C-05</option>
+          <option value="C-08:short">C-08</option>
+          <option value="U-01:short">U-01</option>
+          <option value="U-04:short">U-04</option>
+          <option value="U-06:short">U-06</option>
+          <option value="U-07:short">U-07</option>
+          <option value="U-08:short">U-08</option>
+        </optgroup>
+        <optgroup label="Sprint 1 long">
+          <option value="TA-01:long">TA-01</option>
+          <option value="TA-02:long">TA-02</option>
+          <option value="TA-03:long">TA-03</option>
+          <option value="TA-05:long">TA-05</option>
+          <option value="TA-06:long">TA-06</option>
+          <option value="TA-11:long">TA-11</option>
+          <option value="TA-12:long">TA-12</option>
+          <option value="TA-14:long">TA-14</option>
+          <option value="TA-16:long">TA-16</option>
+          <option value="TA-18:long">TA-18</option>
+          <option value="TA-19:long">TA-19</option>
+        </optgroup>
+        <optgroup label="Sprint 2 long">
+          <option value="TA-04:long">TA-04</option>
+          <option value="TA-07:long">TA-07</option>
+          <option value="TA-08:long">TA-08</option>
+          <option value="TA-09:long">TA-09</option>
+          <option value="TA-10:long">TA-10</option>
+          <option value="TA-13:long">TA-13</option>
+          <option value="TA-15:long">TA-15</option>
+          <option value="TA-17:long">TA-17</option>
+        </optgroup>
+      </select>
+    </label>
+    <button id="btnShort" class="secondary" type="button">Short 1080×1920</button>
+    <button id="btnLong" class="secondary" type="button">Long 1920×1080</button>
+    <button id="btnStarter" class="secondary" type="button">Nạp mẫu</button>
+    <button id="btnExport" type="button">Xuất PNG vào pack</button>
+    <button id="btnDownload" class="secondary" type="button">Tải PNG</button>
+    <span id="status">Đang tải editor…</span>
+    <div id="keywarn"></div>
+    <div id="offline">Không tải được Polotno từ CDN (cần mạng cho editor). Kiểm tra mạng rồi tải lại trang.</div>
+  </div>
+  <div id="container"></div>
+  <!-- Polotno frameworkless bundle: phải nằm trong body (theo docs) -->
+  <script src="https://unpkg.com/polotno@4/polotno.bundle.js"></script>
+  <script src="/studio.js"></script>
+</body>
+</html>

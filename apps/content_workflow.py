@@ -37,7 +37,12 @@ SHORT_BUDGET_SECONDS = 540
 LONG_BUDGET_SECONDS = 1500
 VISUAL_MODES = {
     "tactical_explainer", "statline_scorecard", "source_card",
-    "chart_comparison", "chart_timeline", "hook_card",
+    "chart_comparison", "chart_timeline", "hook_card", "player_card",
+    "comparison_duel", "stat_leader", "player_poster",
+    "goal_card", "fixture_card", "score_card",
+    "duel_columns", "player_poster_side", "player_poster_top",
+    "fixture_list", "quote_card", "potm_card",
+    "discipline_card", "welcome_card",
 }
 
 
@@ -376,7 +381,11 @@ def _ollama_beat(
         f"between {speech_floor} and {speech_budget} characters so it fills "
         f"{duration_hint}s aloud without padding), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
         "visual_mode (tactical_explainer, statline_scorecard, source_card, "
-        "chart_comparison, chart_timeline, or hook_card), graphic_data (values and source only "
+        "chart_comparison, chart_timeline, hook_card, player_card, "
+        "comparison_duel, stat_leader, player_poster, goal_card, "
+        "fixture_card, score_card, duel_columns, player_poster_side, "
+        "player_poster_top, fixture_list, quote_card, potm_card, "
+        "discipline_card, or welcome_card), graphic_data (values and source only "
         "when explicitly present in supplied evidence, else {}), duration_seconds "
         f"(integer {lo}-{hi}), and timeline_events (on-screen items with item_id, "
         "item_type among caption, stat_card, tactical_diagram, media, lower_third, "
@@ -391,9 +400,26 @@ def _ollama_beat(
         "chart_timeline. Use pie or donut ONLY for mutually exclusive parts of one "
         "known whole with no more than four categories; otherwise choose bar or column. "
         "For the opening beat use visual_mode hook_card with graphic_data.hook_text "
-        "restating the opening claim in 5-8 Vietnamese words. For one decisive sourced "
+        "restating the opening claim in 5-8 Vietnamese words, marking ONE key word "
+        "with *stars* for the magenta accent. For one decisive sourced "
         "number use statline_scorecard with graphic_data.hero {label, value} plus source "
-        "and date. "
+        "and date. Vary visual modes across beats: never repeat one mode more than "
+        "twice in a short video, and give every beat with reviewed numbers a data "
+        "visual instead of another source card. For a player beat use visual_mode "
+        "player_card with graphic_data.player_name and graphic_data.stats (up to 3 "
+        "{label, value} with source and date); the portrait comes from the approved "
+        "library image attached to the segment, never a generated face. "
+        "For Sports Kit beats: comparison_duel needs graphic_data.metrics "
+        "(label, home, away) with source+date; stat_leader needs graphic_data.stats "
+        "(up to 4 label/value) with source+date; player_poster needs player_name "
+        "plus stats (up to 3); goal_card needs hook_text 3-8 words plus score; "
+        "fixture_card needs fixtures (up to 3 home/away/date); score_card needs "
+        "home/away/score with source+date. Kit generation: duel_columns needs "
+        "graphic_data.metrics (label, home, away) with source+date (winner auto "
+        "lime); stat_leader needs stats (up to 4); player_poster_side/top need "
+        "player_name, stats (up to 3), meta (up to 3 label/value); goal_card needs "
+        "hook_text plus score; fixture_list needs fixtures (up to 3); quote_card "
+        "needs claim; potm/discipline/welcome/score need player_name (+minute). "
         "Never estimate or invent missing values, units, order, dates, or sources."
     )
     user_payload = {
@@ -599,7 +625,7 @@ def create_script_draft(
     story_form_id: str,
     evidence_text: str = "",
     content_type: str = "short",
-    colorway: str = "match-night",
+    colorway: str = "san-dem",
     *,
     on_beat: Any = None,
     budget_seconds: int | None = None,
@@ -613,6 +639,12 @@ def create_script_draft(
     if template_id is None:
         raise ValueError("Content type must be either short or long.")
     package = resolve_template(root, template_id, allow_draft=True)
+    try:
+        VISUAL_MODES.update(
+            str(item.get("id")) for item in package.graphic_templates.get("layouts", [])
+            if isinstance(item, dict) and item.get("id"))
+    except (AttributeError, TypeError):
+        pass
     supported_colorways = {item.get("id") for item in package.color_systems.get("colorways", [])}
     if colorway not in supported_colorways:
         raise ValueError("Colorway is not included in the selected template package.")
@@ -710,7 +742,7 @@ def run_content_agent(
     story_form_id: str,
     evidence_text: str = "",
     content_type: str = "short",
-    colorway: str = "match-night",
+    colorway: str = "san-dem",
 ) -> dict[str, Any]:
     """Run the bounded local agent and stop before owner-controlled actions."""
     from apps.voice_tts import voice_profile_status
@@ -783,14 +815,23 @@ def run_content_agent(
             eligible_count = len(evaluation.eligible_assets)
             candidates = []
             discovery_error = None
+            provider_statuses: list[dict[str, Any]] = []
+            discovery_query = requirement.discovery_query or draft["topic"]
             if eligible_count < quantity and requirement.resource_type in {"image", "video"}:
                 try:
-                    found, _ = search_candidates(
-                        requirement.discovery_query or draft["topic"],
+                    found, statuses = search_candidates(
+                        discovery_query,
                         resource_type=requirement.resource_type,
                         limit=12,
                     )
                     candidates = [asdict(item) for item in found]
+                    provider_statuses = [
+                        {"label": item.get("label"), "state": item.get("state")}
+                        if isinstance(item, dict)
+                        else {"label": str(getattr(item, "label", "?")),
+                              "state": str(getattr(item, "state", "?"))}
+                        for item in statuses
+                    ]
                 except DiscoveryError as error:
                     discovery_error = str(error)
             checks.append(
@@ -804,6 +845,8 @@ def run_content_agent(
                     "web_candidates": candidates,
                     "candidate_status": "SUGGESTIONS_ONLY" if candidates else "NO_CANDIDATES",
                     "discovery_error": discovery_error,
+                    "discovery_query": discovery_query,
+                    "provider_statuses": provider_statuses,
                 }
             )
     finally:

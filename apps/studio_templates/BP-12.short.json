@@ -1,0 +1,140 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#161B2C",
+   "children": [
+    {
+     "id": "deco-1",
+     "type": "figure",
+     "subType": "rect",
+     "x": 0,
+     "y": 360,
+     "width": 1080,
+     "height": 620,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-2",
+     "type": "text",
+     "x": 76,
+     "y": 200,
+     "width": 928,
+     "height": 100,
+     "text": "NGỘ NHẬN",
+     "fontSize": 72,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#F4F2EC",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "myth-k"
+     }
+    },
+    {
+     "id": "val-3",
+     "type": "text",
+     "x": 76,
+     "y": 420,
+     "width": 928,
+     "height": 380,
+     "text": "Điều gây tranh cãi",
+     "fontSize": 64,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#161B2C",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "myth"
+     }
+    },
+    {
+     "id": "val-4",
+     "type": "text",
+     "x": 76,
+     "y": 1060,
+     "width": 928,
+     "height": 100,
+     "text": "SỰ THẬT",
+     "fontSize": 72,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#E0705F",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "fact-k"
+     }
+    },
+    {
+     "id": "val-5",
+     "type": "text",
+     "x": 76,
+     "y": 1180,
+     "width": 928,
+     "height": 380,
+     "text": "Các góc nhìn và bằng chứng",
+     "fontSize": 64,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F4F2EC",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "fact"
+     }
+    },
+    {
+     "id": "val-6",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "Nguồn + ngày",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8B96B0",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

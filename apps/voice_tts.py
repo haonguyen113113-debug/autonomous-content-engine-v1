@@ -122,14 +122,17 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     if len(text) < 12 or len(text) > 24000:
         raise ValueError("The voice preview needs 12–24,000 characters of reviewed script.")
     profile_status = voice_profile_status(root)
-    if not profile_status["reference_ready"]:
-        raise ValueError("Import your local voice reference before generating TTS.")
+    preset_voice = (_local_value(root, "TTS_VOICE") or "").strip()
+    if not preset_voice and not profile_status["reference_ready"]:
+        raise ValueError("Import your local voice reference before generating TTS. "
+                         "Alternatively set TTS_VOICE to a built-in preset (e.g. Adam).")
     runtime_python = _runtime_python(root)
     if runtime_python is None:
         raise RuntimeError("VieNeu-TTS is not installed. Install the local vieneu runtime first.")
 
-    profile = json.loads((root / VOICE_DIR / "profile.json").read_text(encoding="utf-8"))
-    reference = root / VOICE_DIR / profile["reference_file"]
+    profile = json.loads((root / VOICE_DIR / "profile.json").read_text(encoding="utf-8")) \
+        if (root / VOICE_DIR / "profile.json").is_file() else {}
+    reference = root / VOICE_DIR / str(profile.get("reference_file", "allen-reference.wav"))
     output_dir = root / VOICE_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
     output_name = f"{run_id}-voice-preview.wav"
@@ -139,7 +142,7 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     child_env["HF_HOME"] = str(root / "runtime/model-cache")
     child_env["PYTHONUTF8"] = "1"
     child_env["PYTHONIOENCODING"] = "utf-8"
-    for key in ("TTS_SILENCE_P",):
+    for key in ("TTS_SILENCE_P", "TTS_VOICE", "TTS_TEMPERATURE", "TTS_CROSSFADE_P"):
         value = _local_value(root, key)
         if value is not None:
             child_env[key] = value
@@ -161,8 +164,11 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
         "path": output_name,
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "engine": profile_status["tts_model"],
+        "voice": preset_voice or "allen-reference",
         "local_only": True,
     }
     run["status"] = "WAITING_FOR_VOICE_AUDIT"
     run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return {"audio_url": f"/api/voice-preview/{output_name}", "engine": profile_status["tts_model"]}
+    return {"audio_url": f"/api/voice-preview/{output_name}",
+            "engine": profile_status["tts_model"],
+            "voice": preset_voice or "allen-reference"}

@@ -2,8 +2,14 @@
 
 WORKDIR /app
 
-COPY apps/worker/main.py /app/main.py
-COPY apps/worker/job.py /app/job.py
-COPY apps/worker/job_queue.py /app/job_queue.py
+# Worker needs the engine packages it dispatches to (runner imports the
+# content workflow), plus templates/taxonomy the workflow resolves.
+COPY apps/ ./apps/
+COPY template_foundation/ ./template_foundation/
+COPY taxonomy.json ./
+COPY data/ ./data/
 
-CMD ["python", "main.py"]
+ENV ENGINE_ROOT=/app
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python", "-m", "apps.worker.main"]

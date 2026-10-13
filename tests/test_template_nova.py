@@ -16,8 +16,11 @@ def _package(template_id):
 
 
 def test_nova_resolves_by_default_for_both_aspects():
-    short = resolve_template(ROOT, "allen-knows-ball.shortform-analyst", allow_draft=True)
-    long = resolve_template(ROOT, "allen-knows-ball.longform-analyst", allow_draft=True)
+    # Nova stays pinned-resolvable while 1.0.0 is the new default.
+    short = resolve_template(ROOT, "allen-knows-ball.shortform-analyst",
+                             version="0.9.0", allow_draft=True)
+    long = resolve_template(ROOT, "allen-knows-ball.longform-analyst",
+                            version="0.9.0", allow_draft=True)
     assert short.manifest["version"] == "0.9.0"
     assert long.manifest["version"] == "0.9.0"
 
@@ -84,12 +87,12 @@ def test_hook_plate_renders_and_stays_legible_at_phone_width(tmp_path):
         assert plate.size == (960, 1250)
         phone = plate.resize((350, round(350 * plate.height / plate.width)))
         assert phone.size[0] == 350
-        # Ink field with lime rule: top strip must carry the accent color.
+        # Claim type must survive downscaling: the middle band carries
+        # bright condensed glyphs on the dark field.
         pixels = phone.convert("RGB")
-        lime = (232, 199, 90)
-        top_row = [pixels.getpixel((x, 2)) for x in range(0, 350, 7)]
-        assert any(abs(r - lime[0]) + abs(g - lime[1]) + abs(b - lime[2]) < 90
-                   for r, g, b in top_row)
+        mid = [pixels.getpixel((x, y)) for y in range(150, 310, 4) for x in range(20, 330, 4)]
+        bright = sum(1 for r, g, b in mid if r > 170 and g > 170 and b > 170)
+        assert bright > 200
 
 
 def test_hero_plate_renders_single_numeral_at_3x(tmp_path):

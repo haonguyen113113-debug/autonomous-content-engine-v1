@@ -1,0 +1,236 @@
+{
+ "schemaVersion": 4,
+ "width": 1920,
+ "height": 1080,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#161B2C",
+   "children": [
+    {
+     "id": "val-1",
+     "type": "text",
+     "x": 140,
+     "y": 120,
+     "width": 1640,
+     "height": 100,
+     "text": "BẰNG CHỨNG SỐ",
+     "fontSize": 72,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#E0705F",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "kicker"
+     }
+    },
+    {
+     "id": "val-2",
+     "type": "text",
+     "x": 140,
+     "y": 300,
+     "width": 500,
+     "height": 70,
+     "text": "Cơ hội rõ rệt",
+     "fontSize": 48,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F4F2EC",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "l-0"
+     }
+    },
+    {
+     "id": "deco-3",
+     "type": "figure",
+     "subType": "rect",
+     "x": 140,
+     "y": 390,
+     "width": 960,
+     "height": 56,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-4",
+     "type": "text",
+     "x": 1130,
+     "y": 380,
+     "width": 300,
+     "height": 80,
+     "text": "32",
+     "fontSize": 56,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#F4F2EC",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "v-0"
+     }
+    },
+    {
+     "id": "val-5",
+     "type": "text",
+     "x": 140,
+     "y": 500,
+     "width": 500,
+     "height": 70,
+     "text": "Sút trúng đích",
+     "fontSize": 48,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F4F2EC",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "l-1"
+     }
+    },
+    {
+     "id": "deco-6",
+     "type": "figure",
+     "subType": "rect",
+     "x": 140,
+     "y": 590,
+     "width": 720,
+     "height": 56,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-7",
+     "type": "text",
+     "x": 890,
+     "y": 580,
+     "width": 300,
+     "height": 80,
+     "text": "24",
+     "fontSize": 56,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#F4F2EC",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "v-1"
+     }
+    },
+    {
+     "id": "val-8",
+     "type": "text",
+     "x": 140,
+     "y": 700,
+     "width": 500,
+     "height": 70,
+     "text": "Thu hồi bóng",
+     "fontSize": 48,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F4F2EC",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "l-2"
+     }
+    },
+    {
+     "id": "deco-9",
+     "type": "figure",
+     "subType": "rect",
+     "x": 140,
+     "y": 790,
+     "width": 1080,
+     "height": 56,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-10",
+     "type": "text",
+     "x": 1250,
+     "y": 780,
+     "width": 300,
+     "height": 80,
+     "text": "36",
+     "fontSize": 56,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#F4F2EC",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "v-2"
+     }
+    },
+    {
+     "id": "val-11",
+     "type": "text",
+     "x": 134,
+     "y": 990,
+     "width": 1652,
+     "height": 40,
+     "text": "Nguồn + ngày",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8B96B0",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

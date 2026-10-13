@@ -3,12 +3,13 @@ import time
 from pathlib import Path
 from queue import Empty
 
-from job import Job
-from job_queue import job_queue
-
-try:
+try:  # package context: python -m apps.worker.main (incl. Docker image)
+    from apps.worker.job import Job
+    from apps.worker.job_queue import job_queue
     from apps.worker.runner import process_job
-except ImportError:  # running inside apps/worker as cwd
+except ImportError:  # flat context: python main.py inside apps/worker/
+    from job import Job
+    from job_queue import job_queue
     from runner import process_job
 
 

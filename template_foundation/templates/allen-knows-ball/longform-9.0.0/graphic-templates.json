@@ -1,0 +1,245 @@
+{
+  "schema_version": "1.0",
+  "template_version": "9.0.0",
+  "motion_notes": "Slide-in 0.3s ease-out; count-up 6 steps; stagger 0.18s; ticker drift; winner-pop.",
+  "selection_rule": "Open on hook_card; numbers duel or lead; one player posters; moments goal/fixture/score; voice quote/discipline/welcome.",
+  "layouts": [
+    {
+      "id": "duel_columns",
+      "purpose": "Head-to-head duel: navy vs orange zones, photo flanks, winner numeral lime.",
+      "required_data": [
+        "graphic_data.metrics",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_metrics": 6,
+        "teams": 2
+      },
+      "sourcing": "Winner computed from supplied numbers; ties render both white."
+    },
+    {
+      "id": "stat_leader",
+      "purpose": "Vertical leader list: micro label + giant numeral rows on kit red.",
+      "required_data": [
+        "graphic_data.stats",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_stats": 4
+      },
+      "sourcing": "One number per row; cutout must be approved media."
+    },
+    {
+      "id": "player_poster_side",
+      "purpose": "Side-split poster: torn photo left, brush surname, meta + stats.",
+      "required_data": [
+        "graphic_data.player_name",
+        "graphic_data.stats"
+      ],
+      "limits": {
+        "maximum_stats": 3
+      },
+      "sourcing": "Portrait must be an approved library image of the named player."
+    },
+    {
+      "id": "player_poster_top",
+      "purpose": "Top-photo poster: torn photo band, meta columns, stat columns.",
+      "required_data": [
+        "graphic_data.player_name",
+        "graphic_data.stats"
+      ],
+      "limits": {
+        "maximum_stats": 3
+      },
+      "sourcing": "Portrait must be an approved library image of the named player."
+    },
+    {
+      "id": "goal_card",
+      "purpose": "Goal moment: giant backdrop word + chant + score pill.",
+      "required_data": [
+        "graphic_data.hook_text"
+      ],
+      "limits": {
+        "maximum_words": 10
+      },
+      "sourcing": "Chant restates reviewed narration."
+    },
+    {
+      "id": "fixture_card",
+      "purpose": "Next match: header, V + shield slots, date + stadium.",
+      "required_data": [
+        "graphic_data.home",
+        "graphic_data.away"
+      ],
+      "limits": {},
+      "sourcing": "No real crests; drawn shield outlines only."
+    },
+    {
+      "id": "fixture_list",
+      "purpose": "Up-next list: up to 3 fixture rows on white panel.",
+      "required_data": [
+        "graphic_data.fixtures",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "limits": {
+        "maximum_fixtures": 3
+      },
+      "sourcing": "Dates from reviewed evidence."
+    },
+    {
+      "id": "score_card",
+      "purpose": "Final score: full-bleed photo + giant scoreline + shield bug.",
+      "required_data": [
+        "graphic_data.home",
+        "graphic_data.away",
+        "graphic_data.score"
+      ],
+      "limits": {
+        "teams": 2
+      },
+      "sourcing": "Score from reviewed evidence with source+date."
+    },
+    {
+      "id": "quote_card",
+      "purpose": "Pull quote: duotone photo + paper box + seal.",
+      "required_data": [
+        "graphic_data.claim"
+      ],
+      "limits": {
+        "maximum_claim_chars": 220
+      },
+      "sourcing": "Quote must exist in reviewed evidence."
+    },
+    {
+      "id": "potm_card",
+      "purpose": "Player of the match: dark photo + giant POTM + name pill.",
+      "required_data": [
+        "graphic_data.player_name"
+      ],
+      "limits": {},
+      "sourcing": "Portrait must be an approved library image of the named player."
+    },
+    {
+      "id": "discipline_card",
+      "purpose": "Card incident: edge letters + card motifs + name/minute.",
+      "required_data": [
+        "graphic_data.player_name"
+      ],
+      "limits": {},
+      "sourcing": "Incident from reviewed evidence."
+    },
+    {
+      "id": "welcome_card",
+      "purpose": "Welcome: X-cross field + photo + name pill.",
+      "required_data": [
+        "graphic_data.player_name"
+      ],
+      "limits": {},
+      "sourcing": "Portrait must be an approved library image of the named player."
+    },
+    {
+      "id": "hook_card",
+      "purpose": "Frame 0: one 5-8 word claim, punched in.",
+      "required_data": [
+        "graphic_data.hook_text"
+      ],
+      "limits": {
+        "maximum_words": 8,
+        "minimum_words": 5
+      },
+      "sourcing": "Claim must exist in reviewed opening narration."
+    },
+    {
+      "id": "tactical_explainer",
+      "purpose": "Authored pitch plate for shapes/runs/press.",
+      "required_data": [
+        "tactical_diagram"
+      ],
+      "sourcing": "Illustrative diagram, labeled as analysis."
+    },
+    {
+      "id": "source_card",
+      "purpose": "Provenance note: publication, date, claim, URL.",
+      "required_data": [
+        "graphic_data.source",
+        "graphic_data.date",
+        "graphic_data.claim"
+      ],
+      "limits": {
+        "maximum_claim_lines": 4
+      }
+    }
+  ],
+  "data_integrity": [
+    "Only reviewed values with source+date.",
+    "Ties never broken silently.",
+    "No synthesized likeness.",
+    "Hook restates reviewed opening claim."
+  ],
+  "previews": "Renderer-exported examples in previews/ are illustrative, no real match data.",
+  "layout_grammar": {
+    "duel_columns": {
+      "composition": "Head-to-head duel: navy vs orange zones, photo flanks, winner numeral lime.",
+      "best_for": "Head-to-head duel: navy vs orange zones, photo flanks, winner numeral lime."
+    },
+    "stat_leader": {
+      "composition": "Vertical leader list: micro label + giant numeral rows on kit red.",
+      "best_for": "Vertical leader list: micro label + giant numeral rows on kit red."
+    },
+    "player_poster_side": {
+      "composition": "Side-split poster: torn photo left, brush surname, meta + stats.",
+      "best_for": "Side-split poster: torn photo left, brush surname, meta + stats."
+    },
+    "player_poster_top": {
+      "composition": "Top-photo poster: torn photo band, meta columns, stat columns.",
+      "best_for": "Top-photo poster: torn photo band, meta columns, stat columns."
+    },
+    "goal_card": {
+      "composition": "Goal moment: giant backdrop word + chant + score pill.",
+      "best_for": "Goal moment: giant backdrop word + chant + score pill."
+    },
+    "fixture_card": {
+      "composition": "Next match: header, V + shield slots, date + stadium.",
+      "best_for": "Next match: header, V + shield slots, date + stadium."
+    },
+    "fixture_list": {
+      "composition": "Up-next list: up to 3 fixture rows on white panel.",
+      "best_for": "Up-next list: up to 3 fixture rows on white panel."
+    },
+    "score_card": {
+      "composition": "Final score: full-bleed photo + giant scoreline + shield bug.",
+      "best_for": "Final score: full-bleed photo + giant scoreline + shield bug."
+    },
+    "quote_card": {
+      "composition": "Pull quote: duotone photo + paper box + seal.",
+      "best_for": "Pull quote: duotone photo + paper box + seal."
+    },
+    "potm_card": {
+      "composition": "Player of the match: dark photo + giant POTM + name pill.",
+      "best_for": "Player of the match: dark photo + giant POTM + name pill."
+    },
+    "discipline_card": {
+      "composition": "Card incident: edge letters + card motifs + name/minute.",
+      "best_for": "Card incident: edge letters + card motifs + name/minute."
+    },
+    "welcome_card": {
+      "composition": "Welcome: X-cross field + photo + name pill.",
+      "best_for": "Welcome: X-cross field + photo + name pill."
+    },
+    "hook_card": {
+      "composition": "Frame 0: one 5-8 word claim, punched in.",
+      "best_for": "Frame 0: one 5-8 word claim, punched in."
+    },
+    "tactical_explainer": {
+      "composition": "Authored pitch plate for shapes/runs/press.",
+      "best_for": "Authored pitch plate for shapes/runs/press."
+    },
+    "source_card": {
+      "composition": "Provenance note: publication, date, claim, URL.",
+      "best_for": "Provenance note: publication, date, claim, URL."
+    }
+  }
+}

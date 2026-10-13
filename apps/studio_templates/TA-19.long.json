@@ -1,0 +1,118 @@
+{
+ "schemaVersion": 4,
+ "width": 1920,
+ "height": 1080,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#161B2C",
+   "children": [
+    {
+     "id": "deco-1",
+     "type": "figure",
+     "subType": "rect",
+     "x": 0,
+     "y": 220,
+     "width": 1920,
+     "height": 560,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-2",
+     "type": "text",
+     "x": 134,
+     "y": 140,
+     "width": 1652,
+     "height": 50,
+     "text": "LUẬN ĐIỂM",
+     "fontSize": 34,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#E0705F",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "kicker"
+     }
+    },
+    {
+     "id": "val-3",
+     "type": "text",
+     "x": 140,
+     "y": 320,
+     "width": 1640,
+     "height": 200,
+     "text": "Góc nhìn của Allen",
+     "fontSize": 130,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#161B2C",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "claim"
+     }
+    },
+    {
+     "id": "val-4",
+     "type": "text",
+     "x": 140,
+     "y": 630,
+     "width": 900,
+     "height": 110,
+     "text": "Dòng phụ (sửa theo từng video)",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#161B2C",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "support"
+     }
+    },
+    {
+     "id": "val-5",
+     "type": "text",
+     "x": 134,
+     "y": 990,
+     "width": 1652,
+     "height": 40,
+     "text": "NGUỒN + NGÀY CẬP NHẬT",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8B96B0",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

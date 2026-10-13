@@ -1,0 +1,104 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#161B2C",
+   "children": [
+    {
+     "id": "deco-1",
+     "type": "figure",
+     "subType": "rect",
+     "x": 76,
+     "y": 1300,
+     "width": 928,
+     "height": 260,
+     "fill": "#20263C",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "deco-2",
+     "type": "figure",
+     "subType": "rect",
+     "x": 76,
+     "y": 1300,
+     "width": 14,
+     "height": 260,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-3",
+     "type": "text",
+     "x": 130,
+     "y": 1340,
+     "width": 820,
+     "height": 120,
+     "text": "NGUYỄN VĂN A",
+     "fontSize": 84,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#F4F2EC",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "chip-main"
+     }
+    },
+    {
+     "id": "val-4",
+     "type": "text",
+     "x": 130,
+     "y": 1460,
+     "width": 820,
+     "height": 60,
+     "text": "Tiền đạo • #19",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8B96B0",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "chip-sub"
+     }
+    },
+    {
+     "id": "deco-5",
+     "type": "figure",
+     "subType": "rect",
+     "x": 76,
+     "y": 1220,
+     "width": 420,
+     "height": 8,
+     "fill": "#5A6B8C",
+     "opacity": 0.8,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "third_party_resources": [
+    {
+      "family": "Be Vietnam Pro",
+      "files": [
+        "resources/fonts/BeVietnamPro-Regular.ttf",
+        "resources/fonts/BeVietnamPro-SemiBold.ttf",
+        "resources/fonts/BeVietnamPro-Bold.ttf",
+        "resources/fonts/BeVietnamPro-OFL.txt"
+      ],
+      "license": "SIL Open Font License 1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/bevietnampro",
+      "use": "Bundled local Vietnamese body font."
+    },
+    {
+      "family": "Barlow Condensed",
+      "files": [
+        "resources/fonts/BarlowCondensed-SemiBold.ttf",
+        "resources/fonts/BarlowCondensed-Bold.ttf",
+        "resources/fonts/BarlowCondensed-OFL.txt"
+      ],
+      "license": "SIL Open Font License 1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/barlowcondensed",
+      "use": "Bundled local display font."
+    }
+  ],
+  "included_match_media": [],
+  "policy": "Match footage, club crests, competition logos, music, and player photography are not bundled. Acquire or use them through their own rights-cleared source and the Asset Library approval path."
+}

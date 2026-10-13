@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "identity_neutrals": {"ink": "#111721", "chalk": "#F0EBDD", "muted": "#A9B2AA", "rule": "#658576"},
+  "colorways": [
+    {"id": "match-night", "name": "Đêm thi đấu", "tokens": {"deep_pitch": "#173C38", "team_home": "#42C7B2", "team_away": "#F07862", "signal_lime": "#E8C75A", "signal_orange": "#F07862", "data_1": "#54C7B8", "data_2": "#F07862", "data_3": "#9D8BEA", "data_4": "#E8C75A"}},
+    {"id": "paper-report", "name": "Hồ sơ giấy", "tokens": {"deep_pitch": "#34463F", "team_home": "#54AFA1", "team_away": "#C65D4C", "signal_lime": "#D2A943", "signal_orange": "#C65D4C", "data_1": "#368D80", "data_2": "#C65D4C", "data_3": "#7263AE", "data_4": "#D2A943"}},
+    {"id": "stadium-lights", "name": "Ánh đèn sân", "tokens": {"deep_pitch": "#173851", "team_home": "#59B8F0", "team_away": "#FF775F", "signal_lime": "#E9CD67", "signal_orange": "#FF775F", "data_1": "#59B8F0", "data_2": "#FF775F", "data_3": "#B49AF0", "data_4": "#E9CD67"}},
+    {"id": "cup-night", "name": "Đêm cúp châu Âu", "tokens": {"deep_pitch": "#302746", "team_home": "#68D0C5", "team_away": "#E783B0", "signal_lime": "#E7C85B", "signal_orange": "#E783B0", "data_1": "#68D0C5", "data_2": "#E783B0", "data_3": "#A793EA", "data_4": "#E7C85B"}}
+  ],
+  "selection_rules": ["Keep channel identity stable while colorways adapt to story context.", "Use approved team kit colors when supplied; otherwise use the selected colorway.", "Every data series must also have a label or direct value.", "Do not invent statistics, sources, crests, or match footage."]
+}

@@ -45,8 +45,12 @@ STATIC_FILES = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+    "/studio": ("studio.html", "text/html; charset=utf-8"),
+    "/studio.js": ("studio.js", "text/javascript; charset=utf-8"),
 }
 MAX_REQUEST_BYTES = 64 * 1024
+STUDIO_EXPORT_MAX_BYTES = 15 * 1024 * 1024
+STUDIO_TEMPLATES_ROOT = Path(__file__).parents[1] / "studio_templates"
 TEMPLATE_ID = "allen-knows-ball.shortform-analyst"
 LONG_TEMPLATE_ID = "allen-knows-ball.longform-analyst"
 TEMPLATE_FILES = {
@@ -69,11 +73,32 @@ TEMPLATE_FILES = {
             "chart-bar-preview", "chart-column-preview", "chart-pie-preview",
             "chart-donut-preview", "chart-line-preview",
             "hook-card-preview", "hero-preview",
+            "comparison-duel-preview", "stat-leader-preview",
+            "player-poster-preview", "goal-preview",
+            "fixture-preview", "score-preview",
+            "duel-columns-preview", "poster-side-preview",
+            "poster-top-preview", "fixture-list-preview",
+            "quote-preview", "potm-preview",
+            "discipline-preview", "welcome-preview",
+        )
+    },
+    **{
+        f"/template-foundation/previews/manim/{scene}.mp4": (
+            f"previews/manim/videos/sportskit/1920p30/{scene}.mp4", "video/mp4",
+        )
+        for scene in (
+            "HookCard", "ComparisonDuel", "StatLeader", "PlayerPoster",
+            "GoalCard", "FixtureCard", "ScoreCard",
+            "DuelColumns", "PosterSide", "GoalPunch",
+            "ScoreBug", "QuoteReveal", "WelcomeCard",
         )
     },
     "/template-foundation/resources/identity/akb-mark.svg": (
         "resources/identity/akb-mark.svg",
         "image/svg+xml",
+    ),
+    "/template-foundation/pack-audit.html": (
+        "pack-audit.html", "text/html; charset=utf-8",
     ),
     **{
         f"/template-foundation/resources/fonts/{name}": (
@@ -226,6 +251,116 @@ def _read_api_keys(root: Path) -> dict[str, str]:
                 key, value = line.split("=", 1)
                 keys.setdefault(key.strip(), value.strip().strip("\"'"))
     return {name: keys[name] for name in ("PEXELS_API_KEY", "PIXABAY_API_KEY") if keys.get(name)}
+
+
+def _studio_config(root: Path) -> dict[str, Any]:
+    """Polotno key for the local Studio page (localhost server only)."""
+    keys = dict(os.environ)
+    env_file = root / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                keys.setdefault(key.strip(), value.strip().strip("\"'"))
+    api_key = str(keys.get("POLOTNO_API_KEY", "")).strip()
+    return {"hasKey": bool(api_key), "key": api_key}
+
+
+def _studio_starter(name: str, aspect: str) -> dict[str, Any]:
+    """Serve a hand-built starter design JSON for the Studio page."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,60}", name or ""):
+        raise ValueError("Unknown starter template.")
+    if aspect not in {"short", "long"}:
+        raise ValueError("Aspect must be short or long.")
+    path = (STUDIO_TEMPLATES_ROOT / f"{name}.{aspect}.json").resolve()
+    if STUDIO_TEMPLATES_ROOT.resolve() not in path.parents or not path.is_file():
+        raise ValueError("Unknown starter template.")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError("Starter template is unreadable.") from error
+    if not isinstance(data, dict):
+        raise ValueError("Starter template is unreadable.")
+    return data
+
+
+def _studio_export(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    """Save one Studio PNG export into the owner's pack drop folder.
+
+    The export must already be exact pixels (1080x1920 / 1920x1080);
+    anything else fails loudly instead of silently entering a pack.
+    """
+    import base64
+    import binascii
+
+    from apps.pack_import.importer import SAFE_SLUG
+
+    version = str(payload.get("version", "")).strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ValueError("Pack version must be semver (e.g. 10.0.0).")
+    layout = str(payload.get("layout", "")).strip()
+    if not SAFE_SLUG.match(layout):
+        raise ValueError("Layout id is invalid.")
+    prefix = str(payload.get("prefix", "")).strip()
+    expected = {"short": (1080, 1920), "long": (1920, 1080)}.get(prefix)
+    if expected is None:
+        raise ValueError("Prefix must be short or long.")
+    data_url = str(payload.get("dataUrl", ""))
+    marker = "data:image/png;base64,"
+    if not data_url.startswith(marker):
+        raise ValueError("Export must be a PNG data URL.")
+    try:
+        raw = base64.b64decode(data_url[len(marker):], validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise ValueError("Export data is not valid base64.") from error
+    if len(raw) > STUDIO_EXPORT_MAX_BYTES:
+        raise ValueError("Export exceeds 15 MB.")
+    from PIL import Image
+    import io
+
+    try:
+        with Image.open(io.BytesIO(raw)) as image:
+            size = image.size
+            if size != expected:
+                raise ValueError(
+                    f"Export is {size[0]}x{size[1]}, need {expected[0]}x{expected[1]}. "
+                    "Set the Studio page size first (Short/Long buttons).")
+            image.convert("RGB").save(_studio_drop_file(root, version, prefix, layout))
+    except ValueError:
+        raise
+    except Exception as error:
+        raise ValueError("Export is not a readable PNG.") from error
+    return {"status": "PACK_FILE_SAVED",
+            "path": f"pack-drop/{version}/{prefix}-{layout}.png",
+            "width": expected[0], "height": expected[1]}
+
+
+def _studio_drop_file(root: Path, version: str, prefix: str, layout: str) -> Path:
+    drop = root / "pack-drop" / version
+    drop.mkdir(parents=True, exist_ok=True)
+    target = (drop / f"{prefix}-{layout}.png").resolve()
+    if drop.resolve() not in target.parents:
+        raise ValueError("Layout id is invalid.")
+    return target
+
+
+def _studio_build(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate + install the owner's pack drop as a draft template version."""
+    from apps.pack_import import PackError, build
+
+    version = str(payload.get("version", "")).strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ValueError("Pack version must be semver (e.g. 10.0.0).")
+    drop = (root / "pack-drop" / version).resolve()
+    if (root / "pack-drop").resolve() not in drop.parents:
+        raise ValueError("Pack version is invalid.")
+    try:
+        result = build(root, drop)
+    except PackError as error:
+        raise ValueError(str(error)) from error
+    return {"status": "PACK_INSTALLED", **result,
+            "audit": "/template-foundation/pack-audit.html"}
 
 
 def _asset_file_info(root: Path, db_path: Path, asset_id: str) -> tuple[Path, str]:
@@ -751,6 +886,23 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 self._send_json(_content_status(db_path.parent.parent))
                 return
 
+            if path == "/api/studio/config":
+                self._send_json(_studio_config(db_path.parent.parent))
+                return
+
+            studio_starter_match = re.fullmatch(r"/api/studio/starter/([A-Za-z0-9_-]{1,60})", path)
+            if studio_starter_match:
+                try:
+                    query = dict(
+                        pair.split("=", 1) if "=" in pair else (pair, "")
+                        for pair in urlparse(self.path).query.split("&") if pair)
+                    self._send_json(_studio_starter(
+                        studio_starter_match.group(1),
+                        str(query.get("aspect", "short")).strip().lower()))
+                except ValueError as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                return
+
             distribution_match = re.fullmatch(r"/api/distribution/([a-f0-9]{12})", path)
             if distribution_match:
                 try:
@@ -780,6 +932,26 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 return
 
             template_file = TEMPLATE_FILES.get(path)
+            if template_file is None:
+                # Owner packs add previews without code changes: any safe
+                # short-/long- name that exists as a file in the package.
+                preview_match = re.fullmatch(
+                    r"/template-foundation/previews/(short|long)-([A-Za-z0-9_-]{1,60})\.(png|jpg)",
+                    path)
+                if preview_match:
+                    ext = preview_match.group(3)
+                    template_file = (
+                        f"previews/{preview_match.group(1)}-{preview_match.group(2)}.{ext}",
+                        "image/png" if ext == "png" else "image/jpeg",
+                    )
+            if template_file is None:
+                manim_match = re.fullmatch(
+                    r"/template-foundation/previews/manim/([A-Za-z]{1,40})\.mp4", path)
+                if manim_match:
+                    template_file = (
+                        f"previews/manim/videos/sportskit/1920p30/{manim_match.group(1)}.mp4",
+                        "video/mp4",
+                    )
             if template_file:
                 template_id = (
                     LONG_TEMPLATE_ID
@@ -794,7 +966,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 )
                 relative_path, content_type = template_file
                 resource_path = (package.root / relative_path).resolve()
-                if package.root not in resource_path.parents:
+                if package.root not in resource_path.parents or not resource_path.is_file():
                     self._send_json({"error": "Not found."}, HTTPStatus.NOT_FOUND)
                     return
                 body = resource_path.read_bytes()
@@ -843,6 +1015,40 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 except Exception:
                     self._send_json({"error": "Could not store the voice reference locally."}, HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
+            if path == "/api/studio/export":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if length <= 0 or length > STUDIO_EXPORT_MAX_BYTES:
+                        raise ValueError("Export body size is invalid (max 15 MB).")
+                    payload = json.loads(self.rfile.read(length))
+                    if not isinstance(payload, dict):
+                        raise ValueError("Request must be a JSON object.")
+                    self._send_json(
+                        _studio_export(db_path.parent.parent, payload),
+                        HTTPStatus.CREATED)
+                except (json.JSONDecodeError, TypeError, ValueError) as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                except Exception:
+                    self._send_json({"error": "Studio export could not be saved."},
+                                    HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            if path == "/api/studio/build":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if length <= 0 or length > MAX_REQUEST_BYTES:
+                        raise ValueError("Request body size is invalid.")
+                    payload = json.loads(self.rfile.read(length))
+                    if not isinstance(payload, dict):
+                        raise ValueError("Request must be a JSON object.")
+                    self._send_json(
+                        _studio_build(db_path.parent.parent, payload),
+                        HTTPStatus.CREATED)
+                except (json.JSONDecodeError, TypeError, ValueError) as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                except Exception:
+                    self._send_json({"error": "Pack build failed."},
+                                    HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
             if path == "/api/voice/preview":
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
@@ -876,6 +1082,8 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 "/api/distribution/publish",
                 "/api/measurement/observations",
                 "/api/measurement/payouts",
+                "/api/studio/export",
+                "/api/studio/build",
             }:
                 self._send_json(
                     {"error": "Not found."},
@@ -931,7 +1139,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         str(payload.get("story_form", "")),
                         str(payload.get("evidence", "")),
                         str(payload.get("content_type", "short")),
-                        str(payload.get("colorway", "match-night")),
+                        str(payload.get("colorway", "san-dem")),
                     )
                     self._send_json(result, HTTPStatus.CREATED)
                     return
@@ -1084,6 +1292,7 @@ def main() -> None:
         f"(project root: {project_root})",
         flush=True,
     )
+    print(f"[engine-ui] template static routes: {len(TEMPLATE_FILES)}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

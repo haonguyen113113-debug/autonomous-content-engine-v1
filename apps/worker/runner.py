@@ -42,7 +42,7 @@ def process_draft_job(root: Path, db_path: Path, payload: dict[str, Any]) -> dic
                 str(payload.get("story_form", "")),
                 str(payload.get("evidence", "")),
                 str(payload.get("content_type", "short")),
-                str(payload.get("colorway", "match-night")),
+                str(payload.get("colorway", "san-dem")),
             )
             return {"status": "DONE", "run_id": run.get("run_id"), "attempts": attempts}
         except Exception as error:  # noqa: BLE001 - worker must record anything

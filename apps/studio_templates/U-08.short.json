@@ -1,0 +1,148 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#161B2C",
+   "children": [
+    {
+     "id": "deco-1",
+     "type": "figure",
+     "subType": "rect",
+     "x": 76,
+     "y": 600,
+     "width": 928,
+     "height": 700,
+     "fill": "#F4F2EC",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "deco-2",
+     "type": "figure",
+     "subType": "rect",
+     "x": 76,
+     "y": 600,
+     "width": 928,
+     "height": 90,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-3",
+     "type": "text",
+     "x": 110,
+     "y": 620,
+     "width": 860,
+     "height": 60,
+     "text": "ĐÍNH CHÍNH",
+     "fontSize": 44,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#161B2C",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "src-title"
+     }
+    },
+    {
+     "id": "val-4",
+     "type": "text",
+     "x": 110,
+     "y": 740,
+     "width": 860,
+     "height": 380,
+     "text": "Nội dung nguồn/trích dẫn",
+     "fontSize": 44,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#161B2C",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "src-body"
+     }
+    },
+    {
+     "id": "deco-5",
+     "type": "figure",
+     "subType": "circle",
+     "x": 820,
+     "y": 1220,
+     "width": 130,
+     "height": 130,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-6",
+     "type": "text",
+     "x": 820,
+     "y": 1250,
+     "width": 130,
+     "height": 70,
+     "text": "AKB",
+     "fontSize": 44,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#161B2C",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "seal"
+     }
+    },
+    {
+     "id": "val-7",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "Nguồn + giờ cập nhật",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8B96B0",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

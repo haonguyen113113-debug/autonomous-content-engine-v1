@@ -1,0 +1,52 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#161B2C",
+   "children": [
+    {
+     "id": "deco-1",
+     "type": "figure",
+     "subType": "rect",
+     "x": 0,
+     "y": 800,
+     "width": 1080,
+     "height": 320,
+     "fill": "#E0705F",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-2",
+     "type": "text",
+     "x": 76,
+     "y": 880,
+     "width": 928,
+     "height": 110,
+     "text": "ALLEN KNOWS BALL",
+     "fontSize": 72,
+     "fontFamily": "Barlow Condensed",
+     "fontWeight": "bold",
+     "fill": "#161B2C",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "sting"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}
