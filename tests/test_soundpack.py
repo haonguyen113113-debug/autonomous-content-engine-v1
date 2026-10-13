@@ -20,7 +20,9 @@ def test_manifest_valid_and_locked():
     for form in ("one-moment-one-read", "explain-the-pattern", "player-role-read",
                  "longform-tactical-deep-dive", "longform-player-role-study"):
         assert manifest["mapping"][form] in beds
-    assert len(manifest["stingers"]) == 3
+    assert len(manifest["stingers"]) == 4
+    assert {s["place"] for s in manifest["stingers"]} == {"hook", "chapter", "riser", "endcard"}
+    assert len(manifest["reserve"]) == 6
 
 
 def test_resolve_default_override_and_none():

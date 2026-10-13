@@ -143,6 +143,10 @@ def plan_stingers(
             at = max(0.0, duration + float(sting.get("at_seconds", -2.0) or -2.0))
             planned.append({"sting_id": sting.get("sting_id"), "file": str(path),
                             "at": round(at, 3), "volume": volume})
+        elif place == "riser":
+            at = max(0.0, duration + float(sting.get("at_seconds", -6.0) or -6.0))
+            planned.append({"sting_id": sting.get("sting_id"), "file": str(path),
+                            "at": round(at, 3), "volume": volume})
     return planned
 
 

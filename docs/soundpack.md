@@ -5,12 +5,19 @@ không discovery nhạc, không chọn nhạc, không synth nhạc.
 
 ## Pack gồm gì
 
-- **4 beds** (CC0/BY 4.0, file thật trong `tracks/` + sidecar `<slot>.json`
-  ghi title/creator/license/URLs/sha256): tension, neutral, uplift, dramatic.
-- **3 stingers**: hook-hit (giây 0), transition-whoosh (mỗi chapter),
-  end-jingle (2s cuối).
-- **mapping** story form → bed (5 forms + default). Đổi set nhạc = bump
-  pack version mới; run pin version đang dùng.
+- **4 beds** (file thật trong `tracks/` + sidecar, license sạch đã verify).
+  Provisional — owner confirm/thay bằng YouTube Audio Library picks (TA-L01).
+- **4 stingers theo owner catalog**: hook-hit (AKB-C05) @0s,
+  transition-whoosh (AKB-C02) @chapters, build-riser (AKB-C07) @endcard-6s,
+  end-jingle (provisional) @2s cuối.
+- **6 reserve** (AKB-C06/C04/C02B, MR-S04/S07, BP-S07): import được nhưng
+  chưa wire placement — file đến mới tính.
+- Pixabay chặn bot nên files đến qua **owner drop** (`soundpacks/drop/` +
+  `register.csv`) và `apps/soundpack/intake.py::import_pack` validate:
+  đúng slot + đúng filename lock, decode được (ffprobe), duration caps
+  (bed 600s / sting 15s / reserve 90s), ≤20 MiB, license allowlist, đủ
+  provenance (page URL, commercial_ok, credit cho BY), **HOLD/Content-ID
+  reject**. HÀNG chưa import thì render tự skip (không bao giờ fail video).
 
 ## Mix trong render (`_render`, full render only)
 

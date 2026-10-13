@@ -225,7 +225,7 @@ def test_summary_has_sound_section(tmp_path):
     assert sound["enabled"] is True
     assert sound["bed_id"] == "tension-pad"
     assert sound["license"] == "CC0"
-    assert set(sound["stingers"]) == {"hook-hit", "transition-whoosh", "end-jingle"}
+    assert set(sound["stingers"]) == {"hook-hit", "transition-whoosh", "build-riser", "end-jingle"}
     assert "uplift-pad" in sound["choices"]
 
 
