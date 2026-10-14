@@ -148,8 +148,8 @@ def test_white_colorways_render_and_pass_contrast():
     green = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
                             palette=COLORWAYS["co-sang"])
     assert white.size == green.size == (1080, 1920)
-    assert white.getpixel((540, 100)) == (244, 242, 236)
-    assert white.getpixel((540, 1500)) == (230, 226, 212)
+    assert white.getpixel((540, 100)) == (250, 250, 247)
+    assert white.getpixel((540, 1500)) == (22, 27, 44)
     assert green.getpixel((540, 100)) == (31, 122, 77)
     assert green.getpixel((540, 1900)) == (22, 27, 44)
     ink, paper = hex_rgb("#161B2C"), hex_rgb("#F4F2EC")

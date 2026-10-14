@@ -64,13 +64,13 @@ DEFAULT_PALETTE = {
 # theme-factory method: curated colorways as named palettes. White primary
 # per owner brief; supporting colors chosen for broadcast contrast.
 SAN_TRANG = {
-    "base": PAPER, "winner_field": PAPER, "loser_field": (230, 226, 212),
+    "base": (250, 250, 247), "winner_field": (250, 250, 247), "loser_field": INK,
     "winner_type": INK, "draw_type": INK, "glow": CORAL,
     "rule": CORAL, "circle": SLATE, "context_win": SLATE, "context_draw": SLATE,
-    "loser_numeral": SLATE, "loser_name": INK, "credit": SLATE,
+    "loser_numeral": SLATE, "loser_name": PAPER, "credit": MIST,
     "winner_bar": CORAL,
     "haze": None,
-    "detail_primary": INK, "detail_faint": SLATE,
+    "detail_primary": INK, "detail_faint": MIST,
 }
 
 CO_SANG = {
