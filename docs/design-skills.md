@@ -44,6 +44,23 @@ LICENSE.txt). `canvas-fonts/` vendor đủ 81 files OFL đã verify size.
 - Philosophy: `docs/design/mr02-philosophy.md`. Plan + review + critique:
   `docs/design/mr02-plan.md`.
 
+## Skill thứ 5: emil-design-eng + depth-lite (trả lời feedback v3<v2)
+
+- `skills/emil-design-eng/` (emilkowalski/skills, single-file, 27KB): detailing
+  thuần craft, zero dependency — animation decision framework, review checklist
+  Before/After/Why, unseen-details-compound. Motion engine đã đúng skill sẵn
+  (ease_out_cubic/back toàn bộ sportskit) nên không sửa motion.
+- Áp restraint của skill vào depth pass: bản full (grain mạnh + haze bands)
+  thua bản flat → thêm mode `depth="lite"` (giữ top-light + hero glow, grain
+  một nửa, bỏ haze). Compare panel 3 giờ là gốc/flat/lite.
+- Đánh giá thẳng thắn 4 skills đã xem mà KHÔNG cài (tránh dead weight):
+  | Skill | Vì sao không cài |
+  |---|---|
+  | theme-factory | 10 preset themes đè lên palette lock của channel |
+  | brand-guidelines | Brand của Anthropic + pptx — sai subject, sai medium |
+  | high-end-visual-design | Web Tailwind/bento; variance mandate (không lặp layout) conflict trực diện locked packs |
+  | web-design-guidelines | Meta-skill fetch rules ngoài mỗi lần review (cần network) — audit protocol của engine đã cover |
+
 ## Skill thứ 3 + 4: algorithmic-art + broadcast-depth (vượt 2D)
 
 - `skills/algorithmic-art/` (official, Apache 2.0, SKILL + templates/viewer).

@@ -58,7 +58,9 @@ def test_redesign_stays_in_locked_palette():
     for image in (
             render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay"),
             render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
-                            depth=True, seed=7)):
+                            depth=True, seed=7),
+            render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                            depth="lite", seed=7)):
         stray = 0
         for rgb in _sampled_pixels(image):
             if not any(all(abs(a - b) <= 90 for a, b in zip(rgb, base)) for base in locked):
@@ -77,3 +79,14 @@ def test_depth_pass_is_deterministic_and_visible():
     assert first.size == (1080, 1920)
     assert first.tobytes() == second.tobytes()
     assert first.tobytes() != flat.tobytes()
+
+
+def test_depth_lite_differs_from_full():
+    from apps.studio_templates.redesign_mr02_skill import render_redesign
+
+    full = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                           depth=True, seed=7)
+    lite = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                           depth="lite", seed=7)
+    assert lite.size == (1080, 1920)
+    assert lite.tobytes() != full.tobytes()

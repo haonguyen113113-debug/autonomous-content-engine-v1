@@ -59,7 +59,8 @@ def parse_score(score: str) -> tuple[int, int]:
 
 
 def render_redesign(home: str, away: str, score: str, comp: str, when: str,
-                    depth: bool = False, seed: int = 7) -> Image.Image:
+                    depth: bool | str = False, seed: int = 7) -> Image.Image:
+    """depth=False flat; depth=True full depth pass; depth='lite' restrained pass."""
     home_goals, away_goals = parse_score(score)
     if away_goals > home_goals:
         top_name, top_goals, bottom_name, bottom_goals = away, away_goals, home, home_goals
@@ -99,16 +100,19 @@ def render_redesign(home: str, away: str, score: str, comp: str, when: str,
     draw.text((W // 2, 1820), "Nguồn + ngày", font=font_brand("body", 36),
               fill=MIST, anchor="ma")
     if depth:
-        img = apply_depth_pass(img, seed=seed)
+        img = apply_depth_pass(img, seed=seed, lite=(depth == "lite"))
     return img
 
 
-def apply_depth_pass(img: Image.Image, seed: int = 7) -> Image.Image:
+def apply_depth_pass(img: Image.Image, seed: int = 7, lite: bool = False) -> Image.Image:
     """broadcast-depth moves 1, 3, 4 (glow already drawn by the caller).
 
+    lite=True (emil-design-eng restraint: remove accessories until it reads
+    clean): keep top-light + hero glow, halve the grain, drop haze bands.
     Seeded, CPU-only, palette-safe: gradients and haze use locked colors at
     low alpha; grain is monochrome and skips microcopy zones.
     """
+    lite_sigma, lite_strength = (8, 60) if lite else (16, 100)
     rgba = img.convert("RGBA")
     # Move 1: top-light gradient + bottom shade, one light direction.
     light = Image.new("L", (1, H))
@@ -124,10 +128,12 @@ def apply_depth_pass(img: Image.Image, seed: int = 7) -> Image.Image:
     black.putalpha(shade.resize((W, H)))
     rgba = Image.alpha_composite(rgba, black)
     # Move 4: two haze bands over dead zones only (never over the numeral).
-    for y0, height, color, alpha in (
-            (150, 90, PAPER, 14), (1330, 110, CORAL, 16)):
-        band = Image.new("RGBA", (W, height), color + (alpha,))
-        rgba.paste(band, (0, y0), band)
+    # Lite restraint: haze bands are the first accessory removed.
+    if not lite:
+        for y0, height, color, alpha in (
+                (150, 90, PAPER, 14), (1330, 110, CORAL, 16)):
+            band = Image.new("RGBA", (W, height), color + (alpha,))
+            rgba.paste(band, (0, y0), band)
     # Move 3: seeded monochrome grain, masked off microcopy strips.
     # Tile small with random.Random(seed) for determinism (PIL effect_noise
     # is unseeded), then upscale; gray clamped to 86..180 so every pixel
@@ -138,9 +144,9 @@ def apply_depth_pass(img: Image.Image, seed: int = 7) -> Image.Image:
     tile_px = tile.load()
     for ty in range(tile_h):
         for tx in range(tile_w):
-            tile_px[tx, ty] = min(180, max(86, int(133 + rng.gauss(0, 16))))
+            tile_px[tx, ty] = min(180, max(86, int(133 + rng.gauss(0, lite_sigma))))
     gray = tile.resize((W, H), Image.BILINEAR)
-    strength = Image.new("L", (W, H), 100)  # ~39% grain strength
+    strength = Image.new("L", (W, H), lite_strength)  # ~39% grain strength
     strength_draw = ImageDraw.Draw(strength)
     strength_draw.rectangle([0, 195, W, 260], fill=0)    # context line
     strength_draw.rectangle([0, 1790, W, H], fill=0)     # provenance line
@@ -160,12 +166,16 @@ def main() -> None:
                            depth=True, seed=7)
     deep_path = OUT_DIR / "mr02-depth-proof.png"
     deep.save(deep_path)
+    lite = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy",
+                           depth="lite", seed=7)
+    lite_path = OUT_DIR / "mr02-depth-lite-proof.png"
+    lite.save(lite_path)
     original = Image.open(ORIGINAL).convert("RGB")
     scale = 880 / H
     side_w = int(W * scale)
     panels = [original.resize((side_w, 880)), new.resize((side_w, 880)),
-              deep.resize((side_w, 880))]
-    titles = ["ORIGINAL MR-02", "REDESIGN (skills)", "REDESIGN + DEPTH"]
+              lite.resize((side_w, 880))]
+    titles = ["ORIGINAL MR-02", "REDESIGN (skills)", "REDESIGN + LITE DEPTH"]
     compare = Image.new("RGB", (side_w * 3 + 80, 960), (10, 12, 20))
     header = ImageDraw.Draw(compare)
     for i, (panel, title) in enumerate(zip(panels, titles)):
@@ -173,7 +183,7 @@ def main() -> None:
         compare.paste(panel, (x, 50))
         header.text((x + 20, 12), title, fill=PAPER if i < 2 else CORAL)
     compare.save(OUT_DIR / "mr02-compare.png")
-    print(f"wrote {new_path}, {deep_path} + compare")
+    print(f"wrote {new_path}, {deep_path}, {lite_path} + compare")
 
 
 if __name__ == "__main__":
