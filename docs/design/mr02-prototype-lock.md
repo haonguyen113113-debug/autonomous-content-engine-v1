@@ -30,6 +30,16 @@ lite depth + detailing) · script `apps/studio_templates/redesign_mr02_skill.py`
    void PHẢI cạnh tỷ số (winner d280 @ (800,600), loser d220 @ (800,1470)) —
    giữ chỗ crest thật (đang cấm theo selection rules); binding ảnh library
    sau này thay monogram không dời slot.
+4. **Identity slots bắt buộc mọi card cần dữ kiện đó** (spec rebuild):
+   - Score/duel/fixture: 2 crest slots cạnh tỷ số (hiện monogram, sau bind ảnh).
+   - Player cards (poster/POTM/profile): 1 portrait slot + face-safe framing;
+     ảnh phải depict đúng người được nêu tên (identity screening), fallback monogram.
+   - Coach cards: portrait slot cùng luật như player.
+   - Team picture (lineup/group): 1 wide media slot + caption, không reflow
+     text khi có/không ảnh.
+   - Geometry slots cố định per card, content swappable; chỉ ảnh
+     verified/active từ library; crest thật chỉ khi policy cho phép (hiện vẫn
+     cấm artwork crest trong colorways — slot giữ chỗ trước).
 3. Context 1 dòng sentence-case slate; provenance mist y1820.
 4. Circle motif + corner marks + notched trim + perforation + ticks + pinstripes
    (detailing.py, non-data only) — liều lượng như proof.
