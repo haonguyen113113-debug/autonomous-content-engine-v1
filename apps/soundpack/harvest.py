@@ -30,8 +30,8 @@ MAX_BYTES = 20 * 1024 * 1024
 SLOTS: dict[str, dict[str, Any]] = {
     "tension-pad": {"query": "dark ambient drone tension", "min_duration": 45.0,
                     "kind": "bed"},
-    "neutral-pad": {"query": "calm ambient pad", "min_duration": 45.0, "kind": "bed"},
-    "uplift-pad": {"query": "happy upbeat background music", "min_duration": 45.0,
+    "neutral-pad": {"query": "delicate melancholic cinematic underscore", "min_duration": 45.0, "kind": "bed"},
+    "uplift-pad": {"query": "smooth jazz background", "min_duration": 45.0,
                    "kind": "bed"},
     "dramatic-pad": {"query": "epic cinematic trailer music", "min_duration": 45.0,
                      "kind": "bed"},

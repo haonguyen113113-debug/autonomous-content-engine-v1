@@ -1,23 +1,14 @@
 {
  "date": "2026-10-14",
  "slots": {
-  "uplift-pad": {
-   "query": "happy upbeat background music",
-   "considered": 2,
+  "neutral-pad": {
+   "query": "delicate melancholic cinematic underscore",
+   "considered": 1,
    "status": "INSTALLED",
-   "file": "uplift-pad.mp3",
-   "freesound_id": 670819,
-   "title": "Free Uplifting Music",
-   "duration_s": 160.0
-  },
-  "dramatic-pad": {
-   "query": "epic cinematic trailer music",
-   "considered": 3,
-   "status": "INSTALLED",
-   "file": "dramatic-pad.mp3",
-   "freesound_id": 437220,
-   "title": "Eflat Minor Synth Pad.wav",
-   "duration_s": 80.11
+   "file": "neutral-pad.mp3",
+   "freesound_id": 868507,
+   "title": "delicate melancholic cinematic underscore, understated family conflict, gentle piano motif, soft cello, distant atmospheric textures, somber, introspective, quiet suspense",
+   "duration_s": 177.22
   }
  }
 }

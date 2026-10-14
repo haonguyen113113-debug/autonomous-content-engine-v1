@@ -10,8 +10,8 @@ ignored.
 | file | title / creator | license | commercial use | credit |
 |---|---|---|---|---|
 | tracks/tension-pad.mp3 | Soft Tonal Wind_01 / Freesound 397091 | CC0 | yes | no |
-| tracks/neutral-pad.mp3 | Wandering / Freesound (289s ambient) | CC0 | yes | no |
-| tracks/uplift-pad.mp3 | Free Uplifting Music / Freesound 670819 | CC0 | yes | no |
+| tracks/neutral-pad.mp3 | Delicate melancholic cinematic underscore / Freesound 868507 (piano motif + cello, understated) | CC0 | yes | no |
+| tracks/uplift-pad.mp3 | Smooth 68.6 CM / Freesound 512674 (smooth jazz, 4.8★) | CC0 | yes | no |
 | tracks/dramatic-pad.mp3 | Eflat Minor Synth Pad / Freesound 437220 | CC0 | yes | no |
 
 Picked 2026-10-14 by `apps/soundpack/harvest.py` (CC0 filter, duration
