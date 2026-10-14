@@ -130,9 +130,19 @@ def test_detail_primitives_catalog_has_no_data_carriers():
 
 def test_white_colorways_render_and_pass_contrast():
     from apps.studio_templates.audit_cards import contrast, hex_rgb
-    from apps.studio_templates.redesign_mr02_skill import COLORWAYS, render_redesign
+    from apps.studio_templates.redesign_mr02_skill import (
+        COLORWAYS,
+        apply_mr02_detailing,
+        render_redesign,
+    )
 
     assert set(COLORWAYS) == {"san-trang", "co-sang"}
+    for cw_id, palette in COLORWAYS.items():
+        finished = apply_mr02_detailing(
+            render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                            depth="lite", seed=7, palette=palette),
+            palette=palette)
+        assert finished.size == (1080, 1920), cw_id
     white = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
                             palette=COLORWAYS["san-trang"])
     green = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",

@@ -90,8 +90,9 @@ pixels, palette lock, catalog toàn non-data).
 - **co-sang** (sân cỏ sáng): green `#1F7A4D` winner field, paper numeral
   (≥3.0 large-display), coral bar neo brand, ink loser zone.
 - Demo trong `docs/design/` (không đụng 9.0.0 lock): `mr02-san-trang-proof`,
-  `mr02-co-sang-proof`, compare `mr02-colorways-compare`. Promote vào
-  template = bump version theo change_policy khi owner duyệt.
+  `mr02-co-sang-proof`, compare `mr02-colorways-compare` — cả hai render với
+  full finishing (lite depth + detailing) để so công bằng với bản detail v4.
+  Promote vào template = bump version theo change_policy khi owner duyệt.
 
 ## Skill thứ 3 + 4: algorithmic-art + broadcast-depth (vượt 2D)
 

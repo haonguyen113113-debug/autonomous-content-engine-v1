@@ -57,6 +57,8 @@ DEFAULT_PALETTE = {
     "rule": PAPER, "circle": SLATE, "context_win": INK, "context_draw": PAPER,
     "loser_numeral": SLATE, "loser_name": PAPER, "credit": MIST,
     "winner_bar": None,
+    "haze": [(150, 90, PAPER, 14), (1330, 110, CORAL, 16)],
+    "detail_primary": INK, "detail_faint": MIST,
 }
 
 # theme-factory method: curated colorways as named palettes. White primary
@@ -67,6 +69,8 @@ SAN_TRANG = {
     "rule": CORAL, "circle": SLATE, "context_win": SLATE, "context_draw": SLATE,
     "loser_numeral": SLATE, "loser_name": INK, "credit": SLATE,
     "winner_bar": CORAL,
+    "haze": None,
+    "detail_primary": INK, "detail_faint": SLATE,
 }
 
 CO_SANG = {
@@ -75,6 +79,8 @@ CO_SANG = {
     "rule": PAPER, "circle": SLATE, "context_win": PAPER, "context_draw": PAPER,
     "loser_numeral": SLATE, "loser_name": PAPER, "credit": MIST,
     "winner_bar": CORAL,
+    "haze": [(150, 90, PAPER, 14), (1330, 110, CORAL, 16)],
+    "detail_primary": PAPER, "detail_faint": MIST,
 }
 
 COLORWAYS = {"san-trang": SAN_TRANG, "co-sang": CO_SANG}
@@ -139,11 +145,12 @@ def render_redesign(home: str, away: str, score: str, comp: str, when: str,
     draw.text((W // 2, 1820), "Nguồn + ngày", font=font_brand("body", 36),
               fill=pal["credit"], anchor="ma")
     if depth:
-        img = apply_depth_pass(img, seed=seed, lite=(depth == "lite"))
+        img = apply_depth_pass(img, seed=seed, lite=(depth == "lite"), palette=pal)
     return img
 
 
-def apply_depth_pass(img: Image.Image, seed: int = 7, lite: bool = False) -> Image.Image:
+def apply_depth_pass(img: Image.Image, seed: int = 7, lite: bool = False,
+                     palette: dict | None = None) -> Image.Image:
     """broadcast-depth moves 1, 3, 4 (glow already drawn by the caller).
 
     lite=True (emil-design-eng restraint: remove accessories until it reads
@@ -152,6 +159,7 @@ def apply_depth_pass(img: Image.Image, seed: int = 7, lite: bool = False) -> Ima
     low alpha; grain is monochrome and skips microcopy zones.
     """
     lite_sigma, lite_strength = (8, 60) if lite else (16, 100)
+    pal = DEFAULT_PALETTE if palette is None else palette
     rgba = img.convert("RGBA")
     # Move 1: top-light gradient + bottom shade, one light direction.
     light = Image.new("L", (1, H))
@@ -166,11 +174,12 @@ def apply_depth_pass(img: Image.Image, seed: int = 7, lite: bool = False) -> Ima
     black = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     black.putalpha(shade.resize((W, H)))
     rgba = Image.alpha_composite(rgba, black)
-    # Move 4: two haze bands over dead zones only (never over the numeral).
-    # Lite restraint: haze bands are the first accessory removed.
-    if not lite:
-        for y0, height, color, alpha in (
-                (150, 90, PAPER, 14), (1330, 110, CORAL, 16)):
+    # Move 4: haze bands over dead zones only (never over the numeral).
+    # Lite restraint: haze bands are the first accessory removed. Palettes
+    # may drop haze entirely (e.g. white fields where it would not read).
+    haze = pal.get("haze")
+    if not lite and haze:
+        for y0, height, color, alpha in haze:
             band = Image.new("RGBA", (W, height), color + (alpha,))
             rgba.paste(band, (0, y0), band)
     # Move 3: seeded monochrome grain, masked off microcopy strips.
@@ -213,21 +222,25 @@ except ImportError:  # direct script run: python apps/studio_templates/redesign_
     )
 
 
-def apply_mr02_detailing(img: Image.Image, seed: int = 21) -> Image.Image:
+def apply_mr02_detailing(img: Image.Image, seed: int = 21,
+                         palette: dict | None = None) -> Image.Image:
     """emil-design-eng detailing on the lite pass: unseen details compound.
 
     Only non-data details (rule: details never carry data). The card's real
     slots are all displayed already, so no micro-label is added — restraint
     is the point.
     """
+    pal = DEFAULT_PALETTE if palette is None else palette
+    primary = pal.get("detail_primary", INK)
+    faint = pal.get("detail_faint", MIST)
     work = img.convert("RGB")
     draw = ImageDraw.Draw(work)
     # Technical framing of the winner field.
-    corner_marks(draw, (48, 160, 1032, 1072), INK)
+    corner_marks(draw, (48, 160, 1032, 1072), primary)
     # Notched trim under the loser name zone.
     hairline_rule(draw, MARGIN, 620, 1700, SLATE)
     # Ticket perforation above provenance.
-    perforation(draw, MARGIN, W - MARGIN, 1748, MIST)
+    perforation(draw, MARGIN, W - MARGIN, 1748, faint)
     # Texture rhythm on the loser edge + air in the right void.
     tick_ruler(draw, 40, 1180, 1700, 52, SLATE)
     work = pinstripes(work, (640, 1200, 1004, 1700), SLATE, 14, 34, seed)
@@ -253,8 +266,10 @@ def main() -> None:
     detail.save(detail_path)
     cw_paths = []
     for cw_id in ("san-trang", "co-sang"):
+        pal = COLORWAYS[cw_id]
         cw = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy",
-                             palette=COLORWAYS[cw_id])
+                             depth="lite", seed=7, palette=pal)
+        cw = apply_mr02_detailing(cw, palette=pal)
         cw_path = OUT_DIR / f"mr02-{cw_id}-proof.png"
         cw.save(cw_path)
         cw_paths.append(cw_path)
