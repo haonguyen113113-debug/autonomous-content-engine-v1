@@ -44,17 +44,36 @@ def test_redesign_renders_locked_canvas():
     assert drawn.getpixel((540, 100)) == (22, 27, 44)
 
 
+def _sampled_pixels(image):
+    raw = image.convert("RGB").tobytes()
+    step = max(1, (len(raw) // 3) // 4000) * 3
+    return [tuple(raw[i:i + 3]) for i in range(0, len(raw), step)]
+
+
 def test_redesign_stays_in_locked_palette():
     from apps.studio_templates.redesign_mr02_skill import render_redesign
 
     locked = [(22, 27, 44), (32, 38, 60), (224, 112, 95),
               (244, 242, 236), (90, 107, 140), (139, 150, 176)]
-    image = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay")
-    pixels = list(image.getdata())
-    step = max(1, len(pixels) // 4000)
-    stray = 0
-    for px in pixels[::step]:
-        rgb = px[:3] if isinstance(px, tuple) else (px, px, px)
-        if not any(all(abs(a - b) <= 90 for a, b in zip(rgb, base)) for base in locked):
-            stray += 1
-    assert stray == 0
+    for image in (
+            render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay"),
+            render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                            depth=True, seed=7)):
+        stray = 0
+        for rgb in _sampled_pixels(image):
+            if not any(all(abs(a - b) <= 90 for a, b in zip(rgb, base)) for base in locked):
+                stray += 1
+        assert stray == 0
+
+
+def test_depth_pass_is_deterministic_and_visible():
+    from apps.studio_templates.redesign_mr02_skill import render_redesign
+
+    flat = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay")
+    first = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                            depth=True, seed=7)
+    second = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                             depth=True, seed=7)
+    assert first.size == (1080, 1920)
+    assert first.tobytes() == second.tobytes()
+    assert first.tobytes() != flat.tobytes()

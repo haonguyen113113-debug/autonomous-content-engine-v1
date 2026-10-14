@@ -14,7 +14,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+import random
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FONTS = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "9.0.0" / "resources" / "fonts"
@@ -57,7 +58,8 @@ def parse_score(score: str) -> tuple[int, int]:
     return 0, 0
 
 
-def render_redesign(home: str, away: str, score: str, comp: str, when: str) -> Image.Image:
+def render_redesign(home: str, away: str, score: str, comp: str, when: str,
+                    depth: bool = False, seed: int = 7) -> Image.Image:
     home_goals, away_goals = parse_score(score)
     if away_goals > home_goals:
         top_name, top_goals, bottom_name, bottom_goals = away, away_goals, home, home_goals
@@ -79,13 +81,73 @@ def render_redesign(home: str, away: str, score: str, comp: str, when: str) -> I
     # Winner: monumental numeral (ink on coral passes; paper-on-coral does not).
     draw.text((MARGIN, 300), top_name, font=font_brand("display", 130),
               fill=INK if draw_win else PAPER)
+    if depth and draw_win:
+        # Hero glow (broadcast-depth move 2): blurred paper copy behind the
+        # numeral. Paper glow, never white bloom.
+        glow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        glow_draw = ImageDraw.Draw(glow_layer)
+        glow_draw.text((MARGIN - 8, 410), str(top_goals), font=font_numeral(560),
+                       fill=PAPER + (110,))
+        img = Image.alpha_composite(
+            img.convert("RGBA"),
+            glow_layer.filter(ImageFilter.GaussianBlur(18))).convert("RGB")
+        draw = ImageDraw.Draw(img)
     draw.text((MARGIN - 8, 400), str(top_goals), font=font_numeral(560),
               fill=INK if draw_win else PAPER)    # Loser territory: dimmed numeral + name anchored together.
     draw.text((MARGIN, SPLIT_Y + 60), str(bottom_goals), font=font_numeral(280), fill=SLATE)
     draw.text((MARGIN, SPLIT_Y + 360), bottom_name, font=font_brand("display", 84), fill=PAPER)
     draw.text((W // 2, 1820), "Nguồn + ngày", font=font_brand("body", 36),
               fill=MIST, anchor="ma")
+    if depth:
+        img = apply_depth_pass(img, seed=seed)
     return img
+
+
+def apply_depth_pass(img: Image.Image, seed: int = 7) -> Image.Image:
+    """broadcast-depth moves 1, 3, 4 (glow already drawn by the caller).
+
+    Seeded, CPU-only, palette-safe: gradients and haze use locked colors at
+    low alpha; grain is monochrome and skips microcopy zones.
+    """
+    rgba = img.convert("RGBA")
+    # Move 1: top-light gradient + bottom shade, one light direction.
+    light = Image.new("L", (1, H))
+    light.putdata([max(0, 26 - int(26 * y / (H // 3))) if y < H // 3 else 0
+                   for y in range(H)])
+    white = Image.new("RGBA", (W, H), (255, 255, 255, 0))
+    white.putalpha(light.resize((W, H)))
+    rgba = Image.alpha_composite(rgba, white)
+    shade = Image.new("L", (1, H))
+    shade.putdata([int(40 * (y - H * 5 // 6) / (H // 6)) if y > H * 5 // 6 else 0
+                   for y in range(H)])
+    black = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    black.putalpha(shade.resize((W, H)))
+    rgba = Image.alpha_composite(rgba, black)
+    # Move 4: two haze bands over dead zones only (never over the numeral).
+    for y0, height, color, alpha in (
+            (150, 90, PAPER, 14), (1330, 110, CORAL, 16)):
+        band = Image.new("RGBA", (W, height), color + (alpha,))
+        rgba.paste(band, (0, y0), band)
+    # Move 3: seeded monochrome grain, masked off microcopy strips.
+    # Tile small with random.Random(seed) for determinism (PIL effect_noise
+    # is unseeded), then upscale; gray clamped to 86..180 so every pixel
+    # stays inside the locked-palette ±90 audit box on any field.
+    tile_w, tile_h = 270, 480
+    rng = random.Random(seed)
+    tile = Image.new("L", (tile_w, tile_h))
+    tile_px = tile.load()
+    for ty in range(tile_h):
+        for tx in range(tile_w):
+            tile_px[tx, ty] = min(180, max(86, int(133 + rng.gauss(0, 16))))
+    gray = tile.resize((W, H), Image.BILINEAR)
+    strength = Image.new("L", (W, H), 100)  # ~39% grain strength
+    strength_draw = ImageDraw.Draw(strength)
+    strength_draw.rectangle([0, 195, W, 260], fill=0)    # context line
+    strength_draw.rectangle([0, 1790, W, H], fill=0)     # provenance line
+    grain_layer = Image.merge("RGB", (gray, gray, gray)).convert("RGBA")
+    grain_layer.putalpha(strength)
+    rgba = Image.alpha_composite(rgba, grain_layer)
+    return rgba.convert("RGB")
 
 
 def main() -> None:
@@ -94,19 +156,24 @@ def main() -> None:
     new = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy")
     new_path = OUT_DIR / "mr02-redesign-proof.png"
     new.save(new_path)
+    deep = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy",
+                           depth=True, seed=7)
+    deep_path = OUT_DIR / "mr02-depth-proof.png"
+    deep.save(deep_path)
     original = Image.open(ORIGINAL).convert("RGB")
     scale = 880 / H
     side_w = int(W * scale)
-    left = original.resize((side_w, 880))
-    right = new.resize((side_w, 880))
-    compare = Image.new("RGB", (side_w * 2 + 40, 960), (10, 12, 20))
-    compare.paste(left, (0, 50))
-    compare.paste(right, (side_w + 40, 50))
+    panels = [original.resize((side_w, 880)), new.resize((side_w, 880)),
+              deep.resize((side_w, 880))]
+    titles = ["ORIGINAL MR-02", "REDESIGN (skills)", "REDESIGN + DEPTH"]
+    compare = Image.new("RGB", (side_w * 3 + 80, 960), (10, 12, 20))
     header = ImageDraw.Draw(compare)
-    header.text((20, 12), "ORIGINAL MR-02", fill=PAPER)
-    header.text((side_w + 60, 12), "REDESIGN (skills)", fill=CORAL)
+    for i, (panel, title) in enumerate(zip(panels, titles)):
+        x = i * (side_w + 40)
+        compare.paste(panel, (x, 50))
+        header.text((x + 20, 12), title, fill=PAPER if i < 2 else CORAL)
     compare.save(OUT_DIR / "mr02-compare.png")
-    print(f"wrote {new_path} + compare")
+    print(f"wrote {new_path}, {deep_path} + compare")
 
 
 if __name__ == "__main__":

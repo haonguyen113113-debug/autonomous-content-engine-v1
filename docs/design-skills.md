@@ -27,15 +27,33 @@ LICENSE.txt). `canvas-fonts/` vendor đủ 81 files OFL đã verify size.
 - 81 fonts OFL là công cụ cho numerals/display latin sau này, không thay
   brand faces.
 
-## Demo: MR-02 Final Score redesign
+## Demo: MR-02 Final Score redesign (2 skills → 4 skills)
 
 - Gốc: `template_foundation/.../9.0.0/previews/short-mr-02-proof.png`
   (stack giữa, void nửa dưới, tỷ số treo không gắn đội thắng).
-- Mới: `docs/design/mr02-redesign-proof.png` — split pitch (coral winner /
+- Redesign: `docs/design/mr02-redesign-proof.png` — split pitch (coral winner /
   ink loser), numeral BigShoulders monumental, tên gắn với số, circle motif,
-  context 1 dòng. So sánh: `docs/design/mr02-compare.png`.
+  context 1 dòng. So sánh 3 panels: `docs/design/mr02-compare.png`.
+- Depth pass (`skills/broadcast-depth`, custom): `docs/design/mr02-depth-proof.png`
+  — top-light gradient, hero glow (paper, blur 18), grain seeded deterministic
+  (trừ microcopy), 2 haze bands. Cùng data slots, cùng palette audit.
 - Script: `apps/studio_templates/redesign_mr02_skill.py` (PIL, không đụng
   locked starters/proofs). Khóa bằng `tests/test_design_skills.py`
-  (install intact, canvas 1080×1920, winner/away/draw branches, palette lock).
+  (install intact, canvas 1080×1920, winner/away/draw branches, palette lock,
+  depth deterministic + visible).
 - Philosophy: `docs/design/mr02-philosophy.md`. Plan + review + critique:
   `docs/design/mr02-plan.md`.
+
+## Skill thứ 3 + 4: algorithmic-art + broadcast-depth (vượt 2D)
+
+- `skills/algorithmic-art/` (official, Apache 2.0, SKILL + templates/viewer).
+  p5.js/browser không chạy được trong renderer offline — chỉ port triết lý +
+  parametric craft (seeded randomness, flow fields, parametric variation)
+  sang PIL. Ghi rõ trong source header để không ai depend nhầm vào browser.
+- `skills/broadcast-depth/` (custom của engine): faux-3D cho PIL CPU-only —
+  top-light, hero glow, seeded grain, atmosphere bands, extruded edge — thay
+  cho Blender (vi phạm portability spec §15: không GPU, không binary nặng,
+  chạy được trên replacement PC).
+- Vì sao không Blender/three.js thật: spec portability cấm dependency nặng;
+  faux-3D đạt ~80% cảm quan broadcast với 1% chi phí, deterministic và audit
+  được bằng palette test có sẵn.
