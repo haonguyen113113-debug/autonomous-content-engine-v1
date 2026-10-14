@@ -145,13 +145,13 @@ def render_redesign(home: str, away: str, score: str, comp: str, when: str,
               fill=pal["context_win"] if draw_win else pal["context_draw"])
     # Winner: monumental numeral.
     winner_type = pal["winner_type"] if draw_win else pal["draw_type"]
-    name_x = MARGIN + 184
-    badge(draw, MARGIN + 75, 372, 150, winner_type,
-          winner_type, initials(top_name))
-    draw.text((name_x, 300), top_name, font=font_brand("display", 130),
+    draw.text((MARGIN, 300), top_name, font=font_brand("display", 130),
               fill=winner_type)
     if pal["winner_bar"] is not None:
-        draw.rectangle([name_x, 445, name_x + 220, 457], fill=pal["winner_bar"])
+        draw.rectangle([MARGIN, 445, MARGIN + 220, 457], fill=pal["winner_bar"])
+    # Badge slots in the right void beside the score (monogram rings;
+    # real crests stay banned, future library images reuse these slots).
+    badge(draw, 800, 600, 280, winner_type, winner_type, initials(top_name))
     if depth and draw_win:
         # Hero glow (broadcast-depth move 2): blurred paper copy behind the
         # numeral. Paper glow, never white bloom.
@@ -168,10 +168,9 @@ def render_redesign(home: str, away: str, score: str, comp: str, when: str,
     # Loser territory: dimmed numeral + name anchored together.
     draw.text((MARGIN - 8, SPLIT_Y + 60), str(bottom_goals), font=font_numeral(280),
               fill=pal["loser_numeral"])
-    loser_name_x = MARGIN + 132
-    badge(draw, MARGIN + 50, SPLIT_Y + 392, 100, pal["loser_name"],
+    badge(draw, 800, 1470, 220, pal["loser_name"],
           pal["loser_name"], initials(bottom_name))
-    draw.text((loser_name_x, SPLIT_Y + 360), bottom_name, font=font_brand("display", 84),
+    draw.text((MARGIN, SPLIT_Y + 360), bottom_name, font=font_brand("display", 84),
               fill=pal["loser_name"])
     draw.text((W // 2, 1820), "Nguồn + ngày", font=font_brand("body", 36),
               fill=pal["credit"], anchor="ma")

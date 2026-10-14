@@ -151,6 +151,9 @@ def test_white_colorways_render_and_pass_contrast():
     assert white.size == green.size == (1080, 1920)
     assert white.getpixel((540, 100)) == (255, 255, 255)
     assert white.getpixel((540, 1500)) == (240, 120, 98)
+    # Badge rings sit in the right void beside the score.
+    assert white.getpixel((660, 600)) == (22, 27, 44)
+    assert white.getpixel((690, 1470)) == (22, 27, 44)
     assert green.getpixel((540, 100)) == (31, 122, 77)
     assert green.getpixel((540, 1900)) == (22, 27, 44)
     ink, paper = hex_rgb("#161B2C"), hex_rgb("#F4F2EC")

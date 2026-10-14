@@ -26,9 +26,10 @@ lite depth + detailing) · script `apps/studio_templates/redesign_mr02_skill.py`
    coral cũ, ink/orange ≥4.5 đã khóa bằng test).
 2. Winner = ink monumental + orange bar/glow; loser = ink numeral/name
    trên orange, credit ink.
-3. Badge monogram (initials derived từ tên đội, ring + chữ cùng ink) trái
-   mỗi tên đội — giữ chỗ crest thật (đang cấm theo selection rules); binding
-   ảnh library sau này thay monogram không dời slot.
+3. Badge monogram (initials derived từ tên đội, ring + chữ cùng ink) trong
+   void PHẢI cạnh tỷ số (winner d280 @ (800,600), loser d220 @ (800,1470)) —
+   giữ chỗ crest thật (đang cấm theo selection rules); binding ảnh library
+   sau này thay monogram không dời slot.
 3. Context 1 dòng sentence-case slate; provenance mist y1820.
 4. Circle motif + corner marks + notched trim + perforation + ticks + pinstripes
    (detailing.py, non-data only) — liều lượng như proof.
