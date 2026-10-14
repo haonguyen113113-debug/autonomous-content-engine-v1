@@ -58,19 +58,21 @@ DEFAULT_PALETTE = {
     "loser_numeral": SLATE, "loser_name": PAPER, "credit": MIST,
     "winner_bar": None,
     "haze": [(150, 90, PAPER, 14), (1330, 110, CORAL, 16)],
-    "detail_primary": INK, "detail_faint": MIST,
+    "detail_primary": INK, "detail_faint": MIST, "detail_line": SLATE,
+    "grain_lo": 86, "grain_hi": 180,
 }
 
 # theme-factory method: curated colorways as named palettes. White primary
 # per owner brief; supporting colors chosen for broadcast contrast.
 SAN_TRANG = {
-    "base": (255, 255, 255), "winner_field": (255, 255, 255), "loser_field": CORAL,
-    "winner_type": INK, "draw_type": INK, "glow": CORAL,
+    "base": (255, 255, 255), "winner_field": (255, 255, 255), "loser_field": (240, 120, 98),
+    "winner_type": INK, "draw_type": INK, "glow": (240, 120, 98),
     "rule": INK, "circle": SLATE, "context_win": SLATE, "context_draw": SLATE,
     "loser_numeral": INK, "loser_name": INK, "credit": INK,
-    "winner_bar": CORAL,
+    "winner_bar": (240, 120, 98),
     "haze": None,
-    "detail_primary": INK, "detail_faint": INK,
+    "detail_primary": INK, "detail_faint": INK, "detail_line": INK,
+    "grain_lo": 170, "grain_hi": 240,
 }
 
 CO_SANG = {
@@ -91,6 +93,29 @@ def parse_score(score: str) -> tuple[int, int]:
     if len(numbers) >= 2:
         return numbers[0], numbers[1]
     return 0, 0
+
+
+def initials(name: str) -> str:
+    """Team monogram from name initials (derived data, never invented).
+
+    Real crests are banned by the template selection rules, so the badge
+    slot ships a typographic monogram. A future library-image binding can
+    replace the monogram without moving the slot.
+    """
+    words = [w for w in re.findall(r"[A-Za-zÀ-ỹĐđ]+", name) if w]
+    return "".join(w[0].upper() for w in words[:2]) or "•"
+
+
+def badge(draw: ImageDraw.ImageDraw, cx: int, cy: int, diameter: int,
+          ring: tuple[int, int, int], ink_color: tuple[int, int, int],
+          text: str) -> None:
+    """Badge slot: ring + monogram, centered. Reserves the crest space."""
+    radius = diameter // 2
+    draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius],
+                 outline=ring, width=max(4, diameter // 28))
+    size = int(diameter * 0.42)
+    draw.text((cx, cy), text, font=font_brand("display", size),
+              fill=ink_color, anchor="mm")
 
 
 def render_redesign(home: str, away: str, score: str, comp: str, when: str,
@@ -120,10 +145,13 @@ def render_redesign(home: str, away: str, score: str, comp: str, when: str,
               fill=pal["context_win"] if draw_win else pal["context_draw"])
     # Winner: monumental numeral.
     winner_type = pal["winner_type"] if draw_win else pal["draw_type"]
-    draw.text((MARGIN, 300), top_name, font=font_brand("display", 130),
+    name_x = MARGIN + 184
+    badge(draw, MARGIN + 75, 372, 150, winner_type,
+          winner_type, initials(top_name))
+    draw.text((name_x, 300), top_name, font=font_brand("display", 130),
               fill=winner_type)
     if pal["winner_bar"] is not None:
-        draw.rectangle([MARGIN, 445, MARGIN + 220, 457], fill=pal["winner_bar"])
+        draw.rectangle([name_x, 445, name_x + 220, 457], fill=pal["winner_bar"])
     if depth and draw_win:
         # Hero glow (broadcast-depth move 2): blurred paper copy behind the
         # numeral. Paper glow, never white bloom.
@@ -138,9 +166,12 @@ def render_redesign(home: str, away: str, score: str, comp: str, when: str,
     draw.text((MARGIN - 8, 400), str(top_goals), font=font_numeral(560),
               fill=winner_type)
     # Loser territory: dimmed numeral + name anchored together.
-    draw.text((MARGIN, SPLIT_Y + 60), str(bottom_goals), font=font_numeral(280),
+    draw.text((MARGIN - 8, SPLIT_Y + 60), str(bottom_goals), font=font_numeral(280),
               fill=pal["loser_numeral"])
-    draw.text((MARGIN, SPLIT_Y + 360), bottom_name, font=font_brand("display", 84),
+    loser_name_x = MARGIN + 132
+    badge(draw, MARGIN + 50, SPLIT_Y + 392, 100, pal["loser_name"],
+          pal["loser_name"], initials(bottom_name))
+    draw.text((loser_name_x, SPLIT_Y + 360), bottom_name, font=font_brand("display", 84),
               fill=pal["loser_name"])
     draw.text((W // 2, 1820), "Nguồn + ngày", font=font_brand("body", 36),
               fill=pal["credit"], anchor="ma")
@@ -184,15 +215,17 @@ def apply_depth_pass(img: Image.Image, seed: int = 7, lite: bool = False,
             rgba.paste(band, (0, y0), band)
     # Move 3: seeded monochrome grain, masked off microcopy strips.
     # Tile small with random.Random(seed) for determinism (PIL effect_noise
-    # is unseeded), then upscale; gray clamped to 86..180 so every pixel
-    # stays inside the locked-palette ±90 audit box on any field.
+    # is unseeded), then upscale. Gray range is palette-aware: dark fields
+    # take deep grain, white fields take bright grain so the white is never
+    # dulled gray by the pass itself.
     tile_w, tile_h = 270, 480
     rng = random.Random(seed)
+    lo, hi = int(pal.get("grain_lo", 86)), int(pal.get("grain_hi", 180))
     tile = Image.new("L", (tile_w, tile_h))
     tile_px = tile.load()
     for ty in range(tile_h):
         for tx in range(tile_w):
-            tile_px[tx, ty] = min(180, max(86, int(133 + rng.gauss(0, lite_sigma))))
+            tile_px[tx, ty] = min(hi, max(lo, int((lo + hi) // 2 + rng.gauss(0, lite_sigma))))
     gray = tile.resize((W, H), Image.BILINEAR)
     strength = Image.new("L", (W, H), lite_strength)  # ~39% grain strength
     strength_draw = ImageDraw.Draw(strength)
@@ -233,17 +266,18 @@ def apply_mr02_detailing(img: Image.Image, seed: int = 21,
     pal = DEFAULT_PALETTE if palette is None else palette
     primary = pal.get("detail_primary", INK)
     faint = pal.get("detail_faint", MIST)
+    line = pal.get("detail_line", SLATE)
     work = img.convert("RGB")
     draw = ImageDraw.Draw(work)
     # Technical framing of the winner field.
     corner_marks(draw, (48, 160, 1032, 1072), primary)
     # Notched trim under the loser name zone.
-    hairline_rule(draw, MARGIN, 620, 1700, SLATE)
+    hairline_rule(draw, MARGIN, 620, 1700, line)
     # Ticket perforation above provenance.
     perforation(draw, MARGIN, W - MARGIN, 1748, faint)
     # Texture rhythm on the loser edge + air in the right void.
-    tick_ruler(draw, 40, 1180, 1700, 52, SLATE)
-    work = pinstripes(work, (640, 1200, 1004, 1700), SLATE, 14, 34, seed)
+    tick_ruler(draw, 40, 1180, 1700, 52, line)
+    work = pinstripes(work, (640, 1200, 1004, 1700), line, 14, 34, seed)
     return work
 
 

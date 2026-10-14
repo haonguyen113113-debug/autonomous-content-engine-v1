@@ -1,4 +1,4 @@
-# PROTOTYPE LOCK: MR-02 san-trang (white #FFFFFF / coral split)
+# PROTOTYPE LOCK: MR-02 san-trang (white #FFFFFF / orange #F07862 split)
 
 **Status:** APPROVED AS PROTOTYPE — rebuild toàn bộ template pack theo card này.
 **Files:** `docs/design/mr02-san-trang-proof.png` (1080×1920, render kèm
@@ -22,9 +22,13 @@ lite depth + detailing) · script `apps/studio_templates/redesign_mr02_skill.py`
 
 ## Spec rebuild toàn pack từ prototype này
 
-1. Nền trắng `#FFFFFF` dominant; khối đối lập Coral đặc (không tint nhạt).
-2. Winner = ink monumental + coral bar + coral glow; loser = ink numeral/name
-   trên coral, credit ink (ink/coral ≥4.5 đã khóa bằng test).
+1. Nền trắng `#FFFFFF` dominant; khối đối lập Orange `#F07862` (sáng hơn
+   coral cũ, ink/orange ≥4.5 đã khóa bằng test).
+2. Winner = ink monumental + orange bar/glow; loser = ink numeral/name
+   trên orange, credit ink.
+3. Badge monogram (initials derived từ tên đội, ring + chữ cùng ink) trái
+   mỗi tên đội — giữ chỗ crest thật (đang cấm theo selection rules); binding
+   ảnh library sau này thay monogram không dời slot.
 3. Context 1 dòng sentence-case slate; provenance mist y1820.
 4. Circle motif + corner marks + notched trim + perforation + ticks + pinstripes
    (detailing.py, non-data only) — liều lượng như proof.

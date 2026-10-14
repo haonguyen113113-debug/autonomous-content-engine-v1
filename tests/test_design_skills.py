@@ -30,10 +30,11 @@ def test_skills_installed_verbatim_with_licenses():
 
 def test_redesign_renders_locked_canvas():
     from apps.studio_templates.redesign_mr02_skill import (
-        W, H, parse_score, render_redesign,
+        W, H, initials, parse_score, render_redesign,
     )
     assert (W, H) == (1080, 1920)
     assert parse_score("2 - 0") == (2, 0)
+    assert initials("HÀ NỘI") == "HN" and initials("Nam Định") == "NĐ"
     home_win = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay")
     assert home_win.size == (1080, 1920)
     # Winner coral field on top, ink loser field below the split.
@@ -149,15 +150,15 @@ def test_white_colorways_render_and_pass_contrast():
                             palette=COLORWAYS["co-sang"])
     assert white.size == green.size == (1080, 1920)
     assert white.getpixel((540, 100)) == (255, 255, 255)
-    assert white.getpixel((540, 1500)) == (224, 112, 95)
+    assert white.getpixel((540, 1500)) == (240, 120, 98)
     assert green.getpixel((540, 100)) == (31, 122, 77)
     assert green.getpixel((540, 1900)) == (22, 27, 44)
     ink, paper = hex_rgb("#161B2C"), hex_rgb("#F4F2EC")
     pure_white = hex_rgb("#FFFFFF")
     slate, field_green = hex_rgb("#5A6B8C"), hex_rgb("#1F7A4D")
-    coral = hex_rgb("#E0705F")
+    orange = hex_rgb("#F07862")
     assert contrast(ink, paper) >= 7.0
     assert contrast(ink, pure_white) >= 7.0
     assert contrast(slate, pure_white) >= 4.5
-    assert contrast(ink, coral) >= 4.5
+    assert contrast(ink, orange) >= 4.5
     assert contrast(paper, field_green) >= 3.0
