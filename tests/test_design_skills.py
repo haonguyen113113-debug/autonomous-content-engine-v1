@@ -148,12 +148,16 @@ def test_white_colorways_render_and_pass_contrast():
     green = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
                             palette=COLORWAYS["co-sang"])
     assert white.size == green.size == (1080, 1920)
-    assert white.getpixel((540, 100)) == (250, 250, 247)
-    assert white.getpixel((540, 1500)) == (22, 27, 44)
+    assert white.getpixel((540, 100)) == (255, 255, 255)
+    assert white.getpixel((540, 1500)) == (224, 112, 95)
     assert green.getpixel((540, 100)) == (31, 122, 77)
     assert green.getpixel((540, 1900)) == (22, 27, 44)
     ink, paper = hex_rgb("#161B2C"), hex_rgb("#F4F2EC")
+    pure_white = hex_rgb("#FFFFFF")
     slate, field_green = hex_rgb("#5A6B8C"), hex_rgb("#1F7A4D")
+    coral = hex_rgb("#E0705F")
     assert contrast(ink, paper) >= 7.0
-    assert contrast(slate, paper) >= 4.5
+    assert contrast(ink, pure_white) >= 7.0
+    assert contrast(slate, pure_white) >= 4.5
+    assert contrast(ink, coral) >= 4.5
     assert contrast(paper, field_green) >= 3.0
