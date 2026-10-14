@@ -90,3 +90,37 @@ def test_depth_lite_differs_from_full():
                            depth="lite", seed=7)
     assert lite.size == (1080, 1920)
     assert lite.tobytes() != full.tobytes()
+
+
+def test_detailing_is_deterministic_data_free_and_locked():
+    from apps.studio_templates.redesign_mr02_skill import (
+        apply_mr02_detailing,
+        render_redesign,
+    )
+
+    base = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                           depth="lite", seed=7)
+    first = apply_mr02_detailing(base)
+    second = apply_mr02_detailing(base)
+    assert first.size == (1080, 1920)
+    assert first.tobytes() == second.tobytes()
+    assert first.tobytes() != base.tobytes()
+    # Corner mark lands ink-on-coral; perforation dots land mist-on-ink.
+    assert first.getpixel((48, 160)) == (22, 27, 44)
+    assert first.getpixel((76, 1748)) == (139, 150, 176)
+    locked = [(22, 27, 44), (32, 38, 60), (224, 112, 95),
+              (244, 242, 236), (90, 107, 140), (139, 150, 176)]
+    raw = first.convert("RGB").tobytes()
+    step = max(1, (len(raw) // 3) // 4000) * 3
+    stray = sum(
+        1 for i in range(0, len(raw), step)
+        if not any(all(abs(a - b) <= 90 for a, b in zip(tuple(raw[i:i + 3]), base_color))
+                   for base_color in locked))
+    assert stray == 0
+
+
+def test_detail_primitives_catalog_has_no_data_carriers():
+    from apps.studio_templates.detailing import detail_report
+
+    assert all(item["carries_data"] is False for item in detail_report())
+    assert len(detail_report()) == 7

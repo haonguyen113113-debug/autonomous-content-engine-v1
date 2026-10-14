@@ -156,6 +156,45 @@ def apply_depth_pass(img: Image.Image, seed: int = 7, lite: bool = False) -> Ima
     return rgba.convert("RGB")
 
 
+try:
+    from apps.studio_templates.detailing import (
+        corner_marks,
+        hairline_rule,
+        perforation,
+        pinstripes,
+        tick_ruler,
+    )
+except ImportError:  # direct script run: python apps/studio_templates/redesign_mr02_skill.py
+    from detailing import (  # type: ignore[no-redef]
+        corner_marks,
+        hairline_rule,
+        perforation,
+        pinstripes,
+        tick_ruler,
+    )
+
+
+def apply_mr02_detailing(img: Image.Image, seed: int = 21) -> Image.Image:
+    """emil-design-eng detailing on the lite pass: unseen details compound.
+
+    Only non-data details (rule: details never carry data). The card's real
+    slots are all displayed already, so no micro-label is added — restraint
+    is the point.
+    """
+    work = img.convert("RGB")
+    draw = ImageDraw.Draw(work)
+    # Technical framing of the winner field.
+    corner_marks(draw, (48, 160, 1032, 1072), INK)
+    # Notched trim under the loser name zone.
+    hairline_rule(draw, MARGIN, 620, 1700, SLATE)
+    # Ticket perforation above provenance.
+    perforation(draw, MARGIN, W - MARGIN, 1748, MIST)
+    # Texture rhythm on the loser edge + air in the right void.
+    tick_ruler(draw, 40, 1180, 1700, 52, SLATE)
+    work = pinstripes(work, (640, 1200, 1004, 1700), SLATE, 14, 34, seed)
+    return work
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     # Same data slots as the locked MR-02 starter (build_starters.py).
@@ -170,20 +209,23 @@ def main() -> None:
                            depth="lite", seed=7)
     lite_path = OUT_DIR / "mr02-depth-lite-proof.png"
     lite.save(lite_path)
+    detail = apply_mr02_detailing(lite)
+    detail_path = OUT_DIR / "mr02-detail-proof.png"
+    detail.save(detail_path)
     original = Image.open(ORIGINAL).convert("RGB")
     scale = 880 / H
     side_w = int(W * scale)
     panels = [original.resize((side_w, 880)), new.resize((side_w, 880)),
-              lite.resize((side_w, 880))]
-    titles = ["ORIGINAL MR-02", "REDESIGN (skills)", "REDESIGN + LITE DEPTH"]
-    compare = Image.new("RGB", (side_w * 3 + 80, 960), (10, 12, 20))
+              lite.resize((side_w, 880)), detail.resize((side_w, 880))]
+    titles = ["ORIGINAL MR-02", "REDESIGN (skills)", "REDESIGN + LITE", "REDESIGN + DETAIL"]
+    compare = Image.new("RGB", (side_w * 4 + 120, 960), (10, 12, 20))
     header = ImageDraw.Draw(compare)
     for i, (panel, title) in enumerate(zip(panels, titles)):
         x = i * (side_w + 40)
         compare.paste(panel, (x, 50))
-        header.text((x + 20, 12), title, fill=PAPER if i < 2 else CORAL)
+        header.text((x + 20, 12), title, fill=CORAL if i == 3 else PAPER)
     compare.save(OUT_DIR / "mr02-compare.png")
-    print(f"wrote {new_path}, {deep_path}, {lite_path} + compare")
+    print(f"wrote {new_path}, {deep_path}, {lite_path}, {detail_path} + compare")
 
 
 if __name__ == "__main__":

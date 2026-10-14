@@ -44,6 +44,23 @@ LICENSE.txt). `canvas-fonts/` vendor đủ 81 files OFL đã verify size.
 - Philosophy: `docs/design/mr02-philosophy.md`. Plan + review + critique:
   `docs/design/mr02-plan.md`.
 
+## Hướng detailing: thư viện primitives tái dùng (`detailing.py`)
+
+Theo emil-design-eng (unseen details compound) nhưng luật sắt của engine:
+**details không bao giờ mang data** — ticks không numerals, không labels bịa
+(trên MR-02 mọi slot thật đã hiển thị nên micro-label bị loại có chủ đích).
+
+Primitives (seeded, CPU-only, palette-locked): hairline_rule (notch cuts),
+tick_ruler (texture, cấm numerals), corner_marks (framing kỹ thuật),
+perforation (vé xem bóng), pinstripes (air trong dead zones),
+stitch_line, micro_label (sentence-case whisper). Catalog máy đọc được qua
+`detail_report()`.
+
+Demo: `apply_mr02_detailing()` trên bản lite — corner marks khung winner,
+notched trim, perforation trên provenance, ticks biên trái, pinstripes void
+phải. Compare panel 4 là bản detail. Khóa bằng tests (deterministic, spot
+pixels, palette lock, catalog toàn non-data).
+
 ## Skill thứ 5: emil-design-eng + depth-lite (trả lời feedback v3<v2)
 
 - `skills/emil-design-eng/` (emilkowalski/skills, single-file, 27KB): detailing
