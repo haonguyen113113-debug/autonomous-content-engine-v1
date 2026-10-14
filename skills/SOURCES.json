@@ -540,6 +540,84 @@
    "sha": "62ce902af8dd32c590ea7203e9ab2edb1d6ef81a",
    "size": 27123,
    "vendored_size": 27636
+  },
+  "theme-factory/SKILL.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/SKILL.md",
+   "sha": "90dfceaf2ecdc191a4dcfb0069768a9560638998",
+   "size": 3124,
+   "vendored_size": 3633
+  },
+  "theme-factory/LICENSE.txt": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/LICENSE.txt",
+   "sha": "4f881c52d1f72f4cfb720e339e2d35c3058d01a9",
+   "size": 11345,
+   "vendored_size": 11345
+  },
+  "theme-factory/theme-showcase.pdf": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/theme-showcase.pdf",
+   "sha": "24495d145c95917aba3a3445f7105444b6f7cfcc",
+   "size": 124310,
+   "vendored_size": 124310
+  },
+  "theme-factory/themes/arctic-frost.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/arctic-frost.md",
+   "sha": "e9f1eb0574e377ec8be59a71a1c206958f8b253e",
+   "size": 544,
+   "vendored_size": 544
+  },
+  "theme-factory/themes/botanical-garden.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/botanical-garden.md",
+   "sha": "0c95bf7349c26996c7d43d6c0276a285287a9ffe",
+   "size": 519,
+   "vendored_size": 519
+  },
+  "theme-factory/themes/desert-rose.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/desert-rose.md",
+   "sha": "ea7c74eb80794fe15f870e12c5588b2a988f77a1",
+   "size": 496,
+   "vendored_size": 496
+  },
+  "theme-factory/themes/forest-canopy.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/forest-canopy.md",
+   "sha": "90c2b26518d8d7ff1d58981def5e93e2eca01780",
+   "size": 506,
+   "vendored_size": 506
+  },
+  "theme-factory/themes/golden-hour.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/golden-hour.md",
+   "sha": "ed8fc256f4e9b2dfffd46e82fdc451c32f87dbb1",
+   "size": 528,
+   "vendored_size": 528
+  },
+  "theme-factory/themes/midnight-galaxy.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/midnight-galaxy.md",
+   "sha": "97e1c5f380eba51cd8956ec96114629c6540b76e",
+   "size": 513,
+   "vendored_size": 513
+  },
+  "theme-factory/themes/modern-minimalist.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/modern-minimalist.md",
+   "sha": "6bd26a29beb09e663a1c049f5f8ec86189ae2db",
+   "size": 549,
+   "vendored_size": 549
+  },
+  "theme-factory/themes/ocean-depths.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/ocean-depths.md",
+   "sha": "b675126f53c49af7b6c3e00793a6d4773fb77af6",
+   "size": 555,
+   "vendored_size": 555
+  },
+  "theme-factory/themes/sunset-boulevard.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/sunset-boulevard.md",
+   "sha": "df799a0cc0e61c9226e52725afb45a1c6388f242",
+   "size": 558,
+   "vendored_size": 558
+  },
+  "theme-factory/themes/tech-innovation.md": {
+   "source": "https://raw.githubusercontent.com/anthropics/skills/main/skills/theme-factory/themes/tech-innovation.md",
+   "sha": "e029a435fb02647e6fd0b440618ae21f326d35e1",
+   "size": 547,
+   "vendored_size": 547
   }
  }
 }

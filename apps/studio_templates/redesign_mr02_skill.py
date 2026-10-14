@@ -51,6 +51,35 @@ def font_numeral(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(SKILL_FONTS / "BigShoulders-Bold.ttf"), size)
 
 
+DEFAULT_PALETTE = {
+    "base": INK, "winner_field": CORAL, "loser_field": INK,
+    "winner_type": INK, "draw_type": PAPER, "glow": PAPER,
+    "rule": PAPER, "circle": SLATE, "context_win": INK, "context_draw": PAPER,
+    "loser_numeral": SLATE, "loser_name": PAPER, "credit": MIST,
+    "winner_bar": None,
+}
+
+# theme-factory method: curated colorways as named palettes. White primary
+# per owner brief; supporting colors chosen for broadcast contrast.
+SAN_TRANG = {
+    "base": PAPER, "winner_field": PAPER, "loser_field": (230, 226, 212),
+    "winner_type": INK, "draw_type": INK, "glow": CORAL,
+    "rule": CORAL, "circle": SLATE, "context_win": SLATE, "context_draw": SLATE,
+    "loser_numeral": SLATE, "loser_name": INK, "credit": SLATE,
+    "winner_bar": CORAL,
+}
+
+CO_SANG = {
+    "base": INK, "winner_field": (31, 122, 77), "loser_field": INK,
+    "winner_type": PAPER, "draw_type": PAPER, "glow": PAPER,
+    "rule": PAPER, "circle": SLATE, "context_win": PAPER, "context_draw": PAPER,
+    "loser_numeral": SLATE, "loser_name": PAPER, "credit": MIST,
+    "winner_bar": CORAL,
+}
+
+COLORWAYS = {"san-trang": SAN_TRANG, "co-sang": CO_SANG}
+
+
 def parse_score(score: str) -> tuple[int, int]:
     numbers = [int(n) for n in re.findall(r"\d+", score)]
     if len(numbers) >= 2:
@@ -59,8 +88,10 @@ def parse_score(score: str) -> tuple[int, int]:
 
 
 def render_redesign(home: str, away: str, score: str, comp: str, when: str,
-                    depth: bool | str = False, seed: int = 7) -> Image.Image:
+                    depth: bool | str = False, seed: int = 7,
+                    palette: dict | None = None) -> Image.Image:
     """depth=False flat; depth=True full depth pass; depth='lite' restrained pass."""
+    pal = DEFAULT_PALETTE if palette is None else palette
     home_goals, away_goals = parse_score(score)
     if away_goals > home_goals:
         top_name, top_goals, bottom_name, bottom_goals = away, away_goals, home, home_goals
@@ -68,37 +99,45 @@ def render_redesign(home: str, away: str, score: str, comp: str, when: str,
         top_name, top_goals, bottom_name, bottom_goals = home, home_goals, away, away_goals
     draw_win = home_goals != away_goals
 
-    img = Image.new("RGB", (W, H), INK)
+    img = Image.new("RGB", (W, H), pal["base"])
     draw = ImageDraw.Draw(img)
     if draw_win:
-        draw.rectangle([0, 0, W, SPLIT_Y], fill=CORAL)
+        draw.rectangle([0, 0, W, SPLIT_Y], fill=pal["winner_field"])
+        draw.rectangle([0, SPLIT_Y, W, H], fill=pal["loser_field"])
     # Halfway rule + faint center circle (pitch vernacular, not decoration).
-    draw.rectangle([0, SPLIT_Y - 3, W, SPLIT_Y + 3], fill=PAPER)
+    draw.rectangle([0, SPLIT_Y - 3, W, SPLIT_Y + 3], fill=pal["rule"])
     draw.ellipse([540 - 420, SPLIT_Y - 420, 540 + 420, SPLIT_Y + 420],
-                 outline=SLATE, width=3)
+                 outline=pal["circle"], width=3)
     # Quiet context line: sentence case, no eyebrow chrome (skill restraint).
     context = f"{comp} • {when}"
-    draw.text((MARGIN, 205), context, font=font_brand("body", 40), fill=INK if draw_win else PAPER)
-    # Winner: monumental numeral (ink on coral passes; paper-on-coral does not).
+    draw.text((MARGIN, 205), context, font=font_brand("body", 40),
+              fill=pal["context_win"] if draw_win else pal["context_draw"])
+    # Winner: monumental numeral.
+    winner_type = pal["winner_type"] if draw_win else pal["draw_type"]
     draw.text((MARGIN, 300), top_name, font=font_brand("display", 130),
-              fill=INK if draw_win else PAPER)
+              fill=winner_type)
+    if pal["winner_bar"] is not None:
+        draw.rectangle([MARGIN, 445, MARGIN + 220, 457], fill=pal["winner_bar"])
     if depth and draw_win:
         # Hero glow (broadcast-depth move 2): blurred paper copy behind the
         # numeral. Paper glow, never white bloom.
         glow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         glow_draw = ImageDraw.Draw(glow_layer)
         glow_draw.text((MARGIN - 8, 410), str(top_goals), font=font_numeral(560),
-                       fill=PAPER + (110,))
+                       fill=pal["glow"] + (110,))
         img = Image.alpha_composite(
             img.convert("RGBA"),
             glow_layer.filter(ImageFilter.GaussianBlur(18))).convert("RGB")
         draw = ImageDraw.Draw(img)
     draw.text((MARGIN - 8, 400), str(top_goals), font=font_numeral(560),
-              fill=INK if draw_win else PAPER)    # Loser territory: dimmed numeral + name anchored together.
-    draw.text((MARGIN, SPLIT_Y + 60), str(bottom_goals), font=font_numeral(280), fill=SLATE)
-    draw.text((MARGIN, SPLIT_Y + 360), bottom_name, font=font_brand("display", 84), fill=PAPER)
+              fill=winner_type)
+    # Loser territory: dimmed numeral + name anchored together.
+    draw.text((MARGIN, SPLIT_Y + 60), str(bottom_goals), font=font_numeral(280),
+              fill=pal["loser_numeral"])
+    draw.text((MARGIN, SPLIT_Y + 360), bottom_name, font=font_brand("display", 84),
+              fill=pal["loser_name"])
     draw.text((W // 2, 1820), "Nguồn + ngày", font=font_brand("body", 36),
-              fill=MIST, anchor="ma")
+              fill=pal["credit"], anchor="ma")
     if depth:
         img = apply_depth_pass(img, seed=seed, lite=(depth == "lite"))
     return img
@@ -212,6 +251,13 @@ def main() -> None:
     detail = apply_mr02_detailing(lite)
     detail_path = OUT_DIR / "mr02-detail-proof.png"
     detail.save(detail_path)
+    cw_paths = []
+    for cw_id in ("san-trang", "co-sang"):
+        cw = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy",
+                             palette=COLORWAYS[cw_id])
+        cw_path = OUT_DIR / f"mr02-{cw_id}-proof.png"
+        cw.save(cw_path)
+        cw_paths.append(cw_path)
     original = Image.open(ORIGINAL).convert("RGB")
     scale = 880 / H
     side_w = int(W * scale)
@@ -225,7 +271,16 @@ def main() -> None:
         compare.paste(panel, (x, 50))
         header.text((x + 20, 12), title, fill=CORAL if i == 3 else PAPER)
     compare.save(OUT_DIR / "mr02-compare.png")
-    print(f"wrote {new_path}, {deep_path}, {lite_path}, {detail_path} + compare")
+    cw_panels = [Image.open(p).convert("RGB").resize((side_w, 880)) for p in cw_paths]
+    cw_titles = ["SAN TRANG (white)", "CO SANG (morning pitch)"]
+    cw_compare = Image.new("RGB", (side_w * 2 + 40, 960), (10, 12, 20))
+    cw_header = ImageDraw.Draw(cw_compare)
+    for i, (panel, title) in enumerate(zip(cw_panels, cw_titles)):
+        x = i * (side_w + 40)
+        cw_compare.paste(panel, (x, 50))
+        cw_header.text((x + 20, 12), title, fill=PAPER)
+    cw_compare.save(OUT_DIR / "mr02-colorways-compare.png")
+    print(f"wrote {new_path}, {deep_path}, {lite_path}, {detail_path} + compare + colorways")
 
 
 if __name__ == "__main__":

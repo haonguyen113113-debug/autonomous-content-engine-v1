@@ -16,11 +16,13 @@ def _frontmatter(path):
 
 
 def test_skills_installed_verbatim_with_licenses():
-    for skill in ("frontend-design", "canvas-design"):
+    for skill in ("frontend-design", "canvas-design", "theme-factory"):
         base = ROOT / "skills" / skill
         assert (base / "SKILL.md").is_file()
         assert (base / "LICENSE.txt").is_file()
         _frontmatter(base / "SKILL.md")
+    assert len(list((ROOT / "skills/theme-factory/themes").glob("*.md"))) == 10
+    assert (ROOT / "skills/theme-factory/theme-showcase.pdf").is_file()
     fonts = list((ROOT / "skills/canvas-design/canvas-fonts").glob("*.ttf"))
     assert len(fonts) >= 50
     assert (ROOT / "skills/canvas-design/canvas-fonts/BigShoulders-Bold.ttf").is_file()
@@ -124,3 +126,24 @@ def test_detail_primitives_catalog_has_no_data_carriers():
 
     assert all(item["carries_data"] is False for item in detail_report())
     assert len(detail_report()) == 7
+
+
+def test_white_colorways_render_and_pass_contrast():
+    from apps.studio_templates.audit_cards import contrast, hex_rgb
+    from apps.studio_templates.redesign_mr02_skill import COLORWAYS, render_redesign
+
+    assert set(COLORWAYS) == {"san-trang", "co-sang"}
+    white = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                            palette=COLORWAYS["san-trang"])
+    green = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay",
+                            palette=COLORWAYS["co-sang"])
+    assert white.size == green.size == (1080, 1920)
+    assert white.getpixel((540, 100)) == (244, 242, 236)
+    assert white.getpixel((540, 1500)) == (230, 226, 212)
+    assert green.getpixel((540, 100)) == (31, 122, 77)
+    assert green.getpixel((540, 1900)) == (22, 27, 44)
+    ink, paper = hex_rgb("#161B2C"), hex_rgb("#F4F2EC")
+    slate, field_green = hex_rgb("#5A6B8C"), hex_rgb("#1F7A4D")
+    assert contrast(ink, paper) >= 7.0
+    assert contrast(slate, paper) >= 4.5
+    assert contrast(paper, field_green) >= 3.0

@@ -70,13 +70,28 @@ pixels, palette lock, catalog toàn non-data).
 - Áp restraint của skill vào depth pass: bản full (grain mạnh + haze bands)
   thua bản flat → thêm mode `depth="lite"` (giữ top-light + hero glow, grain
   một nửa, bỏ haze). Compare panel 3 giờ là gốc/flat/lite.
-- Đánh giá thẳng thắn 4 skills đã xem mà KHÔNG cài (tránh dead weight):
+- Đánh giá thẳng thắn các skills đã xem mà KHÔNG cài under locked brief
+  (tránh dead weight):
   | Skill | Vì sao không cài |
   |---|---|
-  | theme-factory | 10 preset themes đè lên palette lock của channel |
   | brand-guidelines | Brand của Anthropic + pptx — sai subject, sai medium |
   | high-end-visual-design | Web Tailwind/bento; variance mandate (không lặp layout) conflict trực diện locked packs |
   | web-design-guidelines | Meta-skill fetch rules ngoài mỗi lần review (cần network) — audit protocol của engine đã cover |
+
+## Skill theme-factory + 2 colorways trắng-chủ-đạo (theo brief mới)
+
+- `skills/theme-factory/` (SKILL + 10 themes + showcase, method-only header):
+  khi brief vẫn lock palette thì presets của nó bị cấm; khi owner yêu cầu
+  colorways mới thì dùng đúng method của nó (curated palette + pairing +
+  custom generation) — đó là lý do nó được cài ở vòng này.
+- **san-trang** (trắng ban ngày): paper field, ink numeral, coral rule +
+  winner bar, slate secondary. Contrast khóa bằng test: ink/paper ≥7,
+  slate/paper ≥4.5.
+- **co-sang** (sân cỏ sáng): green `#1F7A4D` winner field, paper numeral
+  (≥3.0 large-display), coral bar neo brand, ink loser zone.
+- Demo trong `docs/design/` (không đụng 9.0.0 lock): `mr02-san-trang-proof`,
+  `mr02-co-sang-proof`, compare `mr02-colorways-compare`. Promote vào
+  template = bump version theo change_policy khi owner duyệt.
 
 ## Skill thứ 3 + 4: algorithmic-art + broadcast-depth (vượt 2D)
 

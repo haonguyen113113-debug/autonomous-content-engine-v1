@@ -11,6 +11,7 @@ no Node, no re-download.
 | canvas-design | anthropics/skills | Philosophy-first static art; 81 OFL fonts for latin display |
 | algorithmic-art | anthropics/skills | Seeded generative craft ported to PIL (p5.js itself not used) |
 | emil-design-eng | emilkowalski/skills | Detailing craft: animation decisions, review checklist, invisible details |
+| theme-factory | anthropics/skills | Coloring method: curated palette + pairing + custom theme generation (presets never touch the locked channel) |
 | broadcast-depth | custom (this repo) | Faux-3D for CPU PIL: light, glow, grain, haze (no Blender) |
 
 ## Migrate to a new machine
