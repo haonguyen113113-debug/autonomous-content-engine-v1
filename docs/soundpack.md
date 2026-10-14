@@ -5,8 +5,10 @@ không discovery nhạc, không chọn nhạc, không synth nhạc.
 
 ## Pack gồm gì
 
-- **4 beds** (file thật trong `tracks/` + sidecar, license sạch đã verify).
-  Provisional — owner confirm/thay bằng YouTube Audio Library picks (TA-L01).
+- **4 beds** (file thật trong `tracks/` + sidecar, CC0 đã verify).
+  Machine-picked qua harvester 2026-10-14 (audit tai nghe waived, audit giấy
+  tờ đủ). Owner vẫn có thể thay bằng YouTube Audio Library picks (TA-L01)
+  qua drop importer bất cứ lúc nào.
 - **4 stingers theo owner catalog**: hook-hit (AKB-C05) @0s,
   transition-whoosh (AKB-C02) @chapters, build-riser (AKB-C07) @endcard-6s,
   end-jingle (provisional) @2s cuối.
@@ -32,17 +34,19 @@ Nhạc không bao giờ block video.
 - Mặc định theo mapping. Fix trong summary: section `sound`, note = bed id
   hoặc `none` (validate against manifest).
 - Thêm track mới: drop file vào `tracks/` + sidecar + dòng LICENSES.md +
-  khai `beds`/`licenses` trong manifest. **Không license coi như không tồn
+  khai `beds`/`licenses` trong manifest, hoặc chạy harvester cho beds.
+  **Không license coi như không tồn
   tại** — file không list không bao giờ được dùng.
-- 2 beds BY 4.0 (uplift, dramatic): credit creator trong description khi
-  publish (bước tay lúc publish).
+- Toàn bộ beds hiện tại là CC0 — không còn bước credit tay nào khi publish.
 
 ## Nguồn tracks v1
 
-Tìm qua Openverse Audio (`license=cc0,pdm,by`, 10/2026): Freesound previews
-(kế thừa license gốc) + 1 file Wikimedia Commons. Tránh recordings thương
-mại dính Content ID. Nếu YouTube flag track nào: thay file + sidecar, bump
-version.
+Beds: Freesound API harvest CC0-only 2026-10-14 (duration floors, voice-tag
+skip, downloads+rating+loop scoring) — previews kế thừa license gốc, không
+recordings thương mại dính Content ID. Stingers beds cũ + end-jingle: qua
+Openverse Audio (`license=cc0,pdm,by`) + 1 file Wikimedia Commons. Nếu
+YouTube flag track nào: thay file + sidecar, bump version. Key nằm ở
+`FREESOUND_API_KEY` trong `.env` (không commit).
 
 Khóa bằng `tests/test_soundpack.py` (manifest, mapping đủ 5 forms, resolve,
 placement, filter string) + summary tests (section, fix, none).

@@ -44,6 +44,9 @@ partial_movie_files/
 *.mov
 *.wav
 *.mp3
+# ...except the locked soundpack: curated beds travel with the repo
+!soundpacks/v1/tracks/*.mp3
+!soundpacks/v1/tracks/*.ogg
 
 # OS / editors
 .DS_Store

@@ -1,76 +1,145 @@
 {
-  "pack_id": "allen-soundpack",
-  "version": "1.0.0",
-  "status": "draft",
-  "policy": "Locked like a template pack: fixed mood-to-story mapping, fixed files with recorded licenses. No discovery, no network, no per-video choices by the engine. A different bed set means a new pack version.",
-  "beds": [
-    {"bed_id": "tension-pad", "mood": "tense, narrow, investigative",
-     "file": "tracks/tension-pad.mp3", "license": "CC0", "mix_volume": 0.12,
-     "provisional": true,
-     "note": "Researched fallback (Freesound, verified CC0). Owner to confirm or replace via YouTube Audio Library pick (TA-L01)."},
-    {"bed_id": "neutral-pad", "mood": "calm, explanatory",
-     "file": "tracks/neutral-pad.mp3", "license": "CC0", "mix_volume": 0.1,
-     "provisional": true,
-     "note": "Researched fallback (Freesound, verified CC0). Owner to confirm or replace via YouTube Audio Library pick (TA-L01)."},
-    {"bed_id": "uplift-pad", "mood": "warm, human, upward",
-     "file": "tracks/uplift-pad.ogg", "license": "BY 4.0", "mix_volume": 0.1,
-     "provisional": true,
-     "note": "Researched fallback (Wikimedia Commons, BY 4.0, credit in description). Owner to confirm or replace via YouTube Audio Library pick (TA-L01)."},
-    {"bed_id": "dramatic-pad", "mood": "weighty, long-form",
-     "file": "tracks/dramatic-pad.mp3", "license": "BY 4.0", "mix_volume": 0.12,
-     "provisional": true,
-     "note": "Researched fallback (Freesound, verified BY 4.0, credit in description). Owner to confirm or replace via YouTube Audio Library pick (TA-L01)."}
-  ],
-  "mapping": {
-    "one-moment-one-read": "tension-pad",
-    "explain-the-pattern": "neutral-pad",
-    "player-role-read": "uplift-pad",
-    "longform-tactical-deep-dive": "dramatic-pad",
-    "longform-player-role-study": "uplift-pad",
-    "default": "neutral-pad"
+ "pack_id": "allen-soundpack",
+ "version": "1.0.0",
+ "status": "draft",
+ "policy": "Locked like a template pack: fixed mood-to-story mapping, fixed files with recorded licenses. No discovery, no network, no per-video choices by the engine. A different bed set means a new pack version.",
+ "beds": [
+  {
+   "bed_id": "tension-pad",
+   "mood": "tense, narrow, investigative",
+   "file": "tracks/tension-pad.mp3",
+   "license": "CC0",
+   "mix_volume": 0.12,
+   "source": "freesound-harvest 2026-10-14"
   },
-  "stingers": [
-    {"sting_id": "hook-hit", "catalog_id": "AKB-C05",
-     "file": "tracks/hook-hit.mp3", "license": "Pixabay Content License",
-     "place": "hook", "at_seconds": 0.0, "mix_volume": 0.5,
-     "purpose": "Impact hit under the frame-0 hook card and ident sting. Owner catalog: Cinematic Impact Hit, Universfield."},
-    {"sting_id": "transition-whoosh", "catalog_id": "AKB-C02",
-     "file": "tracks/transition-whoosh.mp3", "license": "Pixabay Content License",
-     "place": "chapter", "at_seconds": null, "mix_volume": 0.4,
-     "purpose": "Whoosh at every chapter boundary after the opening. Owner catalog: Whoosh Effect, DRAGON-STUDIO."},
-    {"sting_id": "build-riser", "catalog_id": "AKB-C07",
-     "file": "tracks/build-riser.mp3", "license": "Pixabay Content License",
-     "place": "riser", "at_seconds": -6.0, "mix_volume": 0.4,
-     "purpose": "Short build into the end-card reveal (last 6 seconds). Owner catalog: Cinematic Riser 03, DRAGON-STUDIO. Use sparingly."},
-    {"sting_id": "end-jingle", "catalog_id": null,
-     "file": "tracks/end-jingle.mp3", "license": "CC0",
-     "place": "endcard", "at_seconds": -2.0, "mix_volume": 0.5,
-     "purpose": "Short jingle over the branded end-card (last 2 seconds). Provisional researched file until owner confirms."}
-  ],
-  "reserve": [
-    {"sting_id": "reveal-boom", "catalog_id": "AKB-C06",
-     "purpose": "Heavier reveal / major turning point; use sparingly. Shipped on import, unwired until a placement is locked.",
-     "file": "tracks/reveal-boom.mp3", "license": "Pixabay Content License"},
-    {"sting_id": "stat-tick", "catalog_id": "AKB-C04",
-     "purpose": "Subtle stat ticks and interface cues; audition before adopting.",
-     "file": "tracks/stat-tick.mp3", "license": "Pixabay Content License"},
-    {"sting_id": "gentle-transition", "catalog_id": "AKB-C02B",
-     "purpose": "Gentle transition for long-form tactical analysis.",
-     "file": "tracks/gentle-transition.mp3", "license": "Pixabay Content License"},
-    {"sting_id": "crowd-bed", "catalog_id": "MR-S04",
-     "purpose": "Background crowd / result emphasis for Match Results. Illustrative only — never imply real match audio.",
-     "file": "tracks/crowd-bed.mp3", "license": "Pixabay Content License"},
-    {"sting_id": "whistle", "catalog_id": "MR-S07",
-     "purpose": "Illustrative whistle / transition punctuation. Illustrative only.",
-     "file": "tracks/whistle.mp3", "license": "Pixabay Content License"},
-    {"sting_id": "shutter", "catalog_id": "BP-S07",
-     "purpose": "Archive/photo reveal for Beyond the Pitch.",
-     "file": "tracks/shutter.mp3", "license": "Pixabay Content License"}
-  ],
-  "mix": {
-    "ducking": "sidechaincompress keyed by voice (music ducks under speech)",
-    "sidechain": {"threshold": 0.02, "ratio": 8, "attack_ms": 20, "release_ms": 400},
-    "loudness": "loudnorm single-pass I=-14:TP=-1.5:LRA=11 (YouTube Shorts target)",
-    "voice_codec": "aac 192k"
+  {
+   "bed_id": "neutral-pad",
+   "mood": "calm, explanatory",
+   "file": "tracks/neutral-pad.mp3",
+   "license": "CC0",
+   "mix_volume": 0.1,
+   "source": "freesound-harvest 2026-10-14"
+  },
+  {
+   "bed_id": "uplift-pad",
+   "mood": "warm, human, upward",
+   "file": "tracks/uplift-pad.mp3",
+   "license": "BY 4.0",
+   "mix_volume": 0.1,
+   "source": "freesound-harvest 2026-10-14"
+  },
+  {
+   "bed_id": "dramatic-pad",
+   "mood": "weighty, long-form",
+   "file": "tracks/dramatic-pad.mp3",
+   "license": "BY 4.0",
+   "mix_volume": 0.12,
+   "source": "freesound-harvest 2026-10-14"
   }
+ ],
+ "mapping": {
+  "one-moment-one-read": "tension-pad",
+  "explain-the-pattern": "neutral-pad",
+  "player-role-read": "uplift-pad",
+  "longform-tactical-deep-dive": "dramatic-pad",
+  "longform-player-role-study": "uplift-pad",
+  "default": "neutral-pad"
+ },
+ "stingers": [
+  {
+   "sting_id": "hook-hit",
+   "catalog_id": "AKB-C05",
+   "file": "tracks/hook-hit.mp3",
+   "license": "Pixabay Content License",
+   "place": "hook",
+   "at_seconds": 0.0,
+   "mix_volume": 0.5,
+   "purpose": "Impact hit under the frame-0 hook card and ident sting. Owner catalog: Cinematic Impact Hit, Universfield."
+  },
+  {
+   "sting_id": "transition-whoosh",
+   "catalog_id": "AKB-C02",
+   "file": "tracks/transition-whoosh.mp3",
+   "license": "Pixabay Content License",
+   "place": "chapter",
+   "at_seconds": null,
+   "mix_volume": 0.4,
+   "purpose": "Whoosh at every chapter boundary after the opening. Owner catalog: Whoosh Effect, DRAGON-STUDIO."
+  },
+  {
+   "sting_id": "build-riser",
+   "catalog_id": "AKB-C07",
+   "file": "tracks/build-riser.mp3",
+   "license": "Pixabay Content License",
+   "place": "riser",
+   "at_seconds": -6.0,
+   "mix_volume": 0.4,
+   "purpose": "Short build into the end-card reveal (last 6 seconds). Owner catalog: Cinematic Riser 03, DRAGON-STUDIO. Use sparingly."
+  },
+  {
+   "sting_id": "end-jingle",
+   "catalog_id": null,
+   "file": "tracks/end-jingle.mp3",
+   "license": "CC0",
+   "place": "endcard",
+   "at_seconds": -2.0,
+   "mix_volume": 0.5,
+   "purpose": "Short jingle over the branded end-card (last 2 seconds). Provisional researched file until owner confirms."
+  }
+ ],
+ "reserve": [
+  {
+   "sting_id": "reveal-boom",
+   "catalog_id": "AKB-C06",
+   "purpose": "Heavier reveal / major turning point; use sparingly. Shipped on import, unwired until a placement is locked.",
+   "file": "tracks/reveal-boom.mp3",
+   "license": "Pixabay Content License"
+  },
+  {
+   "sting_id": "stat-tick",
+   "catalog_id": "AKB-C04",
+   "purpose": "Subtle stat ticks and interface cues; audition before adopting.",
+   "file": "tracks/stat-tick.mp3",
+   "license": "Pixabay Content License"
+  },
+  {
+   "sting_id": "gentle-transition",
+   "catalog_id": "AKB-C02B",
+   "purpose": "Gentle transition for long-form tactical analysis.",
+   "file": "tracks/gentle-transition.mp3",
+   "license": "Pixabay Content License"
+  },
+  {
+   "sting_id": "crowd-bed",
+   "catalog_id": "MR-S04",
+   "purpose": "Background crowd / result emphasis for Match Results. Illustrative only — never imply real match audio.",
+   "file": "tracks/crowd-bed.mp3",
+   "license": "Pixabay Content License"
+  },
+  {
+   "sting_id": "whistle",
+   "catalog_id": "MR-S07",
+   "purpose": "Illustrative whistle / transition punctuation. Illustrative only.",
+   "file": "tracks/whistle.mp3",
+   "license": "Pixabay Content License"
+  },
+  {
+   "sting_id": "shutter",
+   "catalog_id": "BP-S07",
+   "purpose": "Archive/photo reveal for Beyond the Pitch.",
+   "file": "tracks/shutter.mp3",
+   "license": "Pixabay Content License"
+  }
+ ],
+ "mix": {
+  "ducking": "sidechaincompress keyed by voice (music ducks under speech)",
+  "sidechain": {
+   "threshold": 0.02,
+   "ratio": 8,
+   "attack_ms": 20,
+   "release_ms": 400
+  },
+  "loudness": "loudnorm single-pass I=-14:TP=-1.5:LRA=11 (YouTube Shorts target)",
+  "voice_codec": "aac 192k"
+ }
 }

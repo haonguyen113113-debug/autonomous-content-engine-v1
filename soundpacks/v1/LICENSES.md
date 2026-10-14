@@ -5,18 +5,20 @@ license + URL, source + landing URLs, duration, sha256, retrieval date).
 The engine only plays files listed here; unlisted files in `tracks/` are
 ignored.
 
-## Beds (provisional researched files)
+## Beds (machine-picked via Freesound harvester, CC0-only, owner audit waived)
 
 | file | title / creator | license | commercial use | credit |
 |---|---|---|---|---|
-| tracks/tension-pad.mp3 | Tension Drones / Vospi (Freesound 368146) | CC0 | yes | no |
-| tracks/neutral-pad.mp3 | Ambient Space Texture / Andrewkn (Freesound 474864) | CC0 | yes | no |
-| tracks/uplift-pad.ogg | Soft Corporate / MusicLFiles via Wikimedia Commons | BY 4.0 | yes | credit in description |
-| tracks/dramatic-pad.mp3 | Epic_Heroic_Orchestral_Dramatic / SoundFlakes (Freesound 423499) | BY 4.0 | yes | credit in description |
+| tracks/tension-pad.mp3 | Soft Tonal Wind_01 / Freesound 397091 | CC0 | yes | no |
+| tracks/neutral-pad.mp3 | Wandering / Freesound (289s ambient) | CC0 | yes | no |
+| tracks/uplift-pad.mp3 | Free Uplifting Music / Freesound 670819 | CC0 | yes | no |
+| tracks/dramatic-pad.mp3 | Eflat Minor Synth Pad / Freesound 437220 | CC0 | yes | no |
 
-Provisional: owner confirms or replaces via YouTube Audio Library picks
-(TA-L01 in the owner catalog — prefer 'Attribution not required', record the
-exact track + Studio license status through the drop importer).
+Picked 2026-10-14 by `apps/soundpack/harvest.py` (CC0 filter, duration
+floors, voice-tag skip, downloads+rating+loop scoring). Full per-track
+provenance (URLs, tags, sha256) in `tracks/<slot>.json` + harvest reports
+under `soundpacks/`. Replaces the provisional researched beds; repertoires
+stay revertible via git. BY-credit chores gone (all CC0).
 
 ## Stingers (owner catalog AKB IDs — import via `soundpacks/drop/`)
 
