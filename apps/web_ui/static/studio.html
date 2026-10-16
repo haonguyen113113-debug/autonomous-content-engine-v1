@@ -6,25 +6,25 @@
   <title>Allen Knows Ball — Studio (Polotno)</title>
   <link href="https://unpkg.com/polotno@4/ui.css" rel="stylesheet">
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; background: #0b0d10; color: #f5f1e6;
+    html, body { margin: 0; padding: 0; height: 100%; background: #060913; color: #f2f6ff;
       font: 14px/1.5 Arial, sans-serif; }
     #topbar { display: flex; gap: 8px; align-items: center; padding: 8px 12px;
-      background: #14171c; border-bottom: 1px solid #2a2f36; flex-wrap: wrap; }
+      background: #0d1424; border-bottom: 1px solid rgba(0, 229, 255, .25); flex-wrap: wrap; }
     #topbar .brand { font-weight: 700; letter-spacing: 1px; margin-right: 8px; }
-    #topbar .brand span { color: #c8102e; }
-    #topbar label { color: #9aa3a8; font-size: 12px; }
-    #topbar select, #topbar input { background: #0b0d10; color: #f5f1e6;
-      border: 1px solid #2a2f36; border-radius: 4px; padding: 5px 8px; font-size: 13px; }
-    #topbar button { background: #c8102e; color: #fff; border: 0; border-radius: 4px;
-      padding: 6px 12px; font-size: 13px; cursor: pointer; }
-    #topbar button.secondary { background: #2a2f36; }
+    #topbar .brand span { color: #00e5ff; }
+    #topbar label { color: #8296be; font-size: 12px; }
+    #topbar select, #topbar input { background: #060913; color: #f2f6ff;
+      border: 1px solid rgba(0, 229, 255, .25); border-radius: 6px; padding: 5px 8px; font-size: 13px; }
+    #topbar button { background: #00e5ff; color: #052b33; border: 0; border-radius: 6px;
+      padding: 6px 12px; font-size: 13px; cursor: pointer; font-weight: 700; }
+    #topbar button.secondary { background: #1a2540; color: #f2f6ff; }
     #topbar button:disabled { opacity: .45; cursor: default; }
-    #status { color: #9aa3a8; font-size: 12px; }
-    #status.ok { color: #8cff00; }
-    #status.err { color: #ff6b6b; }
-    #keywarn { display: none; width: 100%; background: #3a2a00; color: #ffd75e;
+    #status { color: #8296be; font-size: 12px; }
+    #status.ok { color: #00e5ff; }
+    #status.err { color: #ff3d81; }
+    #keywarn { display: none; width: 100%; background: #3a2a00; color: #ffb03a;
       font-size: 12px; padding: 6px 12px; }
-    #offline { display: none; width: 100%; background: #3a0000; color: #ff9d9d;
+    #offline { display: none; width: 100%; background: #3a0016; color: #ff8fab;
       font-size: 13px; padding: 10px 12px; }
     #container { width: 100vw; height: calc(100vh - 52px); }
   </style>
@@ -32,10 +32,10 @@
 <body>
   <div id="topbar">
     <span class="brand">AKB <span>STUDIO</span></span>
-    <label>Pack <input id="packVersion" value="10.0.0" size="8"></label>
+    <label>Pack <input id="packVersion" value="12.0.0" size="8"></label>
     <label>Layout
       <select id="layoutId">
-        <optgroup label="Kit 9.0.0">
+        <optgroup label="Cyber Neon 12.0.0">
           <option value="duel_columns">duel_columns</option>
           <option value="stat_leader">stat_leader</option>
           <option value="player_poster">player_poster</option>
@@ -88,7 +88,6 @@
           <option value="BP-09">BP-09</option>
           <option value="BP-10">BP-10</option>
           <option value="BP-11">BP-11</option>
-          <option value="BP-12">BP-12</option>
           <option value="BP-15">BP-15</option>
           <option value="BP-17">BP-17</option>
           <option value="C-01">C-01</option>
@@ -170,7 +169,6 @@
           <option value="BP-09:short">BP-09</option>
           <option value="BP-10:short">BP-10</option>
           <option value="BP-11:short">BP-11</option>
-          <option value="BP-12:short">BP-12</option>
           <option value="BP-15:short">BP-15</option>
           <option value="BP-17:short">BP-17</option>
           <option value="C-01:short">C-01</option>
@@ -205,6 +203,31 @@
           <option value="TA-13:long">TA-13</option>
           <option value="TA-15:long">TA-15</option>
           <option value="TA-17:long">TA-17</option>
+        </optgroup>
+        <optgroup label="Tactical+ long">
+          <option value="TA-20:long">TA-20</option>
+          <option value="TA-21:long">TA-21</option>
+          <option value="TA-22:long">TA-22</option>
+          <option value="TA-23:long">TA-23</option>
+          <option value="TA-24:long">TA-24</option>
+        </optgroup>
+        <optgroup label="Narrative long">
+          <option value="LC-01:long">LC-01</option>
+          <option value="LC-02:long">LC-02</option>
+          <option value="LC-03:long">LC-03</option>
+          <option value="LC-04:long">LC-04</option>
+          <option value="LC-05:long">LC-05</option>
+          <option value="LC-06:long">LC-06</option>
+          <option value="LC-07:long">LC-07</option>
+          <option value="LC-08:long">LC-08</option>
+          <option value="LC-09:long">LC-09</option>
+          <option value="LC-10:long">LC-10</option>
+          <option value="LC-11:long">LC-11</option>
+          <option value="LC-12:long">LC-12</option>
+          <option value="LC-13:long">LC-13</option>
+          <option value="LC-14:long">LC-14</option>
+          <option value="LC-15:long">LC-15</option>
+          <option value="LC-16:long">LC-16</option>
         </optgroup>
       </select>
     </label>

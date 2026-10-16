@@ -11,9 +11,9 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-SHORT_PREVIEWS = ROOT / "template_foundation/templates/allen-knows-ball/9.0.0/previews"
-LONG_PREVIEWS = ROOT / "template_foundation/templates/allen-knows-ball/longform-9.0.0/previews"
-HTML = ROOT / "template_foundation/templates/allen-knows-ball/9.0.0/preview.html"
+SHORT_PREVIEWS = ROOT / "template_foundation/templates/allen-knows-ball/12.0.0/previews"
+LONG_PREVIEWS = ROOT / "template_foundation/templates/allen-knows-ball/longform-12.0.0/previews"
+HTML = ROOT / "template_foundation/templates/allen-knows-ball/12.0.0/preview.html"
 
 SPRINT_SHORT = ["C-03", "C-04", "C-06", "C-07", "C-09", "C-10", "U-02", "U-03",
                 "U-05", "MR-01", "MR-02", "MR-04", "MR-06", "MR-10", "MR-12",
@@ -25,7 +25,7 @@ SPRINT2_LONG = ["TA-04", "TA-07", "TA-08", "TA-09", "TA-10", "TA-13", "TA-15", "
 SPRINT2_LONG = ["TA-04", "TA-07", "TA-08", "TA-09", "TA-10", "TA-13", "TA-15", "TA-17"]
 SPRINT3_SHORT = ["MR-03", "MR-05", "MR-07", "MR-08", "MR-09", "MR-11",
                  "BP-03", "BP-04", "BP-05", "BP-06", "BP-07", "BP-09",
-                 "BP-10", "BP-11", "BP-12", "BP-15", "BP-17",
+                 "BP-10", "BP-11", "BP-15", "BP-17",
                  "C-01", "C-02", "C-05", "C-08",
                  "U-01", "U-04", "U-06", "U-07", "U-08"]
 

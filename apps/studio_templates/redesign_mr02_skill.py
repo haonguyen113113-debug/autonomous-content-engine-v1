@@ -18,9 +18,9 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import random
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-FONTS = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "9.0.0" / "resources" / "fonts"
+FONTS = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "12.0.0" / "resources" / "fonts"
 SKILL_FONTS = ROOT / "skills" / "canvas-design" / "canvas-fonts"
-ORIGINAL = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "9.0.0" / "previews" / "short-mr-02-proof.png"
+ORIGINAL = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "12.0.0" / "previews" / "short-mr-02-proof.png"
 OUT_DIR = ROOT / "docs" / "design"
 
 W, H = 1080, 1920

@@ -129,7 +129,7 @@ def init_scaffold(drop: Path, layouts: list[str] | None = None) -> Path:
     pack = {
         "channel_id": "allen-knows-ball",
         "template_id": "allen-knows-ball.shortform-analyst",
-        "version": (drop.name if re.fullmatch(r"\d+\.\d+\.\d+", drop.name) else "10.0.0"),
+        "version": (drop.name if re.fullmatch(r"\d+\.\d+\.\d+", drop.name) else "12.0.0"),
         "layouts": [
             {"id": lid, "title": lid.replace("-", " "),
              "boxes": [
@@ -192,6 +192,9 @@ def render_pack_plate(bg_path: Path, boxes: list[dict[str, Any]], data: dict[str
         value = " ".join(_lookup(data, box.get("key", "")).split())
         if not value:
             continue
+        # Single-fill renderer has no two-tone runs: drop *accent* markers
+        # instead of printing literal asterisks (owner 16/10).
+        value = re.sub(r"\*([^*]+)\*", r"\1", value) if "*" in value else value
         x, y, w, h = (box.get("box") or [0, 0, 0, 0])
         font = face(box.get("font", "body"), int(box.get("size", 40)))
         raw = str(box.get("color", "#FFFFFF")).lstrip("#")
@@ -294,7 +297,7 @@ def build(root: Path, drop: Path) -> dict[str, Any]:
             "previews": "Owner-exported backgrounds in previews/."}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         for name in ("design-tokens.json", "timeline.json", "story-forms.json",
                      "slot-contract.json", "visual-modes.json", "color-systems.json"):
-            src = foundation / "templates" / "allen-knows-ball" / "9.0.0" / name
+            src = foundation / "templates" / "allen-knows-ball" / "12.0.0" / name
             text = src.read_text(encoding="utf-8") if src.is_file() else "{}"
             (package / name).write_text(text, encoding="utf-8")
         # fonts: prefer pack fonts, else link the locked Kit set
@@ -305,7 +308,7 @@ def build(root: Path, drop: Path) -> dict[str, Any]:
                 if face.suffix.lower() in (".ttf", ".otf", ".woff", ".txt"):
                     (font_dir / face.name).write_bytes(face.read_bytes())
         else:
-            kit_fonts = foundation / "templates" / "allen-knows-ball" / "9.0.0" / "resources" / "fonts"
+            kit_fonts = foundation / "templates" / "allen-knows-ball" / "12.0.0" / "resources" / "fonts"
             font_dir.mkdir(parents=True, exist_ok=True)
             for face in kit_fonts.glob("*"):
                 (font_dir / face.name).write_bytes(face.read_bytes())

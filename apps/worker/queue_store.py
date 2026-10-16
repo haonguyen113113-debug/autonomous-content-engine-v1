@@ -91,7 +91,7 @@ def validate_draft_payload(payload: Any) -> dict[str, Any]:
         "story_form": story_form,
         "evidence": evidence,
         "content_type": content_type,
-        "colorway": colorway or "san-dem",
+        "colorway": colorway or "cyber-pitch",
         "max_attempts": max_attempts,
     }
 

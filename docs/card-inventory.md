@@ -73,7 +73,7 @@ status: planning
 | BP-09 | Club Identity | Bản sắc, triết lý, cộng đồng và văn hóa CLB | P1 |
 | BP-10 | Rivalry | Nguồn gốc và ý nghĩa của cuộc đối đầu | P1 |
 | BP-11 | Football History | Sự kiện lịch sử, bước ngoặt hoặc di sản | P1 |
-| BP-12 | Controversy | Tranh cãi và các góc nhìn/bằng chứng liên quan | P1 |
+| BP-12 | ~~Controversy~~ REMOVED 16/10 | Trùng BP-13, giữ BP-13 typo lớn hơn | — |
 | BP-13 | Myth vs Reality | Đối chiếu nhận định phổ biến với bằng chứng | P0 |
 | BP-14 | Comparison | So sánh cầu thủ, đội bóng, thời kỳ hoặc quan điểm | P0 |
 | BP-15 | Ranking / List | Danh sách với tiêu chí xếp hạng rõ ràng | P1 |

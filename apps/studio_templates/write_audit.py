@@ -1,8 +1,8 @@
-"""Append Sprint 1 proof-audit section to 9.0.0 preview.html.
+"""Append Sprint proof-audit section to 10.0.0 preview.html.
 
 Usage: python apps/studio_templates/write_audit.py rows.json
 rows.json: [{name, aspect, size:[w,h], bad:int, badTop:[...], visual:'pass'|'block'|'todo', note:''}]
-Proof PNGs must already sit at 9.0.0/previews/<prefix>-<id>-proof.png (lowercased id).
+Proof PNGs must already sit at 10.0.0/previews/<prefix>-<id>-proof.png (lowercased id).
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-HTML = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "9.0.0" / "preview.html"
+HTML = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "10.0.0" / "preview.html"
 
 
 def main() -> int:
@@ -31,8 +31,8 @@ def main() -> int:
         "<section class='panel' style='margin-top:18px'>"
         "<div class='kicker'>SPRINT PROOF AUDIT (STARTERS)</div>"
         f"<h2 style='margin-top:8px'>{len(rows)} starters — gates + proof, khắt khe</h2>"
-        "<p>Palette khóa ink/coral/paper/slate. Số thắng trắng đậm, thua slate. "
-        "Credit whisper. Xem kỹ từng proof trước khi duyệt P1/P2.</p>"
+        "<p>Palette khóa trắng/ink/cam/slate. Số ink monumental + bar cam, thua ink trên cam. "
+        "Credit ink. Xem kỹ từng proof trước khi duyệt.</p>"
         "<div class='rendered-grid'>" + "".join(cards) + "</div></section>")
     text = HTML.read_text(encoding="utf-8")
     marker = "<!-- SPRINT1-AUDIT -->"

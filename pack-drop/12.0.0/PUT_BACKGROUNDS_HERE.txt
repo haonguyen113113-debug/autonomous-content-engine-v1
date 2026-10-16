@@ -1,0 +1,2 @@
+Export Canva: short-<id>.png 1080x1920 + long-<id>.png 1920x1080 per layout id.
+See docs/canva-pack-contract.md, then: python -m apps.pack_import.build <this-folder>

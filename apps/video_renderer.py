@@ -635,7 +635,7 @@ def _write_tactical_scene(
         raise RuntimeError("Tactical diagrams require Pillow. Install requirements-renderer.txt.") from error
 
     scale = 2
-    panel_w, panel_h = (1540, 840) if is_long else (960, 1250)
+    panel_w, panel_h = (1540, 840) if is_long else (1080, 1920)
     image = Image.new("RGBA", (panel_w * scale, panel_h * scale), (10, 15, 13, 255))
     _night_field(image, panel_w, panel_h, scale, (10, 15, 13, 255), (18, 33, 27, 255),
                  phase=scene_number * 1.1)
@@ -977,7 +977,7 @@ def _write_editorial_data_scene(
     """
     from PIL import Image, ImageDraw, ImageFont
 
-    panel_w, panel_h = (1540, 840) if is_long else (960, 1250)
+    panel_w, panel_h = (1540, 840) if is_long else (1080, 1920)
     scale = 2
     image = Image.new("RGBA", (panel_w * scale, panel_h * scale), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image, "RGBA")
@@ -993,16 +993,11 @@ def _write_editorial_data_scene(
 
     ink, paper = color("ink", "#111721", 248), color("chalk", "#F0EBDD")
 
-    try:
-        from apps.sportskit import KIT_MODES as _KIT_MODES
-    except ImportError:
-        _KIT_MODES = ()
-    if mode in _KIT_MODES:
-        from apps.sportskit import KitFonts, render_plate
-
-        plate = render_plate(mode, data, KitFonts(font_path.parent), palette, is_long)
-        plate.save(path)
-        return
+    # Kit live-data plates were removed; the 69 authored starters carry the
+    # visual system. Kit planning modes fall through to the generic editorial
+    # branches below (comparison_duel, player_poster, goal_card aliases and
+    # the stat_leader/fixture_card/score_card branch); unmapped modes render
+    # the neutral data frame at the end of this function.
 
     # Owner pack layouts (Canva backgrounds + engine boxes): the default
     # package declares them with pack_bg; backgrounds ship in resources/pack.
@@ -1059,27 +1054,22 @@ def _write_editorial_data_scene(
 
         source_path = Path(str(data.get("media_file", "")))
         with Image.open(source_path) as source_image:
-            photo = ImageOps.fit(source_image.convert("RGB"), (panel_w*scale, panel_h*scale), method=Image.Resampling.LANCZOS, centering=(0.5, 0.47))
+            photo = ImageOps.exif_transpose(source_image.convert("RGB"))
         photo = ImageEnhance.Color(photo).enhance(1.06)
-        photo = ImageEnhance.Contrast(photo).enhance(1.04).convert("RGBA")
-        image = photo
+        photo = ImageEnhance.Contrast(photo).enhance(1.04)
+        # Owner 16/10: illustration lives INSIDE a reserved void, never
+        # full-bleed cover (cover-crop upscales coarse photos and eats
+        # quality). VOID plate + contained photo below.
+        image = Image.new("RGBA", (panel_w * scale, panel_h * scale), (6, 9, 19, 255))
+        if is_long:
+            fx0, fy0, fw, fh = int(panel_w * 0.12), int(panel_h * 0.14), int(panel_w * 0.76), int(panel_h * 0.60)
+            cap_y, cred_y, disc_y, cap_x = int(panel_h * 0.80), panel_h - 116, panel_h - 82, int(panel_w * 0.12)
+        else:
+            fx0, fy0, fw, fh = 130, 300, 820, 1050
+            cap_y, cred_y, disc_y, cap_x = 1390, panel_h - 116, panel_h - 82, 130
+        fitted = ImageOps.contain(photo, (fw * scale, fh * scale), method=Image.Resampling.LANCZOS)
+        image.alpha_composite(fitted.convert("RGBA"), (fx0 * scale, fy0 * scale))
         draw = ImageDraw.Draw(image, "RGBA")
-        # A restrained editorial shade protects the Vietnamese title while
-        # leaving the licensed photograph visually dominant.
-        shade = Image.new("RGBA", image.size, (8, 14, 20, 45))
-        draw = ImageDraw.Draw(shade)
-        for x in range(image.width):
-            alpha = int(178 * max(0.0, 1.0 - x / (image.width * 0.78)))
-            draw.line((x, 0, x, image.height), fill=(8, 14, 20, alpha))
-        for y in range(image.height):
-            alpha = int(170 * max(0.0, (y / image.height - 0.70) / 0.30))
-            if alpha:
-                draw.line((0, y, image.width, y), fill=(8, 14, 20, alpha))
-        image = Image.alpha_composite(image, shade)
-        draw = ImageDraw.Draw(image, "RGBA")
-        draw.polygon(((0,0),(panel_w*scale,0),(panel_w*scale,14*scale),(0,34*scale)), fill=home)
-        draw.line((32*scale, 80*scale, (panel_w-32)*scale, 80*scale), fill=(240,235,221,135), width=scale)
-        text(42, 27, "ALLEN KNOWS BALL  /  VISUAL CONTEXT", 15, (255,255,255,235), bold=True)
         caption = str(data.get("media_caption") or "BỐI CẢNH SÂN ĐẤU")
         caption_size = 31 if not is_long else 36
         caption_font = ImageFont.truetype(str(display_font_path), caption_size * scale)
@@ -1096,9 +1086,8 @@ def _write_editorial_data_scene(
         if current_line:
             caption_lines.append(current_line)
         caption_lines = caption_lines[:2]
-        caption_y = panel_h - (226 if len(caption_lines) > 1 else 186)
         for line_index, line in enumerate(caption_lines):
-            text(42, caption_y + line_index * (caption_size + 7), line, caption_size, (255,255,255,255), bold=True, display=True)
+            text(cap_x, cap_y + line_index * (caption_size + 7), line, caption_size, (255,255,255,255), bold=True, display=True)
         creator = str(data.get("media_creator") or "Creator not listed")[:50]
         license_label = str(data.get("media_license") or "License recorded in Asset Library")[:34]
         credit_line = f"ẢNH: {creator} · {license_label}"
@@ -1106,8 +1095,8 @@ def _write_editorial_data_scene(
         credit_font = ImageFont.truetype(str(font_path), credit_size * scale)
         while len(credit_line) > 18 and draw.textbbox((0, 0), credit_line, font=credit_font)[2] > max_caption_width:
             credit_line = credit_line[:-1].rstrip(" ·")
-        text(42, panel_h-116, credit_line, credit_size, (255,255,255,235), bold=True)
-        text(42, panel_h-82, "ẢNH MINH HỌA · KHÔNG PHẢI FOOTAGE TRẬN ĐANG PHÂN TÍCH", 11, (255,255,255,215))
+        text(cap_x, cred_y, credit_line, credit_size, (255,255,255,235), bold=True)
+        text(cap_x, disc_y, "ẢNH MINH HỌA · KHÔNG PHẢI FOOTAGE TRẬN ĐANG PHÂN TÍCH", 11, (255,255,255,215))
         image.resize((panel_w, panel_h), Image.Resampling.LANCZOS).save(path)
         return
 
@@ -1535,6 +1524,32 @@ def _write_editorial_data_scene(
         return _write_editorial_data_scene(
             path, font_path=font_path, display_font_path=display_font_path,
             mode="player_card", data=data, palette=palette,
+            is_long=is_long, scene_number=scene_number, bare=bare)
+    if mode in {"player_poster_side", "player_poster_top", "potm_card", "welcome_card"}:
+        return _write_editorial_data_scene(
+            path, font_path=font_path, display_font_path=display_font_path,
+            mode="player_card", data=data, palette=palette,
+            is_long=is_long, scene_number=scene_number, bare=bare)
+    if mode == "duel_columns":
+        return _write_editorial_data_scene(
+            path, font_path=font_path, display_font_path=display_font_path,
+            mode="statline_scorecard", data=data, palette=palette,
+            is_long=is_long, scene_number=scene_number, bare=bare)
+    if mode == "fixture_list":
+        list_data = dict(data)
+        fixtures = list_data.get("fixtures") or []
+        if fixtures and not list_data.get("home"):
+            first = fixtures[0] if isinstance(fixtures[0], dict) else {}
+            list_data.setdefault("home", first.get("home", "DOI NHA"))
+            list_data.setdefault("away", first.get("away", "DOI KHACH"))
+        return _write_editorial_data_scene(
+            path, font_path=font_path, display_font_path=display_font_path,
+            mode="fixture_card", data=list_data, palette=palette,
+            is_long=is_long, scene_number=scene_number, bare=bare)
+    if mode == "quote_card":
+        return _write_editorial_data_scene(
+            path, font_path=font_path, display_font_path=display_font_path,
+            mode="source_card", data=data, palette=palette,
             is_long=is_long, scene_number=scene_number, bare=bare)
     if mode == "goal_card":
         goal_data = dict(data)
@@ -1988,13 +2003,11 @@ def _render(
     # the explanation, so no persistent speech subtitles are rendered.
     filters: list[str] = []
     label_path = _write_text(work_dir / "wordmark.txt", "ALLEN KNOWS BALL")
+    # Owner 16/10: no persistent corner wordmark over body scenes (channel
+    # mark lives in the 0-1.2s ident + end-card; plates carry the badge).
     title_wrap = 38 if not is_long else 66
     wrapped_title = "\n".join(textwrap.wrap(title_text, width=title_wrap, break_long_words=False, break_on_hyphens=False))
     title_path = _write_text(work_dir / "title.txt", wrapped_title)
-    filters.append(
-        f"drawtext=fontfile='{latin_font_path}':textfile='{label_path}':fontcolor={signal_lime}:"
-        f"fontsize=h*0.026:x=w*0.08:y=h*0.075:shadowcolor=black@0.6:shadowx=1:shadowy=2"
-    )
     title_end = min(duration, 3.2 if preview else (phase_ranges[0][0] + 2.4 if phase_ranges else 2.4))
     # Title waits for the ident sting so frame 0 never stacks three text layers.
     title_start = min(1.2, max(0.0, title_end - 0.5))
@@ -2020,11 +2033,12 @@ def _render(
     fallback_diagrams = _diagram_specs()
     diagram_specs: list[dict[str, Any]] = []
     scene_paths: list[Path] = []
+    scene_text_paths: list[Path | None] = []
     trail_paths: list[Path] = []
     selected_modes: list[str] = []
     punch_beats: set[int] = set()
     kinetic_overlays: dict[int, dict[str, Any]] = {}
-    scene_x, scene_y = (190, 220) if is_long else (60, 390)
+    scene_x, scene_y = (190, 220) if is_long else (0, 0)
     fx, fy, fw, fh = (505, 138, 865, 560) if is_long else (260, 142, 490, 760)
     for index in range(len(phase_ranges)):
         spec = None
@@ -2050,10 +2064,19 @@ def _render(
             punch_beats.add(index)
         hook_text = str(beat_graphic.get("hook_text", "")).strip() if isinstance(beat_graphic, dict) else ""
         hero = beat_graphic.get("hero") if isinstance(beat_graphic, dict) else None
-        if mode == "hook_card" and hook_text:
+        try:
+            from apps.card_selector import STARTERS_SHORT as _STARTERS
+            _starter_ok = (not is_long and _STARTERS.get(mode)
+                           and not (segment.get("media_asset_id") if isinstance(segment, dict) else None))
+        except Exception:
+            _starter_ok = False
+        # Starter scenes carry their own text: kinetic text overlays below
+        # are gated on not _starter_ok so nothing renders twice (owner 16/10).
+        if mode == "hook_card" and hook_text and not _starter_ok:
             kinetic_overlays[index] = {"kind": "hook", "text": hook_text}
         elif (mode == "statline_scorecard" and isinstance(hero, dict)
-                and str(hero.get("value", "")).strip() and not beat_graphic.get("metrics")):
+                and str(hero.get("value", "")).strip() and not beat_graphic.get("metrics")
+                and not _starter_ok):
             kinetic_overlays[index] = {"kind": "hero", "value": str(hero.get("value", ""))[:12]}
         scene_palette = dict(palette)
         graphic_data = segment.get("graphic_data", {}) if isinstance(segment.get("graphic_data"), dict) else {}
@@ -2082,6 +2105,7 @@ def _render(
             spec = fallback_diagrams[index % len(fallback_diagrams)]
         diagram_specs.append(spec)
         scene_path = work_dir / f"tactical-scene-{index}.png"
+        scene_text_paths.append(None)
         if mode == "tactical_explainer":
             starter_card = graphic_data.get("tactical_card", "") if isinstance(graphic_data, dict) else ""
             try:
@@ -2122,17 +2146,37 @@ def _render(
                 scene_number=index+1,
             )
         else:
-            _write_editorial_data_scene(
-                scene_path,
-                font_path=font,
-                display_font_path=latin_font,
-                mode=mode,
-                data=graphic_data,
-                palette=scene_palette,
-                is_long=is_long,
-                scene_number=index+1,
-                bare=index in kinetic_overlays,
-            )
+            starter_img = None
+            starter_text = None
+            try:
+                if not is_long and not segment.get("media_asset_id"):
+                    from apps.card_selector import STARTERS_SHORT as _SS2
+                    from apps.studio_templates.starter_scenes import render_starter_layers as _rsl
+                    layers = _rsl(mode, graphic_data, segment.get("evidence_refs", []),
+                                  _SS2.get(mode))
+                    if layers is not None:
+                        starter_img, starter_text = layers
+            except Exception:
+                starter_img, starter_text = None, None
+            if starter_img is not None:
+                starter_img.convert("RGB").save(scene_path)
+                if starter_text is not None:
+                    text_path = work_dir / f"tactical-text-{index}.png"
+                    starter_text.save(text_path)
+                    scene_text_paths[index] = text_path
+            else:
+                scene_text_paths[index] = None
+                _write_editorial_data_scene(
+                    scene_path,
+                    font_path=font,
+                    display_font_path=latin_font,
+                    mode=mode,
+                    data=graphic_data,
+                    palette=scene_palette,
+                    is_long=is_long,
+                    scene_number=index+1,
+                    bare=index in kinetic_overlays,
+                )
         scene_paths.append(scene_path)
         from math import atan2, degrees
         vector = spec.get("pass_vector", {})
@@ -2146,6 +2190,26 @@ def _render(
         trail_paths.append(trail_path)
     ball_sprite = work_dir / "football.png"
     _write_ball_sprite(ball_sprite, palette)
+    # Authored ending card (owner 16/10): the prebuilt C-10 end card closes
+    # short videos instead of bare background+text. +4s music tail.
+    ending_path = None
+    out_duration = duration
+    if not preview and not visual_only and not is_long:
+        try:
+            from pathlib import Path as _P
+            from apps.studio_templates.render_starters import render_design as _render_design
+            epath = _P(__file__).resolve().parents[0] / "studio_templates" / "C-10.short.json"
+            edata = json.loads(epath.read_text(encoding="utf-8"))
+            for _c in edata["pages"][0]["children"]:
+                if (isinstance(_c, dict) and _c.get("type") == "text"
+                        and (_c.get("custom") or {}).get("slot") == "credit"):
+                    _c["showInExport"] = False
+            ending_path = work_dir / "ending-scene.png"
+            _render_design(edata).convert("RGB").save(ending_path)
+            out_duration = duration + 4
+        except Exception:
+            ending_path = None
+            out_duration = duration
 
     for index, (start, end) in enumerate(phase_ranges):
         if end <= start:
@@ -2234,12 +2298,26 @@ def _render(
     trail_input_start = ball_input_start + len(scene_paths)
     for trail_path in trail_paths:
         command += ["-loop", "1", "-framerate", str(fps), "-i", str(trail_path)]
+    # Layered starter text: one transparent input per beat that has it.
+    text_input_index: dict[int, int] = {}
+    next_input = trail_input_start + len(trail_paths)
+    for index, text_path in enumerate(scene_text_paths):
+        if text_path is None:
+            continue
+        command += ["-loop", "1", "-framerate", str(fps), "-i", str(text_path)]
+        text_input_index[index] = next_input
+        next_input += 1
+    ending_idx: int | None = None
+    if ending_path is not None:
+        command += ["-loop", "1", "-framerate", str(fps), "-i", str(ending_path)]
+        ending_idx = next_input
+        next_input += 1
 
     # Composite a research-informed Match Dossier tactical plate for each active
     # diagram beat, then animate the ball along its reviewed pass vector.
     chains: list[str] = []
     current = "0:v"
-    panel_w, panel_h = (1540, 840) if is_long else (960, 1250)
+    panel_w, panel_h = (1540, 840) if is_long else (1080, 1920)
     full_segments = draft.get("segments", []) if isinstance(draft.get("segments"), list) else []
     chapter_pool = draft.get("chapter_events", []) if isinstance(draft.get("chapter_events"), list) else []
     fades_used = 0
@@ -2265,7 +2343,7 @@ def _render(
         scene_source = f"{scene_idx}:v"
         if selected_modes[index] == "media_b_roll":
             media_layer = f"mediamotion{index}"
-            media_width, media_height = (1540, 840) if is_long else (960, 1250)
+            media_width, media_height = (1540, 840) if is_long else (1080, 1920)
             chains.append(
                 f"[{scene_idx}:v]zoompan=z='min(1.035,zoom+0.00002)':"
                 f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
@@ -2312,6 +2390,29 @@ def _render(
                 f"enable='between(t,{start:.3f},{min(end, start + 0.15):.3f})'"
             )
         current = scene_label
+        if index in text_input_index:
+            # Type entrances after the plate lands: same drift as its
+            # background, fade in at +0.6s, out with the beat.
+            tidx = text_input_index[index]
+            if index in punch_beats:
+                tzoom = "min(1.12,zoom+0.0012)"
+            elif index % 2 == 0:
+                tzoom = "min(1.07,zoom+0.0004)"
+            else:
+                tzoom = "if(eq(on,0),1.07,max(zoom-0.0004,1.0))"
+            tin = min(start + 0.6, end - 1.0)
+            chains.append(
+                f"[{tidx}:v]zoompan=z='{tzoom}':"
+                f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
+                f"s={panel_w}x{panel_h}:fps={fps},format=rgba,"
+                f"fade=t=in:st={tin:.3f}:d=0.45:alpha=1,"
+                f"fade=t=out:st={max(start, end - 0.45):.3f}:d=0.45:alpha=1[text{index}]"
+            )
+            chains.append(
+                f"[{current}][text{index}]overlay=x='{scene_x}+{panel_w}*max(0,1-(t-{start:.3f})/0.3)':y='{scene_y_expr}':eval=frame:eof_action=pass:format=auto:"
+                f"enable='{scene_enable}'[textlayer{index}]"
+            )
+            current = f"textlayer{index}"
         if selected_modes[index] != "tactical_explainer":
             continue
         vector = spec.get("pass_vector", {})
@@ -2354,6 +2455,21 @@ def _render(
             f"eval=frame:eof_action=pass:format=auto:enable='{scene_enable}'[{ball_label}]"
         )
         current = ball_label
+    if ending_idx is not None:
+        # Authored ending card closes the video (owner 16/10): full-bleed
+        # C-10 plate with a gentle push-in, takeaway/version text drawn
+        # over it by the endcard block below.
+        chains.append(
+            f"[{ending_idx}:v]zoompan=z='min(1.05,zoom+0.0006)':"
+            f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
+            f"s={panel_w}x{panel_h}:fps={fps},format=rgba,"
+            f"fade=t=in:st={duration:.3f}:d=0.5:alpha=1[endcard]"
+        )
+        chains.append(
+            f"[{current}][endcard]overlay=x=0:y=0:eval=frame:eof_action=pass:format=auto:"
+            f"enable='gte(t,{duration:.3f})'[endcarded]"
+        )
+        current = "endcarded"
     # Typed on-screen items declared in the production timeline. Lower-thirds
     # identify who/what is on screen; captions carry the hook for muted
     # viewers. Both sit above every scene layer.
@@ -2438,19 +2554,22 @@ def _render(
                     count_used += 1
     # Branded end-card closes the arc inside the final seconds: wordmark,
     # channel tagline, loop-callback takeaway, and template version.
-    end_start = max(0.0, duration - 2.5)
+    # Owner 16/10: with the authored C-10 ending plate, drop the ink veil
+    # and the big wordmark (both baked); takeaway/version/tagline stay.
+    end_start = max(0.0, out_duration - (4.0 if ending_path is not None else 2.5))
     tagline = ""
     if isinstance(package.channel, dict):
         tagline = _normalise(str(package.channel.get("tagline", "")))[:120]
-    filters.append(
-        f"drawbox=x=0:y=0:w=iw:h=ih:color={color_token('ink')}@0.94:t=fill:"
-        f"enable='gte(t,{end_start:.3f})'"
-    )
-    filters.append(
-        f"drawtext=fontfile='{latin_font_path}':textfile='{label_path}':fontcolor={signal_lime}:"
-        f"fontsize=h*0.055:text_align=center:x='(w-text_w)/2':y=h*0.40:"
-        f"enable='gte(t,{end_start:.3f})'"
-    )
+    if ending_path is None:
+        filters.append(
+            f"drawbox=x=0:y=0:w=iw:h=ih:color={color_token('ink')}@0.94:t=fill:"
+            f"enable='gte(t,{end_start:.3f})'"
+        )
+        filters.append(
+            f"drawtext=fontfile='{latin_font_path}':textfile='{label_path}':fontcolor={signal_lime}:"
+            f"fontsize=h*0.055:text_align=center:x='(w-text_w)/2':y=h*0.40:"
+            f"enable='gte(t,{end_start:.3f})'"
+        )
     if tagline:
         tagline_path = _write_text(work_dir / "endcard-tagline.txt", tagline)
         filters.append(
@@ -2481,13 +2600,15 @@ def _render(
     if sound is not None:
         chains.append(audio_mix[0])
     filter_complex = ";".join(chains)
-    command += ["-filter_complex", filter_complex, "-map", "[vout]", "-t", str(duration), "-r", str(fps), "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22", "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"]
+    command += ["-filter_complex", filter_complex, "-map", "[vout]", "-t", str(out_duration), "-r", str(fps), "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22", "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"]
     if preview or visual_only:
         command += ["-an"]
     elif sound is not None:
-        command += ["-map", audio_mix[1], "-c:a", "aac", "-b:a", "192k", "-shortest"]
+        # With an authored ending tail, hold the full outro (bed loops on);
+        # otherwise stop at the shortest stream as before.
+        command += ["-map", audio_mix[1], "-c:a", "aac", "-b:a", "192k"] + ([] if ending_path is not None else ["-shortest"])
     else:
-        command += ["-map", "1:a:0", "-c:a", "aac", "-b:a", "192k", "-shortest"]
+        command += ["-map", "1:a:0", "-c:a", "aac", "-b:a", "192k"] + ([] if ending_path is not None else ["-shortest"])
     command += ["-movflags", "+faststart", str(output_path)]
     result = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=7200)
     if result.returncode:

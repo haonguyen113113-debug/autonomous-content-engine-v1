@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 TPL = ROOT / "apps" / "studio_templates"
-FONTS = {"Barlow Condensed", "Be Vietnam Pro", "Permanent Marker"}
+FONTS = {"Barlow Condensed", "Be Vietnam Pro", "Permanent Marker", "Big Shoulders", "Tektur"}
 # Element types per Polotno SDK (store → pages → elements).
 # See https://polotno.com/docs/store.md and skills/polotno-sdk/SKILL.md.
 ALLOWED_TYPES = {"text", "image", "svg", "figure", "line", "video", "gif", "table", "group"}
@@ -71,6 +71,29 @@ def check_file(path: Path) -> list[str]:
             x, y, cw, chh = c["x"], c["y"], c["width"], c["height"]
             if x < 0 or y < 0 or x + cw > w + 1 or y + chh > h + 1:
                 errors.append(f"{path.name}/{cid}: element outside canvas")
+            if c.get("type") == "image":
+                # Art bed: fullscreen pack resource, locked first child.
+                # v12: owner pack plates; legacy generative beds also accepted.
+                import re as _re
+
+                src = str(c.get("src", ""))
+                pack_m = _re.fullmatch(
+                    r"/template-foundation/resources/pack/(short|long)-([A-Za-z0-9_-]+)\.(png|jpg|jpeg)", src)
+                beds_m = _re.fullmatch(r"/template-foundation/resources/beds/[A-Za-z0-9_-]+\.png", src)
+                if not (pack_m or beds_m):
+                    errors.append(f"{path.name}/{cid}: bed src must be /template-foundation/resources/beds/<slug>.png or /template-foundation/resources/pack/<aspect>-<mode>.(png|jpg)")
+                if children.index(c) != 0:
+                    errors.append(f"{path.name}/{cid}: bed image must be the first child")
+                if (x, y, cw, chh) != (0, 0, w, h):
+                    errors.append(f"{path.name}/{cid}: bed must fill the exact canvas")
+                base = (ROOT / "template_foundation/templates/allen-knows-ball"
+                        / ("longform-12.0.0" if aspect == "long" else "12.0.0"))
+                if pack_m:
+                    bed_file = base / "resources/pack" / src.rsplit("/", 1)[-1]
+                else:
+                    bed_file = base / "resources/beds" / src.rsplit("/", 1)[-1]
+                if not bed_file.is_file():
+                    errors.append(f"{path.name}/{cid}: bed file missing: {bed_file.name}")
     if n_slot == 0:
         errors.append(f"{path.name}: no slotted value elements")
     return errors

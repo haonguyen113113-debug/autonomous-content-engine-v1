@@ -62,7 +62,7 @@ async function loadTemplateFoundation() {
     const data = await response.json();
     const shortPackage = data.templates.short;
     const longPackage = data.templates.long;
-    document.getElementById("template-draft-status").textContent = "SHORT + LONG · DRAFT FOR OWNER AUDIT";
+    document.getElementById("template-draft-status").textContent = `SHORT + LONG · ${String(shortPackage.manifest.status || "released").toUpperCase()} v${shortPackage.manifest.version}`;
     document.getElementById("template-version").textContent = `Short v${shortPackage.manifest.version} · ${shortPackage.manifest.output.aspect_ratio} / ${shortPackage.manifest.duration_seconds.minimum}–${shortPackage.manifest.duration_seconds.maximum}s   |   Long v${longPackage.manifest.version} · ${longPackage.manifest.output.aspect_ratio} / ${Math.round(longPackage.manifest.duration_seconds.minimum / 60)}–${Math.round(longPackage.manifest.duration_seconds.maximum / 60)} min`;
     document.getElementById("template-tagline").textContent = data.channel.tagline;
     document.getElementById("template-promise").textContent = data.channel.brand_promise;
@@ -80,6 +80,8 @@ async function loadOverview() {
     document.getElementById("metric-verified").textContent = data.verified_rights_count;
     document.getElementById("metric-active").textContent = data.active_count;
     document.getElementById("nav-asset-count").textContent = data.asset_count;
+    const strip = document.getElementById("onboarding-strip");
+    if (strip) strip.hidden = readStore("akb-onboarding-dismissed") === "1" || Number(data.asset_count) > 0;
   } catch (error) {
     showToast(error.message || "Could not connect to the local engine.");
   }
@@ -390,9 +392,9 @@ function sparkSvg(values) {
   const max = Math.max(1, ...values);
   const step = values.length > 1 ? w / (values.length - 1) : 0;
   const pts = values.map((v, i) => `${(i * step).toFixed(1)},${(h - 3 - (v / max) * (h - 8)).toFixed(1)}`);
-  if (pts.length === 1) return `<circle cx="${pts[0].split(",")[0]}" cy="${pts[0].split(",")[1]}" r="2.6" fill="#8b7cff"/>`;
+  if (pts.length === 1) return `<circle cx="${pts[0].split(",")[0]}" cy="${pts[0].split(",")[1]}" r="2.6" fill="#00e5ff"/>`;
   const last = pts[pts.length - 1].split(",");
-  return `<polyline points="${pts.join(" ")}" fill="none" stroke="#8b7cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.8" fill="#8b7cff"/>`;
+  return `<polyline points="${pts.join(" ")}" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.8" fill="#00e5ff"/>`;
 }
 
 function barChartSvg(entries) {
@@ -403,10 +405,10 @@ function barChartSvg(entries) {
   const innerW = W - padL - 12, innerH = H - padT - padB;
   const slot = innerW / n;
   const barW = Math.max(4, Math.min(30, slot * 0.55));
-  let svg = `<defs><linearGradient id="assetBarGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#4d7cfe"/></linearGradient></defs>`;
+  let svg = `<defs><linearGradient id="assetBarGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#00e5ff"/><stop offset="1" stop-color="#0aa2c0"/></linearGradient></defs>`;
   [0, 0.5, 1].forEach((f) => {
     const y = (padT + innerH * (1 - f)).toFixed(1);
-    svg += `<line x1="${padL}" y1="${y}" x2="${W - 8}" y2="${y}" stroke="#262c3d" stroke-width="1"/><text x="${padL - 7}" y="${+y + 3.5}" text-anchor="end" font-size="10" fill="#7c86a0">${Math.round(max * f)}</text>`;
+    svg += `<line x1="${padL}" y1="${y}" x2="${W - 8}" y2="${y}" stroke="#1b2334" stroke-width="1"/><text x="${padL - 7}" y="${+y + 3.5}" text-anchor="end" font-size="10" fill="#8296be">${Math.round(max * f)}</text>`;
   });
   entries.forEach((d, i) => {
     const h = d.count > 0 ? Math.max(3, (d.count / max) * innerH) : 0;
@@ -416,7 +418,7 @@ function barChartSvg(entries) {
   });
   const labelAt = (i) => {
     const x = padL + i * slot + slot / 2;
-    return `<text x="${x.toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#7c86a0">${escapeHtml(entries[i].day.slice(5))}</text>`;
+    return `<text x="${x.toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#8296be">${escapeHtml(entries[i].day.slice(5))}</text>`;
   };
   svg += labelAt(0);
   if (n > 2) svg += labelAt(Math.floor((n - 1) / 2));
@@ -425,21 +427,23 @@ function barChartSvg(entries) {
 }
 
 const STATUS_PATTERNS = [
-  [/APPROVED|RENDERED|COMPLETE|VERIFIED/, "#8b7cff"],
-  [/WAITING|REVIEW|AUDIT/, "#f5a524"],
-  [/FAIL|ERROR|BLOCK|REJECT/, "#ff5e7a"],
+  [/APPROVED|RENDERED|COMPLETE|VERIFIED|DONE/, "#34d399"],
+  [/DRAFTING|CHECKING|RENDERING/, "#8b7cff"],
+  [/QUEUED|CLAIMED|PENDING|WAITING|REVIEW|AUDIT/, "#ffb03a"],
+  [/FAIL|ERROR|BLOCK|REJECT/, "#ff3d81"],
 ];
 
 function statusColor(status) {
   const s = String(status || "");
   for (const [pattern, color] of STATUS_PATTERNS) if (pattern.test(s)) return color;
-  return "#59617a";
+  return "#5f6b85";
 }
 
 function statusGrad(status) {
   const s = String(status || "");
-  if (/APPROVED|RENDERED|COMPLETE|VERIFIED/.test(s)) return "url(#dgrad-ok)";
-  if (/WAITING|REVIEW|AUDIT/.test(s)) return "url(#dgrad-wait)";
+  if (/APPROVED|RENDERED|COMPLETE|VERIFIED|DONE/.test(s)) return "url(#dgrad-ok)";
+  if (/DRAFTING|CHECKING|RENDERING/.test(s)) return "url(#dgrad-ai)";
+  if (/QUEUED|CLAIMED|PENDING|WAITING|REVIEW|AUDIT/.test(s)) return "url(#dgrad-wait)";
   if (/FAIL|ERROR|BLOCK|REJECT/.test(s)) return "url(#dgrad-fail)";
   return "url(#dgrad-muted)";
 }
@@ -455,12 +459,13 @@ function donutSvg(byStatus) {
     offset -= frac * 100;
   });
   return `<defs>`
-    + `<linearGradient id="dgrad-ok" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b7cff"/><stop offset="1" stop-color="#4d7cfe"/></linearGradient>`
-    + `<linearGradient id="dgrad-wait" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5c04c"/><stop offset="1" stop-color="#ffa44d"/></linearGradient>`
-    + `<linearGradient id="dgrad-fail" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5e7a"/><stop offset="1" stop-color="#ffa44d"/></linearGradient>`
+    + `<linearGradient id="dgrad-ok" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#0d9488"/></linearGradient>`
+    + `<linearGradient id="dgrad-ai" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b7cff"/><stop offset="1" stop-color="#5b4fd6"/></linearGradient>`
+    + `<linearGradient id="dgrad-wait" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb03a"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>`
+    + `<linearGradient id="dgrad-fail" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff3d81"/><stop offset="1" stop-color="#e11d78"/></linearGradient>`
     + `<linearGradient id="dgrad-muted" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4a5268"/><stop offset="1" stop-color="#333a4d"/></linearGradient>`
-    + `</defs><circle cx="60" cy="60" r="31" fill="#161b28"/>${segs}`
-    + `<text x="60" y="58" text-anchor="middle" font-size="21" font-weight="800" fill="#f3f5fa">${total}</text><text x="60" y="73" text-anchor="middle" font-size="9.5" fill="#8f99ad">runs</text>`;
+    + `</defs><circle cx="60" cy="60" r="31" fill="#0d1424"/>${segs}`
+    + `<text x="60" y="58" text-anchor="middle" font-size="21" font-weight="800" fill="#edf2fa">${total}</text><text x="60" y="73" text-anchor="middle" font-size="9.5" fill="#8b98ad">runs</text>`;
 }
 
 function renderAssetChart() {
@@ -533,8 +538,9 @@ async function loadStats() {
 function runStatusPill(status) {
   const s = String(status || "unknown");
   let cls = "status-muted";
-  if (/APPROVED|RENDERED|COMPLETE|VERIFIED/.test(s)) cls = "status-ok";
+  if (/APPROVED|RENDERED|COMPLETE|VERIFIED|DONE/.test(s)) cls = "status-ok";
   else if (/DRAFTING|CHECKING|RENDERING/.test(s)) cls = "status-live";
+  else if (/QUEUED|CLAIMED|PENDING|WAITING/.test(s)) cls = "status-queued";
   return `<span class="status-pill ${cls}" title="${escapeHtml(s)}">${escapeHtml(s.replaceAll("_", " ").slice(0, 28))}</span>`;
 }
 
@@ -1100,3 +1106,46 @@ const approveSummaryButton = document.getElementById("approve-summary");
 if (approveSummaryButton) approveSummaryButton.addEventListener("click", () => submitSummaryReview(true));
 const sendFixesButton = document.getElementById("send-summary-fixes");
 if (sendFixesButton) sendFixesButton.addEventListener("click", () => submitSummaryReview(false));
+
+function readStore(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function writeStore(key, value) {
+  try { localStorage.setItem(key, value); } catch { /* private mode: skip */ }
+}
+
+// First-run checklist: visible until the library holds assets or dismissed.
+const onboardingDismiss = document.getElementById("onboarding-dismiss");
+if (onboardingDismiss) onboardingDismiss.addEventListener("click", () => {
+  const strip = document.getElementById("onboarding-strip");
+  if (strip) strip.hidden = true;
+  writeStore("akb-onboarding-dismissed", "1");
+});
+
+// Gentle 3D tilt on metric cards: pointer-driven, transform-only,
+// skipped for touch and reduced-motion.
+(function tiltCards() {
+  try {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  } catch { return; }
+  const grid = document.querySelector(".metric-grid");
+  if (!grid) return;
+  grid.addEventListener("mousemove", (event) => {
+    const card = event.target.closest ? event.target.closest(".metric-card") : null;
+    grid.querySelectorAll(".metric-card").forEach((el) => {
+      if (el !== card) { el.style.setProperty("--rx", "0deg"); el.style.setProperty("--ry", "0deg"); }
+    });
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / Math.max(1, rect.width) - 0.5;
+    const py = (event.clientY - rect.top) / Math.max(1, rect.height) - 0.5;
+    card.style.setProperty("--rx", `${(-py * 7).toFixed(2)}deg`);
+    card.style.setProperty("--ry", `${(px * 7).toFixed(2)}deg`);
+  });
+  grid.addEventListener("mouseleave", () => {
+    grid.querySelectorAll(".metric-card").forEach((el) => {
+      el.style.setProperty("--rx", "0deg"); el.style.setProperty("--ry", "0deg");
+    });
+  });
+})();

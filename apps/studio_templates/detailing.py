@@ -19,7 +19,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-FONTS = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "9.0.0" / "resources" / "fonts"
+FONTS = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "12.0.0" / "resources" / "fonts"
 
 
 def micro_font(size: int) -> ImageFont.FreeTypeFont:

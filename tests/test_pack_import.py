@@ -88,7 +88,7 @@ def test_build_installs_versioned_package(tmp_path):
 def test_render_pack_plate_draws_boxes(tmp_path):
     from apps.sportskit import KitFonts
 
-    fonts = KitFonts(ROOT / "template_foundation/templates/allen-knows-ball/9.0.0/resources/fonts")
+    fonts = KitFonts(ROOT / "template_foundation/templates/allen-knows-ball/12.0.0/resources/fonts")
     bg = tmp_path / "bg.png"
     from PIL import Image
     Image.new("RGB", (1080, 1920), (200, 16, 46)).save(bg)

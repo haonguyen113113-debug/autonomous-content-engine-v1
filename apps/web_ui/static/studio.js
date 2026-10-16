@@ -44,7 +44,7 @@
       window.__akb = { store: store, version: 1 };
       try {
         window.polotnoConfig.setGoogleFonts(
-          ['Barlow Condensed', 'Be Vietnam Pro', 'Permanent Marker']);
+          ['Barlow Condensed', 'Be Vietnam Pro', 'Permanent Marker', 'Big Shoulders']);
         window.polotnoConfig.setTextOverflow('change-font-size');
       } catch (e) { /* brand lock best-effort; starters carry locked flags */ }
       newSize('short');

@@ -12,6 +12,8 @@ no Node, no re-download.
 | algorithmic-art | anthropics/skills | Seeded generative craft ported to PIL (p5.js itself not used) |
 | emil-design-eng | emilkowalski/skills | Detailing craft: animation decisions, review checklist, invisible details |
 | theme-factory | anthropics/skills | Coloring method: curated palette + pairing + custom theme generation (presets never touch the locked channel) |
+| design-taste | h3nryprod01/design-taste (MIT) | Elite frontend taste synthesis (taste-skill + impeccable + emil): typography, color, motion, anti-slop refs |
+| impeccable-lite | ilindaniel/impeccable-lite (Apache-2.0) | No-machinery UI direction: surface modes, craft checklist, generic-reject list, production floor |
 | broadcast-depth | custom (this repo) | Faux-3D for CPU PIL: light, glow, grain, haze (no Blender) |
 
 ## Migrate to a new machine

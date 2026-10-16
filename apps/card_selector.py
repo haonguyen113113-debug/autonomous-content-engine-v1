@@ -149,6 +149,7 @@ def _match_portrait(player_name: str, assets: list[dict[str, Any]]) -> str | Non
     want = _strip_accents(player_name)
     if not want:
         return None
+    want = re.sub(r"[-_]+", " ", want)
     want_tokens = set(want.split())
     for asset in assets:
         if not _eligible_asset(asset):
@@ -160,7 +161,7 @@ def _match_portrait(player_name: str, assets: list[dict[str, Any]]) -> str | Non
         if isinstance(metadata, dict):
             haystack += " " + " ".join(str(v) for v in metadata.values()
                                        if isinstance(v, str))
-        norm = _strip_accents(haystack)
+        norm = re.sub(r"[-_]+", " ", _strip_accents(haystack))
         if want and want in norm:
             return str(asset.get("asset_id"))
         if want_tokens and want_tokens <= set(norm.split()):
@@ -405,11 +406,18 @@ def select_cards(segments: list[dict[str, Any]],
             if len(candidates) >= 3:
                 break
 
+        # Owner 16/10: a declared player/portrait mode with a named player
+        # stays — reselecting to a nameless data card would silently drop
+        # the player's identity from the frame.
+        lock_player = (declared in PORTRAIT_MODES and _present(data, "player_name"))
         scored = []
         for mode in candidates:
             points, why = _score_candidate(mode, segment, data, assets,
                                            declared=(mode == declared),
                                            prev_modes=prev_modes)
+            if lock_player and mode != declared:
+                points -= 100.0
+                why = why + ["player-mode lock: identity over fit"]
             scored.append((points, mode == declared, mode, why))
         scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
         best_points, _, best_mode, best_why = scored[0]
@@ -427,11 +435,14 @@ def select_cards(segments: list[dict[str, Any]],
         if best_mode in PORTRAIT_MODES and not bound and _present(data, "player_name"):
             hit = _match_portrait(str(data.get("player_name", "")), assets)
             if hit:
-                # Proposal only: slot-contract requires the owner to attach
-                # media (requires_owner_use_decision); the renderer never
-                # auto-uses a photo the owner did not pick.
-                suggested = hit
-                warnings.append(f"verified portrait '{hit}' available — attach it to use the photo version")
+                # Owner standing order 2026-10-16: a verified/active library
+                # portrait auto-attaches (reuse-first; acquisition still needs
+                # owner approval per PROJECT_SPEC section 8). The old
+                # suggest-only rule is retired with its tests.
+                bound = hit
+                asset_ok = True
+                warnings.append(f"verified portrait '{hit}' auto-attached (owner standing order 16/10)")
+            suggested = None
         else:
             suggested = None
 
@@ -509,7 +520,7 @@ def _fetch_verified_images(root: Path) -> tuple[list[dict[str, Any]], str | None
         try:
             rows = conn.execute(
                 "SELECT asset_id, asset_type, rights_state, lifecycle_state, "
-                "original_name, subject_type, subject_id, metadata_json FROM assets "
+                "original_name, subject_type, subject_id, metadata_json, purpose_code FROM assets "
                 "WHERE asset_type = 'image' AND rights_state = 'verified' "
                 "AND lifecycle_state = 'active'"
             ).fetchall()
@@ -536,6 +547,7 @@ def _fetch_verified_images(root: Path) -> tuple[list[dict[str, Any]], str | None
             "original_name": str(row["original_name"] or ""),
             "subjects": subjects,
             "metadata": metadata if isinstance(metadata, dict) else {},
+            "purpose_code": row["purpose_code"] if "purpose_code" in row.keys() else None,
         })
     return assets, None
 
@@ -544,10 +556,10 @@ def apply_card_plan(root: Path, run: dict[str, Any]) -> dict[str, Any]:
     """Feed a production run's segments from the card selector (render prep).
 
     Copies each decision's visual_mode/graphic_data into its segment, keeps
-    only owner-attached media bindings the filter validated (drops anything
-    the renderer would crash on), never auto-attaches photos (slot-contract
-    requires owner use-decisions; proposals stay in suggested_asset_id), and
-    stores the full plan at run["card_plan"] for review surfaces.
+    only validated media bindings (drops anything the renderer would crash
+    on), auto-attaches verified portraits (owner standing order 16/10),
+    auto-picks generic b-roll for closing hook beats from the broll-generic
+    pool, and stores the full plan at run["card_plan"] for review surfaces.
     Returns the plan.
     """
     draft = run.get("draft") if isinstance(run.get("draft"), dict) else {}
@@ -560,7 +572,13 @@ def apply_card_plan(root: Path, run: dict[str, Any]) -> dict[str, Any]:
     assets, note = _fetch_verified_images(root)
     plan = select_cards([s for s in segments if isinstance(s, dict)], assets, content_type)
     by_id = {d["segment_id"]: d for d in plan["decisions"]}
+    used_media: set[str] = set()
     for segment in segments:
+        if not isinstance(segment, dict):
+            continue
+        if isinstance(segment.get("media_asset_id"), str) and segment["media_asset_id"]:
+            used_media.add(segment["media_asset_id"])
+    for index, segment in enumerate(segments):
         if not isinstance(segment, dict):
             continue
         decision = by_id.get(str(segment.get("id")))
@@ -570,9 +588,42 @@ def apply_card_plan(root: Path, run: dict[str, Any]) -> dict[str, Any]:
         segment["graphic_data"] = decision["graphic_data"]
         if decision["media_asset_id"]:
             segment["media_asset_id"] = decision["media_asset_id"]
+            used_media.add(str(decision["media_asset_id"]))
         else:
             segment.pop("media_asset_id", None)
+            # B-roll pool: closing hook beats (takeaways) get a generic
+            # verified illustration when the pool has an unused one. Owner
+            # standing order 16/10; person photos never enter this pool —
+            # identity-matched portraits attach only via the portrait rule.
+            if (decision["visual_mode"] == "hook_card" and index > 0
+                    and content_type == "short"):
+                pick = _pick_broll(assets, used_media)
+                if pick:
+                    segment["media_asset_id"] = pick
+                    decision["media_asset_id"] = pick
+                    # Mirror the bound-asset rule: b-roll outside portrait.
+                    segment["visual_mode"] = "media_b_roll"
+                    decision["visual_mode"] = "media_b_roll"
+                    used_media.add(pick)
+                    decision["warnings"].append(
+                        f"b-roll '{pick}' auto-picked from broll-generic pool")
     if note:
         plan["plan"]["warnings"].insert(0, note)
     run["card_plan"] = plan
     return plan
+
+
+def _pick_broll(assets: list[dict[str, Any]], used: set[str]) -> str | None:
+    """First unused verified broll-generic image, deterministic order."""
+    for asset in sorted(assets, key=lambda a: str(a.get("asset_id", ""))):
+        aid = str(asset.get("asset_id", ""))
+        if not aid or aid in used:
+            continue
+        if asset.get("asset_type") != "image":
+            continue
+        if asset.get("rights_state") != "verified" or asset.get("lifecycle_state") != "active":
+            continue
+        if asset.get("purpose_code") != "broll-generic":
+            continue
+        return aid
+    return None

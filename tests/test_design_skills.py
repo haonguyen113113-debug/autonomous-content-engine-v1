@@ -16,7 +16,8 @@ def _frontmatter(path):
 
 
 def test_skills_installed_verbatim_with_licenses():
-    for skill in ("frontend-design", "canvas-design", "theme-factory"):
+    for skill in ("frontend-design", "canvas-design", "theme-factory",
+                  "design-taste", "impeccable-lite"):
         base = ROOT / "skills" / skill
         assert (base / "SKILL.md").is_file()
         assert (base / "LICENSE.txt").is_file()
@@ -26,6 +27,10 @@ def test_skills_installed_verbatim_with_licenses():
     fonts = list((ROOT / "skills/canvas-design/canvas-fonts").glob("*.ttf"))
     assert len(fonts) >= 50
     assert (ROOT / "skills/canvas-design/canvas-fonts/BigShoulders-Bold.ttf").is_file()
+    refs = list((ROOT / "skills/design-taste/reference").glob("*.md"))
+    assert len(refs) == 6
+    assert "impeccable" in (ROOT / "skills/impeccable-lite/SKILL.md").read_text(
+        encoding="utf-8").lower()
 
 
 def test_redesign_renders_locked_canvas():

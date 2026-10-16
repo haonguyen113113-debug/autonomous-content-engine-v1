@@ -92,7 +92,7 @@ def test_portrait_without_verified_asset_warns_and_penalizes():
     assert second["media_asset_id"] is None
 
 
-def test_portrait_suggests_but_never_auto_attaches():
+def test_portrait_auto_attaches_verified_asset():
     out = select_cards([
         _seg("Mo dau", mode="hook_card",
              data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
@@ -101,10 +101,10 @@ def test_portrait_suggests_but_never_auto_attaches():
                    "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"),
     ], assets=_assets())
     second = out["decisions"][1]
-    # slot-contract requires owner use-decisions: proposal only, no auto-attach.
-    assert second["media_asset_id"] is None
-    assert second["suggested_asset_id"] == "a-portrait"
-    assert any("attach it" in w for w in second["warnings"])
+    # Owner standing order 16/10: verified/active portraits auto-attach.
+    assert second["media_asset_id"] == "a-portrait"
+    assert second["suggested_asset_id"] is None
+    assert any("auto-attached" in w for w in second["warnings"])
 
 
 def test_unverified_binding_is_dropped():
@@ -228,7 +228,7 @@ def test_supported_modes_mirror_workflow():
 
 def test_registry_slots_match_package():
     package = json.loads(
-        (ROOT / "template_foundation/templates/allen-knows-ball/9.0.0"
+        (ROOT / "template_foundation/templates/allen-knows-ball/12.0.0"
          / "graphic-templates.json").read_text(encoding="utf-8"))
     package_required = {}
     for layout in package["layouts"]:
@@ -275,7 +275,7 @@ def test_apply_drops_invalid_binding(tmp_path):
     assert "media_asset_id" not in run["draft"]["segments"][0]
 
 
-def test_apply_suggests_library_portrait_without_attaching(tmp_path):
+def test_apply_auto_attaches_library_portrait(tmp_path):
     import sqlite3
 
     from apps.asset_library.registry import connect
@@ -298,9 +298,36 @@ def test_apply_suggests_library_portrait_without_attaching(tmp_path):
                    "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"))
     plan = apply_card_plan(tmp_path, run)
     second = run["draft"]["segments"][1]
-    assert "media_asset_id" not in second  # owner attaches; filter only proposes
-    suggestion = plan["decisions"][1]["suggested_asset_id"]
-    assert suggestion == "enzo-por"
+    assert second.get("media_asset_id") == "enzo-por"  # owner standing order: auto-attach
+    assert plan["decisions"][1]["suggested_asset_id"] is None
+
+
+def test_apply_auto_picks_broll_pool_for_closing_hook(tmp_path):
+    import sqlite3
+
+    from apps.asset_library.registry import connect
+    from apps.card_selector import apply_card_plan
+
+    conn = connect(tmp_path / "runtime/engine.db")
+    conn.execute(
+        "INSERT INTO assets (asset_id, original_name, stored_path, asset_type,"
+        " size_bytes, sha256, source_type, rights_state, lifecycle_state,"
+        " purpose_code, metadata_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        ("stad-pool", "Night stadium wide", "runtime/assets/library/x.png",
+         "image", 10, "sha256-" + "f" * 58, "test", "verified", "active",
+         "broll-generic", "{}"))
+    conn.commit()
+    conn.close()
+    run = _feed_run(
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Dem nay"}, id="beat-1"),
+        _seg("Ket luan", mode="hook_card",
+             data={"hook_text": "Het gio"}, id="beat-2"))
+    apply_card_plan(tmp_path, run)
+    first, second = run["draft"]["segments"]
+    assert "media_asset_id" not in first  # opener keeps branded hook
+    assert second.get("media_asset_id") == "stad-pool"
+    assert second["visual_mode"] == "media_b_roll"
 
 
 def test_sprint3_short_story_signals_map_to_p1():

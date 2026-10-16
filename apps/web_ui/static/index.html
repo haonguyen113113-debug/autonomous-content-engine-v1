@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0b1512" />
+    <meta name="theme-color" content="#060913" />
     <title>Autonomous Content Engine</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
@@ -33,59 +33,56 @@
       </defs>
     </svg>
     <div class="app-shell">
-      <aside class="sidebar">
+      <header class="commandbar">
         <a class="brand" href="#overview" aria-label="Engine overview">
           <span class="brand-mark">A</span>
           <span class="brand-copy"><strong>Autonomous</strong><small>CONTENT ENGINE</small></span>
         </a>
-
-        <div class="workspace-label">MENU</div>
         <nav class="primary-nav" aria-label="Primary navigation">
-          <button class="nav-item active" data-view="overview"><span class="nav-icon"><svg class="ic"><use href="#i-grid"/></svg></span><span class="nav-label">Overview</span></button>
-          <button class="nav-item" data-view="library"><span class="nav-icon"><svg class="ic"><use href="#i-layers"/></svg></span><span class="nav-label">Asset library</span><span class="nav-badge" id="nav-asset-count">—</span></button>
-          <button class="nav-item" data-view="workflows"><span class="nav-icon"><svg class="ic"><use href="#i-zap"/></svg></span><span class="nav-label">Workflows</span></button>
-          <button class="nav-item" data-view="templates"><span class="nav-icon"><svg class="ic"><use href="#i-type"/></svg></span><span class="nav-label">Templates</span></button>
-          <button class="nav-item" data-view="sources"><span class="nav-icon"><svg class="ic"><use href="#i-db"/></svg></span><span class="nav-label">Sources</span></button>
-          <button class="nav-item" data-view="runs"><span class="nav-icon"><svg class="ic"><use href="#i-history"/></svg></span><span class="nav-label">Runs &amp; queue</span></button>
+          <button class="nav-item active" data-view="overview"><svg class="ic"><use href="#i-grid"/></svg><span class="nav-label">Overview</span></button>
+          <button class="nav-item" data-view="library"><svg class="ic"><use href="#i-layers"/></svg><span class="nav-label">Asset library</span><span class="nav-badge" id="nav-asset-count">—</span></button>
+          <button class="nav-item" data-view="workflows"><svg class="ic"><use href="#i-zap"/></svg><span class="nav-label">Workflows</span></button>
+          <button class="nav-item" data-view="templates"><svg class="ic"><use href="#i-type"/></svg><span class="nav-label">Templates</span></button>
+          <button class="nav-item" data-view="sources"><svg class="ic"><use href="#i-db"/></svg><span class="nav-label">Sources</span></button>
+          <button class="nav-item" data-view="runs"><svg class="ic"><use href="#i-history"/></svg><span class="nav-label">Runs &amp; queue</span></button>
         </nav>
-
-        <div class="sidebar-bottom">
-          <div class="workspace-label">WORKSPACE</div>
-          <div class="connection-card">
-            <span class="connection-dot"></span>
-            <span><strong>Local engine</strong><small>Connected to this workspace</small></span>
-          </div>
-          <div class="user-card"><span class="avatar">H</span><span><strong>Owner</strong><small>Local operator</small></span><span class="more">···</span></div>
+        <div class="topbar-actions">
+          <span class="environment-pill"><i></i>LOCAL</span>
+          <button class="button button-primary button-small" data-go="workflows"><svg class="ic"><use href="#i-plus"/></svg> New video draft</button>
         </div>
-      </aside>
+        <div class="breadcrumbs" hidden><span>Workspace</span><span class="crumb-sep">/</span><strong id="breadcrumb-current">Overview</strong></div>
+      </header>
 
       <main class="main-area">
-        <header class="topbar">
-          <div class="breadcrumbs"><span>Workspace</span><span class="crumb-sep">/</span><strong id="breadcrumb-current">Overview</strong></div>
-          <div class="topbar-actions">
-            <span class="environment-pill"><i></i>LOCAL DEVELOPMENT</span>
-            <button class="button button-primary button-small" data-go="workflows"><svg class="ic"><use href="#i-plus"/></svg> New video draft</button>
-            <button class="icon-button" title="Notifications" aria-label="Notifications"><svg class="ic"><use href="#i-bell"/></svg></button>
-          </div>
-        </header>
 
         <section class="view active" id="view-overview">
           <div class="page-heading">
             <div><div class="eyebrow">ENGINE CONTROL</div><h1>Overview</h1><p class="page-subtitle">A live view of your content operations and reusable resources.</p></div>
             <button class="button button-secondary" id="refresh-overview"><svg class="ic"><use href="#i-refresh"/></svg> Refresh data</button>
           </div>
+          <div class="onboarding-strip" id="onboarding-strip" hidden>
+            <div><strong>First run checklist</strong><span>Check a resource need against the library, draft a video, approve assets, then render.</span></div>
+            <button class="button button-secondary button-small" data-go="library">Start with the library</button>
+            <button class="icon-button" id="onboarding-dismiss" aria-label="Dismiss checklist">✕</button>
+          </div>
 
           <div class="welcome-banner">
             <div class="welcome-copy">
               <div class="banner-label"><span class="banner-dot"></span> ENGINE WORKSPACE</div>
-              <h2>Build the workflow, <span class="grad-text">one real run</span> at a time.</h2>
-              <p>Start with a content resource need. The library checks what is already available before the engine looks elsewhere.</p>
+              <h2>Every video starts with a <span class="grad-text">verified asset</span>.</h2>
+              <p>Describe a content resource need. The library checks inventory first — nothing new enters the system without your decision.</p>
               <div class="banner-actions">
                 <button class="button button-light" data-go="library">Open asset library <svg class="ic"><use href="#i-chev"/></svg></button>
                 <button class="button button-ghost-light" data-go="workflows">Create a video <svg class="ic"><use href="#i-chev"/></svg></button>
               </div>
             </div>
-            <div class="banner-graphic" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit-core">A</div><span class="orbit-node node-one"><svg class="ic"><use href="#i-zap"/></svg></span><span class="orbit-node node-two"><svg class="ic"><use href="#i-play"/></svg></span><span class="orbit-node node-three"><svg class="ic"><use href="#i-image"/></svg></span></div>
+            <ol class="pipeline-index" aria-label="Production pipeline">
+              <li><span>01</span>Brief</li>
+              <li><span>02</span>Library</li>
+              <li><span>03</span>Voice</li>
+              <li><span>04</span>Render</li>
+              <li><span>05</span>Audit</li>
+            </ol>
           </div>
 
           <div class="section-heading"><div><div class="eyebrow">SYSTEM SNAPSHOT</div><h2>Asset library</h2></div><button class="text-button" data-go="library">View library <svg class="ic"><use href="#i-chev"/></svg></button></div>
@@ -158,13 +155,13 @@
         </section>
 
         <section class="view" id="view-templates">
-          <div class="page-heading"><div><div class="eyebrow">CHANNEL IDENTITY · TEMPLATE FOUNDATION</div><h1>Allen Knows Ball</h1><p class="page-subtitle">A fixed, versioned visual and editorial system for Vietnamese soccer content.</p></div><span class="environment-pill template-draft-pill" id="template-draft-status">DRAFT FOR OWNER AUDIT</span></div>
+          <div class="page-heading"><div><div class="eyebrow">CHANNEL IDENTITY · TEMPLATE FOUNDATION</div><h1>Allen Knows Ball</h1><p class="page-subtitle">A fixed, versioned visual and editorial system for Vietnamese soccer content.</p></div><span class="environment-pill template-draft-pill" id="template-draft-status">RELEASED v12.0.0</span></div>
           <div class="template-summary-grid">
-            <article class="panel template-summary-card"><div class="eyebrow">CHANNEL PROMISE</div><h2 id="template-tagline">Bóng đá, nhìn thêm một nhịp.</h2><p id="template-promise">One clear football read, supported by evidence and delivered in Allen's own voice.</p></article>
-            <article class="panel template-summary-card"><div class="eyebrow">LOCKED PACKAGE</div><h2 id="template-version">v0.1.0 / 9:16 / vi-VN</h2><p>Fonts, identity, opening, timing, transitions, and effects are fixed in this package version. They do not belong to the Asset Library.</p></article>
+            <article class="panel template-summary-card"><div class="eyebrow">CHANNEL PROMISE</div><h2 id="template-tagline"></h2><p id="template-promise">One clear football read, supported by evidence and delivered in Allen's own voice.</p></article>
+            <article class="panel template-summary-card"><div class="eyebrow">LOCKED PACKAGE</div><h2 id="template-version">v12.0.0 / 9:16 + 16:9 / vi-VN</h2><p>Fonts, identity, opening, timing, transitions, and effects are fixed in this package version. They do not belong to the Asset Library.</p></article>
             <article class="panel template-summary-card"><div class="eyebrow">ASSET LIBRARY BOUNDARY</div><h2>Media fills typed slots</h2><p>Match images and footage stay in the library. The template describes where approved media may appear, while its visual system remains fixed.</p></article>
           </div>
-          <section class="panel template-preview-panel"><div class="template-preview-heading"><div><div class="eyebrow">PARALLEL TEMPLATE PACKAGES</div><h2>One channel identity. Two production formats.</h2><p>Short form stays portrait and fast; long form adds chapters, deeper evidence, source cards, and sustained 16:9 analysis.</p></div><a class="button button-secondary" href="/template-foundation/preview.html" target="_blank" rel="noopener noreferrer">Open short preview <svg class="ic"><use href="#i-arrow"/></svg></a></div><div class="template-format-grid"><article><span>SHORT FORM</span><strong>9:16 · 30–58 seconds</strong><p>Three existing soccer story forms. Preserved.</p></article><article><span>LONG FORM</span><strong>16:9 · 8–20 minutes</strong><p>Tactical deep dive or player-role study, with a chapter map and explicit production timeline.</p></article></div><iframe class="template-preview-frame" src="/template-foundation/preview.html" title="Allen Knows Ball short-form visual template preview" loading="lazy"></iframe><p class="template-draft-note">Both packages remain drafts. The FFmpeg renderer now drifts every scene, executes timeline fades, renders lower-third/caption overlays, and closes with a branded end-card; selected football media is placed as contextual B-roll while narration timing and the remaining transition/effect set still need to be integrated.</p></section>
+          <section class="panel template-preview-panel"><div class="template-preview-heading"><div><div class="eyebrow">PARALLEL TEMPLATE PACKAGES</div><h2>One channel identity. Two production formats.</h2><p>Short form stays portrait and fast; long form adds chapters, deeper evidence, source cards, and sustained 16:9 analysis.</p></div><a class="button button-secondary" href="/template-foundation/preview.html" target="_blank" rel="noopener noreferrer">Open short preview <svg class="ic"><use href="#i-arrow"/></svg></a></div><div class="template-format-grid"><article><span>SHORT FORM</span><strong>9:16 · 30–58 seconds</strong><p>Three existing soccer story forms. Preserved.</p></article><article><span>LONG FORM</span><strong>16:9 · 8–20 minutes</strong><p>Tactical deep dive or player-role study, with a chapter map and explicit production timeline.</p></article></div><iframe class="template-preview-frame" src="/template-foundation/preview.html" title="Allen Knows Ball short-form visual template preview" loading="lazy"></iframe><p class="template-draft-note">Released v12.0.0: 90 authored cards (50 short, 40 long) on owner neon plates with engine boxes, locked cyber palette and Typography. Short form stays portrait and fast; long form adds chapters, tactical diagrams, source slips and end cards. Open the audit preview below before per-card review.</p></section>
         </section>
 
         <section class="view" id="view-workflows">
@@ -175,7 +172,7 @@
               <form id="content-draft-form" class="content-draft-form">
                 <label>Video topic <span class="required-mark">*</span><textarea name="topic" required minlength="4" maxlength="500" placeholder="e.g. Vì sao khoảng trống sau lưng hậu vệ biên liên tục bị khai thác?" lang="vi"></textarea></label>
                 <div class="form-row"><label>Content target<select name="content_type"><option value="short">Short form · 9:16 · ~30–58 seconds</option><option value="long">Long form · 16:9 · ~8–20 minutes</option></select></label></div>
-                <div class="form-row"><label>Visual colorway<select name="colorway"><option value="san-dem">Sân đêm · amber / ember</option><option value="neon-grid">Lưới neon · blue / magenta</option><option value="match-night">Đêm thi đấu · teal / coral</option><option value="paper-report">Hồ sơ giấy · jade / rust</option><option value="stadium-lights">Ánh đèn sân · sky / coral</option><option value="cup-night">Đêm cúp · aqua / rose</option></select></label></div>
+                <div class="form-row"><label>Visual colorway<select name="colorway"><option value="cyber-pitch">Cyber pitch · neon / magenta</option></select></label></div>
                 <div class="form-row"><label>Story form<select name="story_form" id="story-form-select"><option value="one-moment-one-read">Một tình huống, một góc nhìn</option><option value="explain-the-pattern">Giải thích một ý chiến thuật</option><option value="player-role-read">Cầu thủ và vai trò</option></select></label></div>
                 <label>Evidence &amp; source notes <span class="optional-mark">Optional for a first outline</span><textarea name="evidence" class="evidence-input" placeholder="Dán link/tên nguồn, ngày, quan sát hoặc số liệu đã kiểm tra. Mỗi dòng là một mẩu evidence." lang="vi"></textarea></label>
                 <p class="form-helper">Factual match claims need evidence. The draft marks unsupported details for research instead of inventing them. Script requests stay on this machine via local Ollama when configured. Long-form drafts on CPU can take several minutes — leave the tab open while the local model writes.</p>

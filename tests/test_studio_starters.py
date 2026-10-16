@@ -19,7 +19,7 @@ SPRINT_LONG = ["TA-01", "TA-02", "TA-03", "TA-05", "TA-06", "TA-11", "TA-12",
 # Sprint 3 (inventory §6): P1/P2 short cards.
 SPRINT3_SHORT = ["MR-03", "MR-05", "MR-07", "MR-08", "MR-09", "MR-11",
                  "BP-03", "BP-04", "BP-05", "BP-06", "BP-07", "BP-09",
-                 "BP-10", "BP-11", "BP-12", "BP-15", "BP-17",
+                 "BP-10", "BP-11", "BP-15", "BP-17",
                  "C-01", "C-02", "C-05", "C-08",
                  "U-01", "U-04", "U-06", "U-07", "U-08"]
 # Sprint 2 (inventory §6): tactical P1 long cards.
@@ -142,7 +142,7 @@ def test_pitch_team_split_and_ball():
         children = _pitch_children(cid)
         fills = {c.get("fill") for c in children
                  if c.get("type") == "figure" and c.get("subType") == "circle"}
-        assert "#F4F2EC" in fills and "#E0705F" in fills, cid
+        assert "#F2F6FF" in fills and "#FF3D81" in fills, cid
 
 
 def test_pressing_markers_and_freeze_ring():
@@ -151,6 +151,6 @@ def test_pressing_markers_and_freeze_ring():
                and c.get("dash") for c in children)  # headless block line
     assert any((c.get("custom") or {}).get("slot") == "dline" for c in children)
     children = _pitch_children("TA-11")
-    assert any(c.get("type") == "figure" and c.get("stroke") == "#E0705F"
+    assert any(c.get("type") == "figure" and c.get("stroke") == "#FF3D81"
                for c in children)  # focus ring, not a blob
     assert any((c.get("custom") or {}).get("slot") == "focus" for c in children)

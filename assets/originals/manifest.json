@@ -1,0 +1,318 @@
+{
+  "created": "2026-10-15",
+  "source_tool": "Pippit (owner-generated AI art)",
+  "watermark": "Pippit corner marks removed from template plates via inpainting; badge kept original (mark falls in YouTube circle-crop zone).",
+  "license_note": "Owner-provided AI exports. Confirm commercial terms of your Pippit/Adobe plan before publishing; record plan + date here.",
+  "files": [
+    {
+      "file": "assets/originals/plates/short-opening.png",
+      "source_file": "generated-design.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "bytes": 2209901,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f2-statement.png",
+      "source_file": "generated-design (1).png",
+      "size": [
+        1024,
+        1536
+      ],
+      "bytes": 2314034,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f2-statement-spare.png",
+      "source_file": "generated-design (2).png",
+      "size": [
+        1024,
+        1536
+      ],
+      "bytes": 2314034,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f1-duel.png",
+      "source_file": "F1_Duel.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 5077431,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f1-score.png",
+      "source_file": "F1_Score.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 6298092,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f3-portrait.png",
+      "source_file": "F3_Potrait.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 6069645,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f5-evidence.png",
+      "source_file": "F5_Evidence.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 5396451,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f6-quote.png",
+      "source_file": "F6_Quote.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 5873366,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f7-money.png",
+      "source_file": "F7_Money.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 5854740,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f8-myth.png",
+      "source_file": "F8_Myth.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 5257364,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f9-moments.png",
+      "source_file": "F9_Moment.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 4895381,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f10-history.png",
+      "source_file": "F10_History.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 5748483,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f11-end.png",
+      "source_file": "F11-end.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 5975124,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/short-f14-versus.png",
+      "source_file": "F14_Versus.png",
+      "size": [
+        1600,
+        2848
+      ],
+      "bytes": 5518776,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f1-score.png",
+      "source_file": "F1_Score-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5124172,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f1-duel.png",
+      "source_file": "F1_duel-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5162412,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f1-opening.png",
+      "source_file": "f1-opening-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5493586,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f2-statement.png",
+      "source_file": "f2_statement-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 4907422,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f3-portrait.png",
+      "source_file": "f3_potrait-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 7068504,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f4-pitch.png",
+      "source_file": "f4_pitch-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5126089,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f5-evidence.png",
+      "source_file": "f5_evidence-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5253093,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f6-quote.png",
+      "source_file": "f6_quote-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 4559458,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f7-money.png",
+      "source_file": "f7_money-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5328309,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f8-myth.png",
+      "source_file": "f8_myth-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5656861,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f9-moments.png",
+      "source_file": "f9_moment-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 4483192,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f10-history.png",
+      "source_file": "f10_history-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5046437,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f11-end.png",
+      "source_file": "f11_end-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 4558042,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f13-takes.png",
+      "source_file": "f13-takes-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 4758630,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/plates/long-f14-versus.png",
+      "source_file": "f14-versus-long.png",
+      "size": [
+        2848,
+        1600
+      ],
+      "bytes": 5639981,
+      "watermark_removed": true
+    },
+    {
+      "file": "assets/originals/brand/AKB-Badge.png",
+      "source_file": "AKB-Badge.png",
+      "size": [
+        800,
+        800
+      ],
+      "bytes": 1953422,
+      "watermark_removed": false
+    },
+    {
+      "file": "assets/originals/brand/AKB-banner.png",
+      "source_file": "AKB-banner.png",
+      "size": [
+        2560,
+        1440
+      ],
+      "bytes": 5292249,
+      "watermark_removed": true
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "template_id": "allen-knows-ball.longform-analyst",
+  "channel_id": "allen-knows-ball",
+  "version": "12.0.0",
+  "status": "released",
+  "description": "Cyber Pitch owner pack v12.0.0 (owner neon plates plus engine boxes, locked cyber palette and Typography).",
+  "market": "VN",
+  "locale": "vi-VN",
+  "category": "soccer",
+  "content_owner": "Allen Knows Ball",
+  "output": {
+    "media_type": "video",
+    "aspect_ratio": "16:9",
+    "width": 1920,
+    "height": 1080,
+    "frame_rate": 30,
+    "color_space": "SDR Rec.709",
+    "audio_sample_rate_hz": 48000
+  },
+  "duration_seconds": {
+    "target": 45,
+    "minimum": 30,
+    "maximum": 58
+  },
+  "primary_publishing_shape": "Short-form video; platform publishing not configured.",
+  "renderer_requirement": "Backgrounds are owner-authored; engine draws declared boxes with locked fonts.",
+  "font_resources": [
+    "resources/fonts/BarlowCondensed-Bold.ttf",
+    "resources/fonts/BarlowCondensed-SemiBold.ttf",
+    "resources/fonts/BeVietnamPro-Bold.ttf",
+    "resources/fonts/BeVietnamPro-Regular.ttf",
+    "resources/fonts/BeVietnamPro-SemiBold.ttf",
+    "resources/fonts/BigShoulders-Bold.ttf",
+    "resources/fonts/PermanentMarker-Regular.woff",
+    "resources/fonts/Tektur-Medium.ttf"
+  ],
+  "required_input_slots": [
+    "hook",
+    "match_or_topic",
+    "one_core_claim",
+    "evidence",
+    "host_analysis",
+    "takeaway"
+  ],
+  "fixed_components": [
+    "visual_identity",
+    "typography",
+    "opening_behavior",
+    "closing_behavior",
+    "transition_set",
+    "effect_set",
+    "sound_cue_spec"
+  ],
+  "change_policy": "Owner re-exports backgrounds; changes require a new pack version.",
+  "slot_contract": "slot-contract.json"
+}

@@ -96,7 +96,7 @@ def _draft_kwargs():
         "story_form_id": "one-moment-one-read",
         "evidence_text": "",
         "content_type": "short",
-        "colorway": "match-night",
+        "colorway": "cyber-pitch",
     }
 
 

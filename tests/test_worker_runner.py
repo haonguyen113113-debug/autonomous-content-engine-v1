@@ -15,7 +15,7 @@ def no_sleep(monkeypatch):
 def test_draft_retries_then_succeeds(monkeypatch, tmp_path, no_sleep):
     calls = []
 
-    def flaky(root, db_path, topic, story_form, evidence="", content_type="short", colorway="match-night"):
+    def flaky(root, db_path, topic, story_form, evidence="", content_type="short", colorway="cyber-pitch"):
         calls.append(topic)
         if len(calls) < 2:
             raise RuntimeError("Model endpoint unreachable: TimeoutError.")
@@ -30,7 +30,7 @@ def test_draft_retries_then_succeeds(monkeypatch, tmp_path, no_sleep):
 def test_draft_validation_error_does_not_retry(monkeypatch, tmp_path, no_sleep):
     calls = []
 
-    def invalid(root, db_path, topic, story_form, evidence="", content_type="short", colorway="match-night"):
+    def invalid(root, db_path, topic, story_form, evidence="", content_type="short", colorway="cyber-pitch"):
         calls.append(1)
         raise ValueError("Chủ đề cần dài từ 4 đến 500 ký tự.")
 

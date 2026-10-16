@@ -625,7 +625,7 @@ def create_script_draft(
     story_form_id: str,
     evidence_text: str = "",
     content_type: str = "short",
-    colorway: str = "san-dem",
+    colorway: str = "cyber-pitch",
     *,
     on_beat: Any = None,
     budget_seconds: int | None = None,
@@ -742,7 +742,7 @@ def run_content_agent(
     story_form_id: str,
     evidence_text: str = "",
     content_type: str = "short",
-    colorway: str = "san-dem",
+    colorway: str = "cyber-pitch",
 ) -> dict[str, Any]:
     """Run the bounded local agent and stop before owner-controlled actions."""
     from apps.voice_tts import voice_profile_status

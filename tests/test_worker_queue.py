@@ -17,7 +17,7 @@ from apps.worker.queue_store import (
 
 def _job(topic="Derby thanh Manchester toi nay"):
     return {"topic": topic, "story_form": "hook", "evidence": "",
-            "content_type": "short", "colorway": "san-dem"}
+            "content_type": "short", "colorway": "cyber-pitch"}
 
 
 def test_enqueue_claim_finish_roundtrip(tmp_path):
@@ -52,7 +52,7 @@ def test_enqueue_rejects_bad_input_without_writing(tmp_path):
 def test_validate_clamps_and_defaults():
     clean = validate_draft_payload({"topic": "  Tran derby toi nay  ", "max_attempts": 99})
     assert clean["topic"] == "Tran derby toi nay"
-    assert clean["content_type"] == "short" and clean["colorway"] == "san-dem"
+    assert clean["content_type"] == "short" and clean["colorway"] == "cyber-pitch"
     assert clean["max_attempts"] == queue_store.MAX_ATTEMPTS_CAP
     with pytest.raises(ValueError, match="must be an object"):
         validate_draft_payload("nope")

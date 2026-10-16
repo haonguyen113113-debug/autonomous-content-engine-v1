@@ -45,7 +45,7 @@ def test_studio_starter_serves_duel():
 
 def test_studio_export_saves_exact_pixels(tmp_path):
     result = _studio_export(tmp_path, {
-        "version": "10.0.0", "layout": "duel_columns",
+        "version": "12.0.0", "layout": "duel_columns",
         "prefix": "short", "dataUrl": _data_url(1080, 1920)})
     assert result["status"] == "PACK_FILE_SAVED"
     saved = tmp_path / result["path"]
@@ -56,7 +56,7 @@ def test_studio_export_saves_exact_pixels(tmp_path):
 
 
 def test_studio_export_rejects_wrong_size_and_shapes(tmp_path):
-    good = {"version": "10.0.0", "layout": "duel_columns",
+    good = {"version": "12.0.0", "layout": "duel_columns",
             "prefix": "short", "dataUrl": _data_url(1080, 1920)}
     with pytest.raises(ValueError):
         _studio_export(tmp_path, {**good, "dataUrl": _data_url(1920, 1080)})
@@ -72,6 +72,6 @@ def test_studio_export_rejects_wrong_size_and_shapes(tmp_path):
 
 def test_studio_build_reports_invalid_pack(tmp_path):
     with pytest.raises(ValueError):
-        _studio_build(tmp_path, {"version": "10.0.0"})
+        _studio_build(tmp_path, {"version": "12.0.0"})
     with pytest.raises(ValueError):
         _studio_build(tmp_path, {"version": "bad"})

@@ -208,9 +208,8 @@ def end_card(show_tagline=True):
         locked_rect(76, 1330, 300, 8, INK),
         credit("", W, 1820),
     ]
-    if show_tagline:
-        els.insert(6, val_text(76, 1430, 928, 70, "Bóng đá, nhìn thêm một nhịp.", 44, BODY, MIST,
-                               "tagline", weight="normal"))
+    # NOTE: show_tagline retired — channel tagline is TBD; no placeholder
+    # text may ship, so the flag is accepted but ignored.
     return els
 
 

@@ -23,7 +23,7 @@ SPRINT2_LONG = ["TA-04", "TA-07", "TA-08", "TA-09", "TA-10", "TA-13", "TA-15", "
 # Sprint 3 (inventory §6): P1/P2 short cards.
 SPRINT3_SHORT = ["MR-03", "MR-05", "MR-07", "MR-08", "MR-09", "MR-11",
                  "BP-03", "BP-04", "BP-05", "BP-06", "BP-07", "BP-09",
-                 "BP-10", "BP-11", "BP-12", "BP-15", "BP-17",
+                 "BP-10", "BP-11", "BP-15", "BP-17",
                  "C-01", "C-02", "C-05", "C-08",
                  "U-01", "U-04", "U-06", "U-07", "U-08"]
 
@@ -79,8 +79,33 @@ def audit(path: Path) -> list[str]:
     children = [c for c in page.get("children", []) if c.get("showInExport") is not False]
     issues: list[str] = []
     texts = [c for c in children if c.get("type") == "text"]
+    # NOTE: image beds are skipped in the geometric background walk (their
+    # pixels are unknowable statically). Bed cards are gated instead by
+    # audit_text_zones(), which samples the rendered proof pixels.
     # 1. contrast per text slot (worst of 3 vertical samples: glyphs may
-    # straddle a background boundary even when the box center is safe)
+    # straddle a background boundary even when the box center is safe).
+    # Beds are photographic: when no authored figure covers the sample
+    # point, sample the bed image itself (instruction: text on beds is
+    # decided pixel-level, never geometrically).
+    bed_px = None
+    for child in children:
+        if isinstance(child, dict) and child.get("type") == "image":
+            try:
+                root = Path(__file__).resolve().parents[2]
+                base = Path(str(child.get("src", "")).rsplit("/", 1)[-1])
+                cand = None
+                for pkg in ("templates/allen-knows-ball/12.0.0",
+                            "templates/allen-knows-ball/longform-12.0.0"):
+                    p = root / "template_foundation" / pkg / "resources" / "pack" / base
+                    if p.is_file():
+                        cand = p
+                        break
+                if cand is not None:
+                    from PIL import Image as _Image
+                    bed_px = _Image.open(cand).convert("RGB")
+            except (OSError, ValueError):
+                bed_px = None
+            break
     for text in texts:
         slot = (text.get("custom") or {}).get("slot", text.get("id"))
         cx = float(text["x"]) + float(text["width"]) / 2
@@ -89,12 +114,18 @@ def audit(path: Path) -> list[str]:
             px = cx
             py = float(text["y"]) + float(text["height"]) * frac
             color = bg
+            covered = False
             for child in children:
                 if child is text:
                     break
                 if child.get("type") == "figure" and covers(child, px, py):
                     color = blend(hex_rgb(child.get("fill", "#000000")),
                                   color, float(child.get("opacity", 1.0)))
+                    covered = True
+            if not covered and bed_px is not None:
+                bx = min(max(int(px), 0), bed_px.width - 1)
+                by = min(max(int(py), 0), bed_px.height - 1)
+                color = bed_px.getpixel((bx, by))
             fg = blend(hex_rgb(text.get("fill", "#F4F2EC")), color,
                        float(text.get("opacity", 1.0)))
             ratios.append(contrast(fg, color))
@@ -147,6 +178,49 @@ def audit(path: Path) -> list[str]:
         if width > float(text.get("width", 0)) + 2:
             slot = (text.get("custom") or {}).get("slot", text.get("id"))
             issues.append(f"overflow {slot}: text {width}px > box {text.get('width')}px")
+    return issues
+
+
+def audit_text_zones(path: Path, proof=None) -> list[str]:
+    """Pixel-level contrast gate for text over art beds.
+
+    Samples the rendered proof at each text box (3 vertical samples at the
+    box center-x) and checks the text fill against the real bed pixels with
+    the same floors as the geometric audit. Bed cards must pass this; flat
+    cards pass it trivially.
+    """
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    children = [c for c in data["pages"][0].get("children", [])
+                if c.get("showInExport") is not False]
+    texts = [c for c in children if c.get("type") == "text"]
+    import copy as _copy
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).parent))
+    from render_starters import render_design
+    bg_data = _copy.deepcopy(data)
+    for c in bg_data["pages"][0].get("children", []):
+        if c.get("type") == "text":
+            c["showInExport"] = False
+    bg_img = render_design(bg_data).convert("RGB")
+    pixels = bg_img.load()
+    width, height = bg_img.size
+    issues: list[str] = []
+    for text in texts:
+        slot = (text.get("custom") or {}).get("slot", text.get("id"))
+        cx = min(width - 1, max(0, int(float(text["x"]) + float(text["width"]) / 2)))
+        ratios = []
+        for frac in (0.15, 0.5, 0.85):
+            py = min(height - 1, max(0, int(float(text["y"]) + float(text["height"]) * frac)))
+            bg_px = pixels[cx, py]
+            fg = blend(hex_rgb(text.get("fill", "#F2F6FF")),
+                       tuple(float(v) for v in bg_px),
+                       float(text.get("opacity", 1.0)))
+            ratios.append(contrast(fg, tuple(float(v) for v in bg_px)))
+        ratio = min(ratios)
+        size = int(text.get("fontSize", 0))
+        floor = 4.5 if size >= 48 and float(text.get("opacity", 1.0)) >= 1.0 else 3.0
+        if ratio < floor:
+            issues.append(f"bed-contrast {slot}: {ratio:.2f} < {floor} (size {size})")
     return issues
 
 

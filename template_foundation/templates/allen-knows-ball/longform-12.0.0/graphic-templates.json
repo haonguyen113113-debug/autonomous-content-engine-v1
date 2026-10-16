@@ -1,0 +1,1307 @@
+{
+  "schema_version": "1.0",
+  "template_version": "12.0.0",
+  "pack": true,
+  "motion_notes": "Owner backgrounds; engine boxes only.",
+  "selection_rule": "Modes map 1-1 to owner layouts.",
+  "layouts": [
+    {
+      "id": "hook_card",
+      "purpose": "Chapter opener; Final thesis in Allen's voice; Key central question; Opening hook: tactical question; Verdict read",
+      "required_data": [
+        "graphic_data.hook_text"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "hook_text",
+          "box": [
+            0.08,
+            0.22,
+            0.84,
+            0.3
+          ],
+          "font": "body",
+          "size": 104,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-01": [
+          "hook_text"
+        ],
+        "TA-19": [
+          "hook_text"
+        ],
+        "LC-01": [
+          "hook_text"
+        ],
+        "LC-02": [
+          "hook_text"
+        ],
+        "LC-12": [
+          "hook_text"
+        ]
+      },
+      "cards": [
+        "TA-01",
+        "TA-19",
+        "LC-01",
+        "LC-02",
+        "LC-12"
+      ]
+    },
+    {
+      "id": "goal_card",
+      "purpose": "Match context: fixture, score, Meta",
+      "required_data": [
+        "graphic_data.hook_text"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "hook_text",
+          "box": [
+            0.08,
+            0.12,
+            0.84,
+            0.16
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "score",
+          "box": [
+            0.1,
+            0.4,
+            0.8,
+            0.16
+          ],
+          "font": "display",
+          "size": 168,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-02": [
+          "home",
+          "away",
+          "score"
+        ]
+      },
+      "cards": [
+        "TA-02"
+      ]
+    },
+    {
+      "id": "duel_columns",
+      "purpose": "Duel comparison; Ranking with criteria",
+      "required_data": [
+        "graphic_data.metrics",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "home",
+          "box": [
+            0.07,
+            0.3,
+            0.38,
+            0.08
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "away",
+          "box": [
+            0.55,
+            0.3,
+            0.38,
+            0.08
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.home",
+          "box": [
+            0.07,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.away",
+          "box": [
+            0.55,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 24,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "LC-04": [
+          "metrics",
+          "source",
+          "date"
+        ],
+        "LC-10": [
+          "metrics",
+          "source",
+          "date"
+        ]
+      },
+      "cards": [
+        "LC-04",
+        "LC-10"
+      ],
+      "team_badge_slots": [
+        "crest-home",
+        "crest-away",
+        "crest-winner",
+        "crest-loser"
+      ]
+    },
+    {
+      "id": "comparison_duel",
+      "purpose": "Comparison duel, same family as duel columns",
+      "required_data": [
+        "graphic_data.metrics",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "home",
+          "box": [
+            0.07,
+            0.3,
+            0.38,
+            0.08
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "away",
+          "box": [
+            0.55,
+            0.3,
+            0.38,
+            0.08
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.home",
+          "box": [
+            0.07,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.away",
+          "box": [
+            0.55,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 24,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ],
+      "card_slots": {},
+      "cards": [],
+      "team_badge_slots": [
+        "crest-home",
+        "crest-away",
+        "crest-winner",
+        "crest-loser"
+      ]
+    },
+    {
+      "id": "statline_scorecard",
+      "purpose": "Statline duel numbers",
+      "required_data": [
+        "graphic_data.metrics"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "metrics.0.value.home",
+          "box": [
+            0.07,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.away",
+          "box": [
+            0.55,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.label",
+          "box": [
+            0.08,
+            0.56,
+            0.84,
+            0.05
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {},
+      "cards": [],
+      "team_badge_slots": [
+        "crest-home",
+        "crest-away",
+        "crest-winner",
+        "crest-loser"
+      ]
+    },
+    {
+      "id": "stat_leader",
+      "purpose": "Money figure with context; Stat evidence; Statistical evidence bars",
+      "required_data": [
+        "graphic_data.stats",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "stats.0.value",
+          "box": [
+            0.1,
+            0.34,
+            0.8,
+            0.18
+          ],
+          "font": "display",
+          "size": 190,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "stats.0.label",
+          "box": [
+            0.1,
+            0.55,
+            0.8,
+            0.06
+          ],
+          "font": "body",
+          "size": 54,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 30,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-16": [
+          "stats",
+          "source",
+          "date"
+        ],
+        "LC-05": [
+          "stats",
+          "source",
+          "date"
+        ],
+        "LC-07": [
+          "stats",
+          "source",
+          "date"
+        ]
+      },
+      "cards": [
+        "TA-16",
+        "LC-05",
+        "LC-07"
+      ]
+    },
+    {
+      "id": "chart_comparison",
+      "purpose": "Statistical evidence bars",
+      "required_data": [
+        "graphic_data.values"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "values.0",
+          "box": [
+            0.1,
+            0.36,
+            0.8,
+            0.14
+          ],
+          "font": "display",
+          "size": 120,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-16": [
+          "stats",
+          "source",
+          "date"
+        ]
+      },
+      "cards": [
+        "TA-16"
+      ]
+    },
+    {
+      "id": "player_poster_side",
+      "purpose": "Player focus with portrait slot",
+      "required_data": [
+        "graphic_data.player_name",
+        "graphic_data.stats"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.4,
+            0.28,
+            0.52,
+            0.12
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "left"
+        },
+        {
+          "key": "stats.0.value",
+          "box": [
+            0.4,
+            0.44,
+            0.52,
+            0.1
+          ],
+          "font": "display",
+          "size": 72,
+          "color": "#FFB03A",
+          "align": "left"
+        },
+        {
+          "key": "stats.0.label",
+          "box": [
+            0.4,
+            0.56,
+            0.52,
+            0.06
+          ],
+          "font": "body",
+          "size": 28,
+          "color": "#8296BE",
+          "align": "left"
+        }
+      ],
+      "card_slots": {
+        "LC-11": [
+          "player_name",
+          "stats"
+        ]
+      },
+      "cards": [
+        "LC-11"
+      ]
+    },
+    {
+      "id": "player_poster_top",
+      "purpose": "Player spotlight, portrait top zone",
+      "required_data": [
+        "graphic_data.player_name",
+        "graphic_data.stats"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.08,
+            0.12,
+            0.84,
+            0.1
+          ],
+          "font": "body",
+          "size": 80,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "stats.0.value",
+          "box": [
+            0.08,
+            0.26,
+            0.84,
+            0.1
+          ],
+          "font": "display",
+          "size": 64,
+          "color": "#FFB03A",
+          "align": "center"
+        }
+      ],
+      "card_slots": {},
+      "cards": []
+    },
+    {
+      "id": "player_poster",
+      "purpose": "Player name plate",
+      "required_data": [
+        "graphic_data.player_name"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.4,
+            0.3,
+            0.52,
+            0.14
+          ],
+          "font": "body",
+          "size": 96,
+          "color": "#F2F6FF",
+          "align": "left"
+        }
+      ],
+      "card_slots": {},
+      "cards": []
+    },
+    {
+      "id": "player_card",
+      "purpose": "Player name plate",
+      "required_data": [
+        "graphic_data.player_name"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.4,
+            0.3,
+            0.52,
+            0.14
+          ],
+          "font": "body",
+          "size": 96,
+          "color": "#F2F6FF",
+          "align": "left"
+        }
+      ],
+      "card_slots": {},
+      "cards": []
+    },
+    {
+      "id": "potm_card",
+      "purpose": "Player of the match name plate",
+      "required_data": [
+        "graphic_data.player_name"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.4,
+            0.3,
+            0.52,
+            0.14
+          ],
+          "font": "body",
+          "size": 96,
+          "color": "#F2F6FF",
+          "align": "left"
+        }
+      ],
+      "card_slots": {},
+      "cards": []
+    },
+    {
+      "id": "fixture_card",
+      "purpose": "Match context: fixture, score, Meta; Next fixture/video teaser",
+      "required_data": [
+        "graphic_data.home",
+        "graphic_data.away"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "home",
+          "box": [
+            0.07,
+            0.32,
+            0.38,
+            0.1
+          ],
+          "font": "body",
+          "size": 84,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "away",
+          "box": [
+            0.55,
+            0.32,
+            0.38,
+            0.1
+          ],
+          "font": "body",
+          "size": 84,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "date",
+          "box": [
+            0.3,
+            0.56,
+            0.4,
+            0.05
+          ],
+          "font": "body",
+          "size": 30,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-02": [
+          "home",
+          "away",
+          "score"
+        ],
+        "LC-15": [
+          "home",
+          "away",
+          "date"
+        ]
+      },
+      "cards": [
+        "TA-02",
+        "LC-15"
+      ],
+      "team_badge_slots": [
+        "crest-home",
+        "crest-away",
+        "crest-winner",
+        "crest-loser"
+      ]
+    },
+    {
+      "id": "fixture_list",
+      "purpose": "Match context: fixture, score, Meta",
+      "required_data": [
+        "graphic_data.fixtures",
+        "graphic_data.source",
+        "graphic_data.date"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "fixtures.0",
+          "box": [
+            0.08,
+            0.34,
+            0.84,
+            0.1
+          ],
+          "font": "body",
+          "size": 60,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 30,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-02": [
+          "home",
+          "away",
+          "score"
+        ]
+      },
+      "cards": [
+        "TA-02"
+      ],
+      "team_badge_slots": [
+        "crest-home",
+        "crest-away",
+        "crest-winner",
+        "crest-loser"
+      ]
+    },
+    {
+      "id": "score_card",
+      "purpose": "Match context: fixture, score, Meta",
+      "required_data": [
+        "graphic_data.home",
+        "graphic_data.away",
+        "graphic_data.score"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "home",
+          "box": [
+            0.08,
+            0.12,
+            0.84,
+            0.06
+          ],
+          "font": "body",
+          "size": 60,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "score",
+          "box": [
+            0.1,
+            0.34,
+            0.8,
+            0.18
+          ],
+          "font": "display",
+          "size": 210,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "away",
+          "box": [
+            0.08,
+            0.56,
+            0.84,
+            0.06
+          ],
+          "font": "body",
+          "size": 60,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-02": [
+          "home",
+          "away",
+          "score"
+        ]
+      },
+      "cards": [
+        "TA-02"
+      ],
+      "team_badge_slots": [
+        "crest-home",
+        "crest-away",
+        "crest-winner",
+        "crest-loser"
+      ]
+    },
+    {
+      "id": "quote_card",
+      "purpose": "Myth vs reality; Pull quote with speaker",
+      "required_data": [
+        "graphic_data.claim"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "claim",
+          "box": [
+            0.12,
+            0.3,
+            0.76,
+            0.26
+          ],
+          "font": "body",
+          "size": 44,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "LC-06": [
+          "claim",
+          "source"
+        ],
+        "LC-09": [
+          "claim"
+        ]
+      },
+      "cards": [
+        "LC-06",
+        "LC-09"
+      ]
+    },
+    {
+      "id": "source_card",
+      "purpose": "Correction/update slip; Source check slip",
+      "required_data": [
+        "graphic_data.source",
+        "graphic_data.date",
+        "graphic_data.claim"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "claim",
+          "box": [
+            0.12,
+            0.28,
+            0.76,
+            0.18
+          ],
+          "font": "body",
+          "size": 40,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.12,
+            0.52,
+            0.76,
+            0.05
+          ],
+          "font": "body",
+          "size": 32,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "date",
+          "box": [
+            0.12,
+            0.6,
+            0.76,
+            0.05
+          ],
+          "font": "body",
+          "size": 28,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "LC-13": [
+          "source",
+          "date"
+        ],
+        "LC-16": [
+          "source",
+          "date"
+        ]
+      },
+      "cards": [
+        "LC-13",
+        "LC-16"
+      ]
+    },
+    {
+      "id": "discipline_card",
+      "purpose": "Tactical freeze frame with focus ring",
+      "required_data": [
+        "graphic_data.player_name"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.08,
+            0.38,
+            0.84,
+            0.12
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-11": [
+          "tactical_diagram"
+        ]
+      },
+      "cards": [
+        "TA-11"
+      ]
+    },
+    {
+      "id": "chart_timeline",
+      "purpose": "Sequence breakdown across frames",
+      "required_data": [
+        "graphic_data.values"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "values.0",
+          "box": [
+            0.08,
+            0.4,
+            0.84,
+            0.1
+          ],
+          "font": "body",
+          "size": 68,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-12": [
+          "tactical_diagram"
+        ]
+      },
+      "cards": [
+        "TA-12"
+      ]
+    },
+    {
+      "id": "welcome_card",
+      "purpose": "Arrival subject name plate",
+      "required_data": [
+        "graphic_data.player_name"
+      ],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.08,
+            0.36,
+            0.84,
+            0.12
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {},
+      "cards": []
+    },
+    {
+      "id": "tactical_explainer",
+      "purpose": "1v1 key duel isolation; Activity/touch map; Before/after structure shift; Build-up pattern from the back; Formation overview 4-3-3; Goalkeeper build-up role; In-possession structure; Out-of-possession press and block; Player movement and overlaps; Pressing trap shape; Rest defense structure; Set-piece attack routine; Set-piece defensive setup; Space exploitation channel; Starting XI lineup; Tactical adjustment before/after; Tactical freeze frame with focus ring; Transitions both ways",
+      "required_data": [],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.08,
+            0.1,
+            0.84,
+            0.06
+          ],
+          "font": "body",
+          "size": 56,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "TA-03": [
+          "tactical_diagram"
+        ],
+        "TA-04": [
+          "tactical_diagram"
+        ],
+        "TA-05": [
+          "tactical_diagram"
+        ],
+        "TA-06": [
+          "tactical_diagram"
+        ],
+        "TA-07": [
+          "tactical_diagram"
+        ],
+        "TA-08": [
+          "tactical_diagram"
+        ],
+        "TA-09": [
+          "tactical_diagram"
+        ],
+        "TA-10": [
+          "tactical_diagram"
+        ],
+        "TA-11": [
+          "tactical_diagram"
+        ],
+        "TA-13": [
+          "tactical_diagram"
+        ],
+        "TA-14": [
+          "tactical_diagram"
+        ],
+        "TA-15": [
+          "tactical_diagram"
+        ],
+        "TA-17": [
+          "tactical_diagram"
+        ],
+        "TA-20": [
+          "tactical_diagram"
+        ],
+        "TA-21": [
+          "tactical_diagram"
+        ],
+        "TA-22": [
+          "tactical_diagram"
+        ],
+        "TA-23": [
+          "tactical_diagram"
+        ],
+        "TA-24": [
+          "tactical_diagram"
+        ]
+      },
+      "cards": [
+        "TA-03",
+        "TA-04",
+        "TA-05",
+        "TA-06",
+        "TA-07",
+        "TA-08",
+        "TA-09",
+        "TA-10",
+        "TA-11",
+        "TA-13",
+        "TA-14",
+        "TA-15",
+        "TA-17",
+        "TA-20",
+        "TA-21",
+        "TA-22",
+        "TA-23",
+        "TA-24"
+      ]
+    },
+    {
+      "id": "opening",
+      "purpose": "Brand opener, channel badge hero",
+      "required_data": [],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.1,
+            0.62,
+            0.8,
+            0.1
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {},
+      "cards": [],
+      "channel_badge": "baked"
+    },
+    {
+      "id": "ending",
+      "purpose": "End card channel mark (no tagline until TBD)",
+      "required_data": [],
+      "pack_bg": true,
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.1,
+            0.64,
+            0.8,
+            0.1
+          ],
+          "font": "body",
+          "size": 68,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "card_slots": {
+        "LC-14": []
+      },
+      "cards": [
+        "LC-14"
+      ],
+      "channel_badge": "baked"
+    },
+    {
+      "id": "takes",
+      "purpose": "Takeaways C-08, TA-18: three ascending points",
+      "required_data": [],
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.08,
+            0.12,
+            0.84,
+            0.08
+          ],
+          "font": "body",
+          "size": 68,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "support",
+          "box": [
+            0.08,
+            0.45,
+            0.84,
+            0.2
+          ],
+          "font": "body",
+          "size": 40,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 26,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ],
+      "pack_bg": true,
+      "cards": [
+        "TA-18"
+      ],
+      "card_slots": {
+        "TA-18": [
+          "takeaways"
+        ]
+      }
+    },
+    {
+      "id": "myth",
+      "purpose": "Myth versus reality BP-13: charged claim left, calm evidence right",
+      "required_data": [
+        "graphic_data.claim"
+      ],
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.08,
+            0.18,
+            0.84,
+            0.2
+          ],
+          "font": "display",
+          "size": 76,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "support",
+          "box": [
+            0.08,
+            0.54,
+            0.84,
+            0.2
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ],
+      "pack_bg": true,
+      "cards": []
+    }
+  ],
+  "data_integrity": [
+    "Only reviewed values with source and date.",
+    "Ties never broken silently.",
+    "No synthesized likeness.",
+    "Hook restates reviewed opening claim."
+  ],
+  "previews": "Owner-exported backgrounds in previews/.",
+  "badge_usage": {
+    "channel_badge": {
+      "asset": "resources/pack/badge-circle.png",
+      "baked_into": [
+        "opening",
+        "ending"
+      ],
+      "cards": [
+        "C-01",
+        "C-10",
+        "LC-14",
+        "U-07"
+      ],
+      "rule": "Channel identity only on opener and end card. Never a team crest, never on data or versus layouts."
+    },
+    "team_badges": {
+      "slots": [
+        "crest-home",
+        "crest-away",
+        "crest-winner",
+        "crest-loser"
+      ],
+      "layouts": [
+        "duel_columns",
+        "comparison_duel",
+        "statline_scorecard",
+        "score_card",
+        "fixture_card",
+        "fixture_list"
+      ],
+      "rule": "Dynamic per-video slots: monogram fallback or rights-cleared library crest at card stage. Real marks banned without clearance."
+    }
+  },
+  "identity_slots": "Two fixed monogram rings beside every scoreline, duel and fixture. Real crests banned; library images bind later without moving slots. One fixed portrait slot on player cards (face-safe framing). Channel badge baked on opening and ending only.",
+  "frame_cards": [
+    "C-10",
+    "U-02",
+    "U-03",
+    "U-05",
+    "MR-06",
+    "TA-18",
+    "MR-05",
+    "BP-04",
+    "BP-05",
+    "BP-11",
+    "BP-17",
+    "C-01",
+    "C-08",
+    "U-01",
+    "U-04",
+    "U-06",
+    "U-07",
+    "LC-03",
+    "LC-08",
+    "LC-14"
+  ]
+}

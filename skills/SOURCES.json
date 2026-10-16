@@ -618,6 +618,66 @@
    "sha": "e029a435fb02647e6fd0b440618ae21f326d35e1",
    "size": 547,
    "vendored_size": 547
+  },
+  "design-taste/SKILL.md": {
+   "source": "https://raw.githubusercontent.com/h3nryprod01/design-taste/main/SKILL.md",
+   "sha": "78b99fda31ae07cbbc14f52f117277b8e48ccc90",
+   "size": 11666,
+   "vendored_size": 11953
+  },
+  "design-taste/LICENSE.txt": {
+   "source": "https://raw.githubusercontent.com/h3nryprod01/design-taste/main/LICENSE",
+   "sha": "739e770996835d186252fc64e51a8183569cd12b",
+   "size": 1079,
+   "vendored_size": 1079
+  },
+  "impeccable-lite/SKILL.md": {
+   "source": "https://raw.githubusercontent.com/ilindaniel/impeccable-lite/main/SKILL.md",
+   "sha": "8269a3520c81560d08dc4e4c9a640abe2be66c70",
+   "size": 9985,
+   "vendored_size": 10260
+  },
+  "impeccable-lite/LICENSE.txt": {
+   "source": "https://raw.githubusercontent.com/ilindaniel/impeccable-lite/main/LICENSE",
+   "sha": "bb3f6d23b1f8025514a62a12b51b47d73e3c9aa9",
+   "size": 10766,
+   "vendored_size": 10766
+  },
+  "design-taste/reference/anti-slop.md": {
+   "source": "https://raw.githubusercontent.com/h3nryprod01/design-taste/main/reference/anti-slop.md",
+   "sha": "e99680c5ead82a7fdebdc9e9704bdaa6829fdd41",
+   "size": 16869,
+   "vendored_size": 16869
+  },
+  "design-taste/reference/core-rules.md": {
+   "source": "https://raw.githubusercontent.com/h3nryprod01/design-taste/main/reference/core-rules.md",
+   "sha": "bc1a7c673981380bc2b86e69b4377db0cd6ce05c",
+   "size": 17620,
+   "vendored_size": 17620
+  },
+  "design-taste/reference/design-systems.md": {
+   "source": "https://raw.githubusercontent.com/h3nryprod01/design-taste/main/reference/design-systems.md",
+   "sha": "405591475eff516dba4348f61d00fe1e4230d2d5",
+   "size": 22975,
+   "vendored_size": 22975
+  },
+  "design-taste/reference/interaction-states.md": {
+   "source": "https://raw.githubusercontent.com/h3nryprod01/design-taste/main/reference/interaction-states.md",
+   "sha": "86240673e61bc38776592d7d1a4b67996ab0188f",
+   "size": 6633,
+   "vendored_size": 6633
+  },
+  "design-taste/reference/motion.md": {
+   "source": "https://raw.githubusercontent.com/h3nryprod01/design-taste/main/reference/motion.md",
+   "sha": "13d4e7291bdf246e2e80a8eab2d205c4adb81",
+   "size": 22738,
+   "vendored_size": 22738
+  },
+  "design-taste/reference/pre-flight.md": {
+   "source": "https://raw.githubusercontent.com/h3nryprod01/design-taste/main/reference/pre-flight.md",
+   "sha": "7297b77a2bbf9dd3a833f1ccca268438f15c4adb",
+   "size": 17118,
+   "vendored_size": 17118
   }
  }
 }

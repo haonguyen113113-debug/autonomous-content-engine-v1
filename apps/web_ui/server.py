@@ -114,6 +114,8 @@ TEMPLATE_FILES = {
             "BeVietnamPro-Bold.ttf",
             "BarlowCondensed-SemiBold.ttf",
             "BarlowCondensed-Bold.ttf",
+            "BigShoulders-Bold.ttf",
+            "Tektur-Medium.ttf",
         )
     },
 }
@@ -977,6 +979,27 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         "image/png" if ext == "png" else "image/jpeg",
                     )
             if template_file is None:
+                # Art beds: generative pack resources referenced by starters.
+                beds_match = re.fullmatch(
+                    r"/template-foundation/resources/beds/([A-Za-z0-9_-]{1,60})\.png",
+                    path)
+                if beds_match:
+                    template_file = (
+                        f"resources/beds/{beds_match.group(1)}.png",
+                        "image/png",
+                    )
+            if template_file is None:
+                # Owner plates: v12 backgrounds referenced by rewired starters.
+                plates_match = re.fullmatch(
+                    r"/template-foundation/resources/pack/(short|long)-([A-Za-z0-9_-]{1,60})\.(png|jpg|jpeg)",
+                    path)
+                if plates_match:
+                    ext = plates_match.group(3)
+                    template_file = (
+                        f"resources/pack/{plates_match.group(1)}-{plates_match.group(2)}.{ext}",
+                        "image/png" if ext == "png" else "image/jpeg",
+                    )
+            if template_file is None:
                 manim_match = re.fullmatch(
                     r"/template-foundation/previews/manim/([A-Za-z]{1,40})\.mp4", path)
                 if manim_match:
@@ -989,6 +1012,8 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     LONG_TEMPLATE_ID
                     if path == "/template-foundation/previews/landscape-composite.png"
                     or path.startswith("/template-foundation/previews/long-")
+                    or path.startswith("/template-foundation/resources/beds/long-")
+                    or path.startswith("/template-foundation/resources/pack/long-")
                     else TEMPLATE_ID
                 )
                 package = resolve_template(
@@ -1175,7 +1200,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         str(payload.get("story_form", "")),
                         str(payload.get("evidence", "")),
                         str(payload.get("content_type", "short")),
-                        str(payload.get("colorway", "san-dem")),
+                        str(payload.get("colorway", "cyber-pitch")),
                     )
                     self._send_json(result, HTTPStatus.CREATED)
                     return
