@@ -32,9 +32,10 @@ into `main` on 2026-10-17 as commit `14a62eb`.
   review endpoint returns before applying supplied `grant_fields`. Owner
   authorization to auto-save qualifying assets does not imply broad usage
   rights. Separate storage permission from usage scope.
-- Local merge only: `main` has not been pushed to GitHub yet. Preserve
-  `stash@{0}`. The checkpoint file itself remains a coordination document,
-  not a runtime artifact.
+- At the time of this post-merge note, `main` was still local; it has since
+  been pushed and `origin/main` is synchronized. Preserve `stash@{0}`. The
+  checkpoint file itself remains a coordination document, not a runtime
+  artifact.
 
 ## Repository snapshot
 
