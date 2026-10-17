@@ -189,17 +189,19 @@ def render_pack_plate(bg_path: Path, boxes: list[dict[str, Any]], data: dict[str
         return fonts.bev_b(size)
 
     for box in boxes:
-        value = " ".join(_lookup(data, box.get("key", "")).split())
-        if not value:
+        raw_value = " ".join(_lookup(data, box.get("key", "")).split())
+        if not raw_value:
             continue
-        # Single-fill renderer has no two-tone runs: drop *accent* markers
-        # instead of printing literal asterisks (owner 16/10).
-        value = re.sub(r"\*([^*]+)\*", r"\1", value) if "*" in value else value
+        # Two-tone preview: *accent* renders magenta, rest in box fill.
+        stripped = re.sub(r"\*([^*]+)\*", r"\1", raw_value) if "*" in raw_value else raw_value
+        has_accent = "*" in raw_value and re.search(r"\*[^*]+\*", raw_value) is not None
+        value = stripped
         x, y, w, h = (box.get("box") or [0, 0, 0, 0])
         font = face(box.get("font", "body"), int(box.get("size", 40)))
         raw = str(box.get("color", "#FFFFFF")).lstrip("#")
         fill = (int(raw[0:2], 16), int(raw[2:4], 16), int(raw[4:6], 16), 255)
-        # shrink until the value fits its box
+        accent_fill = (0xFF, 0x3D, 0x81, 255)
+        # shrink until the stripped value fits its box (stars are not drawn)
         size_px = int(box.get("size", 40))
         while size_px > 11:
             font = face(box.get("font", "body"), size_px)
@@ -212,15 +214,33 @@ def render_pack_plate(bg_path: Path, boxes: list[dict[str, Any]], data: dict[str
             size_px -= 4
         box_px = (round(x * target[0]), round(y * target[1]),
                   round(w * target[0]), round(h * target[1]))
-        text_w = draw.textbbox((0, 0), value, font=font)[2]
         align = box.get("align", "center")
+        if not has_accent:
+            text_w = draw.textbbox((0, 0), value, font=font)[2]
+            if align == "center":
+                tx = box_px[0] + (box_px[2] - text_w) / 2
+            elif align == "right":
+                tx = box_px[0] + box_px[2] - text_w
+            else:
+                tx = box_px[0]
+            draw.text((tx, box_px[1]), value, font=font, fill=fill)
+            continue
+        parts = re.split(r"\*([^*]+)\*", raw_value)
+        segs: list[tuple[str, bool]] = [
+            (p, i % 2 == 1) for i, p in enumerate(parts) if p]
+        widths = [draw.textbbox((0, 0), s, font=font)[2] for s, _ in segs]
+        total = sum(widths)
         if align == "center":
-            tx = box_px[0] + (box_px[2] - text_w) / 2
+            tx = box_px[0] + (box_px[2] - total) / 2
         elif align == "right":
-            tx = box_px[0] + box_px[2] - text_w
+            tx = box_px[0] + box_px[2] - total
         else:
             tx = box_px[0]
-        draw.text((tx, box_px[1]), value, font=font, fill=fill)
+        cx = tx
+        for (seg, is_acc), wseg in zip(segs, widths):
+            draw.text((cx, box_px[1]), seg, font=font,
+                      fill=(accent_fill if is_acc else fill))
+            cx += wseg
     return base
 
 

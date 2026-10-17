@@ -3,9 +3,11 @@
 import json
 from pathlib import Path
 
+from apps.asset_library.rights_scope import build_rights_scope
 from apps.card_selector import (
     REQUIRED_SLOTS,
     SUPPORTED_MODES,
+    _eligible_asset,
     select_cards,
 )
 from apps.content_workflow import VISUAL_MODES
@@ -242,10 +244,47 @@ def test_registry_slots_match_package():
             assert extra <= {"tactical_diagram"}, (mode, extra)
 
 
-def _feed_run(*segments, content_type="short"):
-    return {"run_id": "a" * 12,
-            "draft": {"content_type": content_type,
-                      "segments": [dict(s) for s in segments]}}
+def _feed_run(*segments, content_type="short", purpose=None, exact_terms=None):
+    run = {"run_id": "a" * 12,
+           "draft": {"content_type": content_type,
+                     "segments": [dict(s) for s in segments]}}
+    if purpose is not None:
+        run["purpose"] = purpose
+    if exact_terms is not None:
+        run["exact_terms"] = exact_terms
+    return run
+
+
+PURPOSE = {"platform": "youtube", "territory": "VN", "commercial": True, "monetization": True}
+
+
+def _portrait_segment():
+    return _seg("Tien dao Nguyen Van A toa sang", mode="player_poster_side",
+                data={"player_name": "Nguyen Van A",
+                      "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2")
+
+
+def _portrait_assets():
+    """One verified image cleared for youtube/VN/commercial, one verified
+    image cleared only for tiktok/non-commercial (purpose-denied)."""
+    denied_scope = build_rights_scope(
+        platforms=["tiktok"], territories=["VN"],
+        commercial=False, monetization=False,
+    )
+    cleared_scope = build_rights_scope(
+        platforms=["youtube"], territories=["VN"],
+        commercial=True, monetization=True,
+    )
+    return [
+        {"asset_id": "a-scoped-denied", "asset_type": "image",
+         "rights_state": "verified", "lifecycle_state": "active",
+         "original_name": "Nguyen Van A warmup", "subjects": ["Nguyen Van A"],
+         "rights_scope": denied_scope},
+        {"asset_id": "a-cleared", "asset_type": "image",
+         "rights_state": "verified", "lifecycle_state": "active",
+         "original_name": "Nguyen Van A portrait", "subjects": ["Nguyen Van A"],
+         "rights_scope": cleared_scope},
+    ]
 
 
 def test_apply_feeds_segments_and_stores_plan(tmp_path):
@@ -412,3 +451,109 @@ def test_sprint3_long_hook_and_fallbacks():
     ], content_type="long")
     assert out["decisions"][0]["starter_id"] == "TA-01"
     assert out["decisions"][1]["starter_id"] == "TA-02"
+
+
+def test_eligible_asset_verified_not_sufficient_with_purpose():
+    denied, cleared = _portrait_assets()
+    # purpose omitted: legacy verified/active image behavior preserved.
+    for asset in (denied, cleared):
+        assert _eligible_asset(asset) is True
+        assert _eligible_asset(asset, None) is True
+    # purpose given: verified alone is not sufficient.
+    assert _eligible_asset(cleared, PURPOSE) is True
+    assert _eligible_asset(denied, PURPOSE) is False  # tiktok-only, non-commercial
+    assert _eligible_asset(
+        {"asset_type": "video", "rights_state": "verified", "lifecycle_state": "active"},
+        PURPOSE) is False
+
+
+def test_select_cards_purpose_blocks_uncleared_portrait():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _portrait_segment(),
+    ], assets=_portrait_assets(), purpose=PURPOSE)
+    second = out["decisions"][1]
+    # a-scoped-denied matches the name but fails is_usable_for for this purpose.
+    assert second["media_asset_id"] == "a-cleared"
+    assert any("auto-attached" in w for w in second["warnings"])
+
+
+def test_select_cards_without_purpose_keeps_legacy_behavior():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _portrait_segment(),
+    ], assets=_portrait_assets())  # purpose omitted
+    second = out["decisions"][1]
+    assert second["media_asset_id"] == "a-scoped-denied"  # legacy first eligible match
+    assert out["plan"]["purpose"] is None
+    assert out["plan"]["exact_terms"] is None
+
+
+def test_select_cards_carries_purpose_and_exact_terms():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+    ], assets=_portrait_assets(), purpose=PURPOSE,
+       exact_terms=["Nguyen Van A", "U23"])
+    assert out["plan"]["purpose"] == PURPOSE
+    assert out["plan"]["exact_terms"] == ["Nguyen Van A", "U23"]
+
+    out_plain = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+    ])
+    assert out_plain["plan"]["purpose"] is None
+    assert out_plain["plan"]["exact_terms"] is None
+
+
+def test_apply_card_plan_derives_purpose_and_blocks_uncleared_portrait(tmp_path):
+    import json
+
+    from apps.asset_library.registry import connect
+    from apps.card_selector import apply_card_plan
+
+    denied_scope = build_rights_scope(
+        platforms=["tiktok"], territories=["VN"],
+        commercial=False, monetization=False,
+    )
+    conn = connect(tmp_path / "runtime/engine.db")
+    conn.execute(
+        "INSERT INTO assets (asset_id, original_name, stored_path, asset_type,"
+        " size_bytes, sha256, source_type, rights_state, lifecycle_state, metadata_json)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?)",
+        ("enzo-por", "Enzo Fernandes portrait", "runtime/assets/library/x.png",
+         "image", 10, "sha256-" + "e" * 58, "test", "verified", "active",
+         json.dumps({"rights_scope": denied_scope})),
+    )
+    conn.commit()
+    conn.close()
+
+    run = _feed_run(
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Tien dao Enzo Fernandes toa sang", mode="player_poster_side",
+             data={"player_name": "Enzo Fernandes",
+                   "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"),
+        purpose=PURPOSE,
+    )
+    plan = apply_card_plan(tmp_path, run)
+    assert plan["plan"]["purpose"] == PURPOSE
+    # verified/active but not cleared for youtube + commercial: no auto-attach.
+    assert run["draft"]["segments"][1].get("media_asset_id") is None
+    assert any("typographic fallback" in r
+               for r in plan["decisions"][1]["reasons"])
+
+    # draft-level purpose is the fallback when run has none.
+    run2 = _feed_run(
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Tien dao Enzo Fernandes toa sang", mode="player_poster_side",
+             data={"player_name": "Enzo Fernandes",
+                   "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"),
+    )
+    run2["draft"]["purpose"] = PURPOSE
+    plan2 = apply_card_plan(tmp_path, run2)
+    assert plan2["plan"]["purpose"] == PURPOSE
+    assert run2["draft"]["segments"][1].get("media_asset_id") is None

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 import html
 import ipaddress
@@ -9,7 +9,8 @@ import os
 from pathlib import Path
 import re
 import socket
-from typing import Any
+import sqlite3
+from typing import Any, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
@@ -17,6 +18,36 @@ import uuid
 
 from .asset_intelligence import ResourceRequirement
 from .ingest import ingest_one
+from .registry import connect
+
+try:  # Workstream-1 rights API (consume, never reinvent nor modify).
+    from .rights_scope import (
+        REQUIRED_HUMAN_REVIEW as _W1_HUMAN_REVIEW,
+    )
+    from .rights_scope import (
+        default_deny_scope as _w1_default_deny_scope,
+    )
+    from .rights_scope import (
+        build_rights_scope as _w1_build_rights_scope,
+    )
+    from .rights_scope import (
+        ensure_rights_scope_schema as _w1_ensure_rights_scope_schema,
+    )
+    from .rights_scope import (
+        is_usable_for as _w1_is_usable_for,
+    )
+    from .rights_scope import (
+        scope_from_legacy as _w1_scope_from_legacy,
+    )
+    _RIGHTS_W1_AVAILABLE = True
+except ImportError:  # Integrator removed/relocated the module: stay importable.
+    _RIGHTS_W1_AVAILABLE = False
+    _W1_HUMAN_REVIEW = "human_review"
+    _w1_default_deny_scope = None  # type: ignore[assignment]
+    _w1_build_rights_scope = None  # type: ignore[assignment]
+    _w1_ensure_rights_scope_schema = None  # type: ignore[assignment]
+    _w1_is_usable_for = None  # type: ignore[assignment]
+    _w1_scope_from_legacy = None  # type: ignore[assignment]
 
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
@@ -92,6 +123,67 @@ class ExternalAssetCandidate:
     # transparency). Stamped by search_candidates_tiered; "unknown" when
     # the candidate came through the un-tiered search_candidates path.
     source_tier: str = "unknown"
+    # --- Unified discovery interface (workstream 2, additive) ---
+    # preview_url mirrors thumbnail_url so every consumer can rely on one
+    # preview field regardless of provider. license mirrors license_name.
+    # rights_scope is a workstream-1 scope dict (deny-default for
+    # YouTube/unknown licenses, scope_from_legacy backfill otherwise) fed
+    # straight into is_usable_for by the planner (candidate_rights_decision).
+    # match_grade is "exact" (footage of the named match/player) or
+    # "generic" (general football footage). verification_status starts
+    # "unverified" and only becomes "verified" after human rights review.
+    preview_url: str = ""
+    license: str | None = None
+    rights_scope: dict[str, Any] = field(default_factory=dict)
+    match_grade: str = "generic"
+    verification_status: str = "unverified"
+
+    def __post_init__(self) -> None:
+        if not self.preview_url and self.thumbnail_url:
+            object.__setattr__(self, "preview_url", self.thumbnail_url)
+        if self.license is None and self.license_name:
+            object.__setattr__(self, "license", self.license_name)
+        if not self.rights_scope:
+            referral = self.candidate_id.startswith(REFERRAL_ONLY_PREFIXES) or (
+                "referral only" in (self.provider or "").lower()
+            )
+            object.__setattr__(
+                self,
+                "rights_scope",
+                _scope_for_candidate(
+                    license_name=self.license_name,
+                    provider=self.provider,
+                    source_url=self.source_url,
+                    creator=self.creator,
+                    credit=self.credit,
+                    referral_only=referral,
+                ),
+            )
+        if self.match_grade not in {"exact", "generic"}:
+            object.__setattr__(self, "match_grade", "generic")
+        if self.verification_status not in {"unverified", "pending", "verified"}:
+            object.__setattr__(self, "verification_status", "unverified")
+
+    @property
+    def media_kind(self) -> str:
+        """Lowercase media kind (image|video) for the unified interface."""
+        return (self.media_type or "").lower()
+
+    def to_unified_dict(self) -> dict[str, Any]:
+        """Spec-shaped view: {provider, source_url, preview_url, media_type,
+        license, creator, rights_scope, match_grade, verification_status}."""
+        return {
+            "provider": self.provider,
+            "source_url": self.source_url,
+            "preview_url": self.preview_url or self.thumbnail_url,
+            "media_type": self.media_kind,
+            "license": self.license if self.license is not None else self.license_name,
+            "creator": self.creator,
+            "rights_scope": dict(self.rights_scope) if self.rights_scope else _fallback_deny(
+                "rights scope missing — human review required."),
+            "match_grade": self.match_grade,
+            "verification_status": self.verification_status,
+        }
 
 
 def _license_label(license_code: Any, version: Any) -> str | None:
@@ -439,6 +531,14 @@ def _candidate_by_id(
             candidate_id.removeprefix("pixabay-video:"),
             _require_pixabay_key(api_keys),
         )
+    if candidate_id.startswith("youtube:"):
+        raise DiscoveryError(
+            "YouTube is referral-only: open the watch page to identify the "
+            "rights holder. YouTube videos are never saved as assets and "
+            "never granted rights by default."
+        )
+    if candidate_id.startswith("archive:"):
+        return _archive_detail(candidate_id.removeprefix("archive:"))
     if not candidate_id.isdigit():
         raise ValueError("Invalid external candidate ID.")
 
@@ -506,6 +606,13 @@ def _download_candidate(
     candidate: ExternalAssetCandidate,
     api_keys: dict | None = None,
 ) -> tuple[bytes, str]:
+    if is_referral_only(candidate):
+        raise DiscoveryError(
+            "YouTube is referral-only: open the watch page to identify the "
+            "rights holder. YouTube videos are never downloaded as assets."
+        )
+    if candidate.candidate_id.startswith("archive:"):
+        return _download_archive_candidate(candidate)
     if candidate.media_type == "VIDEO":
         return _download_video_candidate(candidate, api_keys)
     if candidate.candidate_id.startswith("openverse:"):
@@ -653,6 +760,13 @@ def save_commons_candidate(
     if requirement.resource_type not in {"image", "video"}:
         raise ValueError("External providers only support image and video requests.")
 
+    if candidate_id.startswith(REFERRAL_ONLY_PREFIXES):
+        raise DiscoveryError(
+            "YouTube is referral-only: open the watch page to identify the "
+            "rights holder. YouTube videos are never saved as assets and "
+            "never granted rights by default."
+        )
+
     candidate = _candidate_by_id(candidate_id, api_keys)
     expected = "VIDEO" if requirement.resource_type == "video" else "IMAGE"
     if candidate.media_type != expected:
@@ -672,6 +786,7 @@ def save_commons_candidate(
         "openverse" if candidate_id.startswith("openverse:")
         else "pexels" if candidate_id.startswith("pexels")
         else "pixabay" if candidate_id.startswith("pixabay")
+        else "internet_archive" if candidate_id.startswith("archive:")
         else "wikimedia_commons"
     )
     sidecar = {
@@ -716,11 +831,72 @@ def save_commons_candidate(
         raise
 
     if result.startswith("ingested:"):
+        asset_id = result.removeprefix("ingested:")
+        scope_persisted = False
+        scope_summary: dict[str, Any] | None = None
+        if _RIGHTS_W1_AVAILABLE:
+            try:
+                if rights_reviewed:
+                    # Credit comes from the sidecar metadata (license_credit)
+                    # or the candidate credit; never inferred beyond that.
+                    credit = (
+                        sidecar.get("metadata", {}).get("license_credit")
+                        or candidate.credit
+                    )
+                    scope = _w1_build_rights_scope(
+                        platforms=["youtube", "tiktok", "facebook", "instagram"],
+                        territories=["*"],
+                        commercial=True,
+                        monetization=True,
+                        edit_allowed=True,
+                        credit_required=bool(credit),
+                        credit_text=credit,
+                        license=sidecar.get("license_type"),
+                        source=sidecar.get("source_type"),
+                        reviewed_by="human",
+                        reviewed_at=now,
+                        copyright_exception=False,
+                        notes="human-reviewed grant persisted at save",
+                    )
+                else:
+                    scope = _w1_default_deny_scope(
+                        license=sidecar.get("license_type"),
+                        source=sidecar.get("source_type"),
+                        notes="not rights-reviewed; deny by default",
+                    )
+            except ValueError:
+                # Review data is insufficient to build a grant: do not infer
+                # rights, deny by default so usage stays gated until a human
+                # records a valid scope.
+                scope = _w1_default_deny_scope(
+                    license=sidecar.get("license_type"),
+                    source=sidecar.get("source_type"),
+                    notes="not rights-reviewed; deny by default",
+                )
+            try:
+                conn = connect(project_root / "runtime/engine.db")
+                try:
+                    _w1_ensure_rights_scope_schema(conn)
+                    conn.execute(
+                        "UPDATE assets SET rights_scope_json = ? WHERE asset_id = ?",
+                        (json.dumps(scope, ensure_ascii=False), asset_id),
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+                scope_persisted = True
+                scope_summary = scope
+            except (sqlite3.Error, OSError):
+                # Asset was ingested; rights persistence is best-effort and
+                # must not roll back a successful save.
+                scope_persisted = False
         return {
             "status": "SAVED",
-            "asset_id": result.removeprefix("ingested:"),
+            "asset_id": asset_id,
             "rights_state": sidecar["rights_state"],
             "candidate": asdict(candidate),
+            "rights_scope_persisted": scope_persisted,
+            "rights_scope": scope_summary,
         }
     if result.startswith("duplicate:"):
         local_path.unlink(missing_ok=True)
@@ -746,17 +922,30 @@ def provider_status(api_keys: dict | None = None) -> list[dict[str, str]]:
     pexels_ready = bool(_pexels_key(api_keys))
     pixabay_ready = bool(_pixabay_key(api_keys))
     return [
-        {"key": "openverse_image", "label": "Openverse", "media": "image", "state": "ready"},
-        {"key": "commons_image", "label": "Wikimedia Commons", "media": "image", "state": "ready"},
-        {"key": "commons_video", "label": "Wikimedia Commons", "media": "video", "state": "ready"},
+        {"key": "openverse_image", "label": "Openverse", "media": "image", "state": "ready",
+         "acquisition": "download"},
+        {"key": "commons_image", "label": "Wikimedia Commons", "media": "image", "state": "ready",
+         "acquisition": "download"},
+        {"key": "commons_video", "label": "Wikimedia Commons", "media": "video", "state": "ready",
+         "acquisition": "download"},
+        {"key": "archive_image", "label": "Internet Archive", "media": "image", "state": "ready",
+         "acquisition": "download"},
+        {"key": "archive_video", "label": "Internet Archive", "media": "video", "state": "ready",
+         "acquisition": "download"},
+        {"key": "youtube_referral", "label": "YouTube (referral only)", "media": "video",
+         "state": "ready", "acquisition": "referral_only"},
         {"key": "pexels_image", "label": "Pexels", "media": "image",
-         "state": "ready" if pexels_ready else "needs_key"},
+         "state": "ready" if pexels_ready else "needs_key",
+         "acquisition": "download"},
         {"key": "pexels_video", "label": "Pexels", "media": "video",
-         "state": "ready" if pexels_ready else "needs_key"},
+         "state": "ready" if pexels_ready else "needs_key",
+         "acquisition": "download"},
         {"key": "pixabay_image", "label": "Pixabay", "media": "image",
-         "state": "ready" if pixabay_ready else "needs_key"},
+         "state": "ready" if pixabay_ready else "needs_key",
+         "acquisition": "download"},
         {"key": "pixabay_video", "label": "Pixabay", "media": "video",
-         "state": "ready" if pixabay_ready else "needs_key"},
+         "state": "ready" if pixabay_ready else "needs_key",
+         "acquisition": "download"},
     ]
 
 
@@ -1214,6 +1403,11 @@ def _download_video_candidate(
     candidate: ExternalAssetCandidate,
     api_keys: dict | None = None,
 ) -> tuple[bytes, str]:
+    if is_referral_only(candidate):
+        raise DiscoveryError(
+            "YouTube is referral-only: open the watch page to identify the "
+            "rights holder. YouTube videos are never downloaded as assets."
+        )
     if candidate.candidate_id.startswith("pixabay-video:"):
         file_url, allowed_hosts = _pixabay_file_url(
             candidate.candidate_id.removeprefix("pixabay-video:"),
@@ -1259,6 +1453,593 @@ def _download_video_candidate(
         raise DiscoveryError(f"{error_prefix}: {error}") from error
     if len(data) > MAX_VIDEO_BYTES:
         raise DiscoveryError("Video exceeds the 100 MiB download limit.")
+    return data, mime_type
+
+
+# ---------------------------------------------------------------------------
+# Unified interface + referral/keyless adapters (workstream 2).
+#
+# Rules (no exceptions):
+# - YouTube is referral-only: find + link to the watch page so the planner
+#   can identify the rights holder. Never download a YouTube video as an
+#   asset, never grant rights by default (W1 deny-default scope; save and
+#   download raise DiscoveryError for youtube: candidates).
+# - No paid API, no mandatory key: Internet Archive (advancedsearch +
+#   metadata APIs) and the YouTube referral adapter are keyless. Pexels /
+#   Pixabay stay optional keyed escalation (free keys, dormant without one).
+# - Rights (workstream 1) are CONSUMED, not reinvented: every candidate
+#   carries a workstream-1 scope dict in ``rights_scope`` (deny-default for
+#   YouTube/unknown licenses, ``scope_from_legacy`` backfill otherwise) and
+#   planners decide per upload intent with ``candidate_rights_decision``
+#   (thin wrapper over ``rights_scope.is_usable_for``). See
+#   docs/discovery-referral.md point W1-DISCOVERY.
+# ---------------------------------------------------------------------------
+
+RIGHTS_ACTION_HUMAN_REVIEW = "human_review"
+RIGHTS_ACTION_NONE = "none"
+
+
+def _source_type_for_provider(provider: str) -> str:
+    text = (provider or "").lower()
+    if text.startswith("openverse"):
+        return "openverse"
+    if text.startswith("wikimedia"):
+        return "wikimedia_commons"
+    if text.startswith("internet archive"):
+        return "internet_archive"
+    if text.startswith("pexels"):
+        return "pexels"
+    if text.startswith("pixabay"):
+        return "pixabay"
+    if text.startswith("youtube"):
+        return "youtube"
+    return "unknown"
+
+
+def _fallback_deny(reason: str) -> dict[str, Any]:
+    """Local deny shape used only when the workstream-1 module is missing."""
+    return {"allowed": False, "required_action": RIGHTS_ACTION_HUMAN_REVIEW,
+            "reason": reason, "granted_by": "deny-default"}
+
+
+def _scope_for_candidate(
+    *,
+    license_name: str | None,
+    provider: str,
+    source_url: str,
+    creator: str | None = None,
+    credit: str | None = None,
+    referral_only: bool = False,
+    deny_reason: str | None = None,
+) -> dict[str, Any]:
+    """Build the workstream-1 scope carried by a candidate.
+
+    Referral-only (YouTube) and unknown-license items get a W1 deny-default
+    (never grants anything, always routes to human review). Everything else
+    gets the deterministic W1 legacy backfill from its license/source, so the
+    planner can feed the scope straight into ``is_usable_for``.
+    """
+    if referral_only:
+        reason = deny_reason or YOUTUBE_REFERRAL_REASON
+        if _RIGHTS_W1_AVAILABLE:
+            return _w1_default_deny_scope(
+                license=license_name, source=_source_type_for_provider(provider),
+                notes=reason)
+        return _fallback_deny(reason)
+    if _RIGHTS_W1_AVAILABLE:
+        return _w1_scope_from_legacy({
+            "license_type": license_name,
+            "source_type": _source_type_for_provider(provider),
+            "source_url": source_url,
+            "creator": creator,
+            "metadata": {"license_credit": credit} if credit else {},
+        })
+    return {"allowed": True, "required_action": RIGHTS_ACTION_HUMAN_REVIEW,
+            "reason": "License requires human confirmation before use.",
+            "granted_by": "discovery-fallback"}
+
+
+def rights_blocked(scope: Any) -> str | None:
+    """Return the blocking reason when a scope forbids auto-acquisition.
+
+    Consumes workstream-1 semantics: deny-default grants (YouTube, unknown
+    licenses) and explicit allowed=False both block. Anything else returns
+    None (still subject to human review at save time — never pre-cleared).
+    """
+    if not isinstance(scope, dict):
+        return "missing rights scope"
+    if scope.get("granted_by") == "deny-default":
+        return str(scope.get("notes") or "deny by default: needs human review")
+    if scope.get("allowed") is False:
+        return str(scope.get("reason") or "rights not allowed")
+    return None
+
+
+def candidate_rights_decision(
+    candidate: ExternalAssetCandidate,
+    purpose: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Planner integration point: per-upload-intent decision for a candidate.
+
+    Adapts the candidate to the asset mapping workstream 1 expects and calls
+    ``is_usable_for``. Returns W1's {allowed, reasons, required_action,
+    scope}. Without the W1 module, returns a conservative local deny.
+    """
+    scope = dict(candidate.rights_scope) if isinstance(candidate.rights_scope, dict) else {}
+    if not _RIGHTS_W1_AVAILABLE or _w1_is_usable_for is None:
+        blocked = rights_blocked(scope)
+        return {
+            "allowed": blocked is None,
+            "reasons": ["ok"] if blocked is None else ["rights-module-missing", blocked],
+            "required_action": RIGHTS_ACTION_NONE if blocked is None else RIGHTS_ACTION_HUMAN_REVIEW,
+            "scope": scope,
+        }
+    asset = {
+        "source_type": _source_type_for_provider(candidate.provider),
+        "source_url": candidate.source_url,
+        "license_type": candidate.license_name,
+        "creator": candidate.creator,
+        "rights_state": "verified" if candidate.verification_status == "verified" else "unverified",
+        "lifecycle_state": "active",
+        "rights_scope": scope,
+        "metadata": {
+            "license_credit": candidate.credit,
+            "candidate_id": candidate.candidate_id,
+            "discovery_provider": candidate.provider,
+        },
+    }
+    return _w1_is_usable_for(asset, dict(purpose or {}))
+
+
+YOUTUBE_REFERRAL_REASON = (
+    "YouTube is referral-only: open the watch page to identify the rights "
+    "holder. Never ingested as an asset, never granted rights by default."
+)
+
+
+def youtube_rights_scope() -> dict[str, Any]:
+    return _scope_for_candidate(
+        license_name="Unknown — YouTube Standard License assumed",
+        provider="YouTube (referral only)",
+        source_url="https://www.youtube.com/",
+        referral_only=True,
+        deny_reason=YOUTUBE_REFERRAL_REASON,
+    )
+
+
+_GENERIC_FOOTBALL_TOKENS = frozenset({
+    "football", "soccer", "stadium", "match", "goal", "ball", "field",
+    "pitch", "sport", "sports", "game", "team", "club", "league", "cup",
+    "clip", "video", "photo", "image", "highlights", "night", "day",
+})
+
+
+def _significant_tokens(text: str) -> set[str]:
+    tokens = set(re.findall(r"[a-z0-9]+", (text or "").lower()))
+    return {token for token in tokens if len(token) >= 3 and token not in _GENERIC_FOOTBALL_TOKENS}
+
+
+def grade_match(
+    title: str,
+    creator: str | None,
+    query: str,
+    exact_terms: list[str] | None = None,
+) -> str:
+    """Grade a candidate as exact vs generic.
+
+    exact = footage of the named match/player: every exact_term appears in
+    the title/creator, or (without exact_terms) the title shares 2+
+    significant non-generic tokens with the query. Everything else is
+    generic football footage. Generic football vocabulary (football,
+    stadium, match, ...) never counts toward exact.
+    """
+    haystack = f"{title or ''} {creator or ''}".casefold()
+    if exact_terms:
+        wanted = [str(term).casefold().strip() for term in exact_terms if str(term).strip()]
+        if wanted and all(term in haystack for term in wanted):
+            return "exact"
+        return "generic"
+    shared = _significant_tokens(query) & _significant_tokens(f"{title or ''} {creator or ''}")
+    return "exact" if len(shared) >= 2 else "generic"
+
+
+def _stamp_grades(
+    candidates: list[ExternalAssetCandidate],
+    query: str,
+    exact_terms: list[str] | None,
+) -> list[ExternalAssetCandidate]:
+    """Stamp match_grade on search results (search owns grading)."""
+    return [
+        replace(
+            item,
+            match_grade=grade_match(item.title, item.creator, query, exact_terms),
+        )
+        for item in candidates
+    ]
+
+
+YOUTUBE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
+YOUTUBE_WATCH_URL = "https://www.youtube.com/watch"
+YOUTUBE_THUMB_URL = "https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+
+_YOUTUBE_SEARCH_FN: Any = None
+
+
+def set_youtube_search_fn(fn: Any) -> None:
+    """Install a keyless YouTube search hook (planner integration point).
+
+    fn(query, limit) returns a list of {"video_id", "title", "creator",
+    "duration_seconds"} dicts. None restores the default: the adapter stays
+    listed as ready but returns no hits. No network happens inside discovery
+    until a hook is installed — tests inject fixtures through here.
+    """
+    global _YOUTUBE_SEARCH_FN
+    _YOUTUBE_SEARCH_FN = fn
+
+
+def youtube_watch_url(video_id: str) -> str:
+    return f"{YOUTUBE_WATCH_URL}?v={video_id}"
+
+
+def youtube_preview_url(video_id: str) -> str:
+    """Keyless preview thumbnail (i.ytimg.com needs no API key)."""
+    return YOUTUBE_THUMB_URL.format(video_id=video_id)
+
+
+def youtube_referral_candidate(
+    video_id: str,
+    title: str,
+    *,
+    creator: str | None = None,
+    duration_seconds: int | None = None,
+) -> ExternalAssetCandidate | None:
+    """Build a referral-only YouTube candidate (find + link, never ingest)."""
+    if not isinstance(video_id, str) or not YOUTUBE_ID_RE.fullmatch(video_id):
+        return None
+    clean_title = _clean_metadata(title) or f"YouTube video {video_id}"
+    clean_creator = _clean_metadata(creator)
+    preview = youtube_preview_url(video_id)
+    duration = duration_seconds if isinstance(duration_seconds, int) and duration_seconds > 0 else None
+    return ExternalAssetCandidate(
+        candidate_id=f"youtube:{video_id}",
+        provider="YouTube (referral only)",
+        title=clean_title,
+        source_url=youtube_watch_url(video_id),
+        thumbnail_url=preview,
+        preview_url=preview,
+        media_type="VIDEO",
+        mime_type="video/unknown",
+        width=None,
+        height=None,
+        size_bytes=None,
+        license_name="Unknown — YouTube Standard License assumed",
+        license_url=None,
+        license="Unknown — YouTube Standard License assumed",
+        creator=clean_creator,
+        credit=(
+            f"{clean_creator} via YouTube" if clean_creator
+            else "Via YouTube — rights holder on watch page"
+        ),
+        duration_seconds=duration,
+        rights_scope=youtube_rights_scope(),
+        match_grade="generic",
+        verification_status="unverified",
+    )
+
+
+def _youtube_search_hook(api_keys: dict | None) -> Any:
+    if isinstance(api_keys, dict) and callable(api_keys.get("YOUTUBE_SEARCH_FN")):
+        return api_keys["YOUTUBE_SEARCH_FN"]
+    return _YOUTUBE_SEARCH_FN
+
+
+def search_youtube_referrals(
+    query: str,
+    limit: int = 8,
+    *,
+    api_keys: dict | None = None,
+    search_fn: Any = None,
+) -> list[ExternalAssetCandidate]:
+    """Keyless YouTube referral search. Never touches the network by default.
+
+    Without an installed hook the adapter reports ready (so planners can see
+    the referral option) but returns no hits. Hook failures degrade to []
+    so discovery never breaks because of an auxiliary source.
+    """
+    normalized = " ".join(str(query or "").split())
+    if not normalized or limit < 1:
+        return []
+    hook = search_fn if callable(search_fn) else _youtube_search_hook(api_keys)
+    if hook is None:
+        return []
+    try:
+        raw = hook(normalized, min(limit, MAX_RESULTS))
+    except Exception:
+        return []
+    if not isinstance(raw, list):
+        return []
+    candidates: list[ExternalAssetCandidate] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        candidate = youtube_referral_candidate(
+            str(entry.get("video_id", "")),
+            str(entry.get("title", "") or ""),
+            creator=entry.get("creator"),
+            duration_seconds=entry.get("duration_seconds"),
+        )
+        if candidate is not None:
+            candidates.append(candidate)
+        if len(candidates) >= limit:
+            break
+    return candidates
+
+
+ARCHIVE_SEARCH_API = "https://archive.org/advancedsearch.php"
+ARCHIVE_ITEM_URL = "https://archive.org/details/{identifier}"
+ARCHIVE_PREVIEW_URL = "https://archive.org/services/img/{identifier}"
+ARCHIVE_METADATA_URL = "https://archive.org/metadata/{identifier}"
+ARCHIVE_DOWNLOAD_URL = "https://archive.org/download/{identifier}/{name}"
+ARCHIVE_ID_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$")
+ARCHIVE_IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+ARCHIVE_VIDEO_SUFFIXES = (".mp4", ".webm", ".ogv")
+_ARCHIVE_FIELDS = ["identifier", "title", "creator", "licenseurl", "rights", "mediatype",
+                  "width", "height"]
+
+
+def _archive_get_json(url: str) -> dict[str, Any]:
+    request = Request(
+        url,
+        headers={"Accept": "application/json", "User-Agent": COMMONS_USER_AGENT},
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            payload = response.read(2 * 1024 * 1024)
+    except (HTTPError, URLError, TimeoutError, OSError) as error:
+        raise DiscoveryError(f"Internet Archive request failed: {error}") from error
+    try:
+        result = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise DiscoveryError("Internet Archive returned invalid JSON.") from error
+    if not isinstance(result, dict):
+        raise DiscoveryError("Internet Archive returned an unexpected response.")
+    return result
+
+
+def _archive_license(doc: dict[str, Any]) -> tuple[str | None, str | None, bool]:
+    """Return (license_name, license_url, known_reusable).
+
+    Unknown licenses are never pre-approved: rights_scope.allowed stays
+    False until a human reviews the item page.
+    """
+    license_url = doc.get("licenseurl")
+    if isinstance(license_url, list):
+        license_url = license_url[0] if license_url else None
+    if isinstance(license_url, str) and license_url.startswith("https://"):
+        lowered = license_url.lower()
+        if "publicdomain/zero" in lowered:
+            return "CC0", license_url, True
+        if "publicdomain/mark" in lowered:
+            return "Public Domain Mark", license_url, True
+        match = re.search(r"creativecommons\.org/licenses/([a-z-]+)/(\d\.\d)", lowered)
+        if match:
+            return _license_label(match.group(1), match.group(2)), license_url, True
+        return f"See license: {license_url}", license_url, False
+    rights = _clean_metadata(doc.get("rights"))
+    if rights:
+        return rights[:160], None, False
+    return "Unknown — verify on item page", None, False
+
+
+def _archive_dim(value: Any) -> int | None:
+    try:
+        parsed = int(str(value).strip())
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _archive_candidate_from_doc(
+    doc: dict[str, Any],
+    *,
+    media_type: str,
+    mime_type: str,
+) -> ExternalAssetCandidate | None:
+    if not isinstance(doc, dict):
+        return None
+    identifier = str(doc.get("identifier", ""))
+    if not ARCHIVE_ID_RE.fullmatch(identifier):
+        return None
+    title = _clean_metadata(doc.get("title")) or identifier
+    creator = _clean_metadata(doc.get("creator"))
+    license_name, license_url, reusable = _archive_license(doc)
+    preview = ARCHIVE_PREVIEW_URL.format(identifier=identifier)
+    scope = _scope_for_candidate(
+        license_name=license_name,
+        provider="Internet Archive",
+        source_url=ARCHIVE_ITEM_URL.format(identifier=identifier),
+        creator=creator,
+        credit=f"{creator} via Internet Archive" if creator else None,
+        referral_only=not reusable,
+        deny_reason="Internet Archive license unknown — human review of the item page required.",
+    )
+    return ExternalAssetCandidate(
+        candidate_id=f"archive:{identifier}",
+        provider="Internet Archive",
+        title=title[:160],
+        source_url=ARCHIVE_ITEM_URL.format(identifier=identifier),
+        thumbnail_url=preview,
+        preview_url=preview,
+        media_type=media_type,
+        mime_type=mime_type,
+        width=_archive_dim(doc.get("width")),
+        height=_archive_dim(doc.get("height")),
+        size_bytes=None,
+        license_name=license_name,
+        license_url=license_url,
+        license=license_name,
+        creator=creator,
+        credit=f"{creator} via Internet Archive" if creator else "Via Internet Archive",
+        duration_seconds=None,
+        rights_scope=scope,
+        match_grade="generic",
+        verification_status="unverified",
+    )
+
+
+def _search_archive(
+    query: str,
+    limit: int,
+    *,
+    collection: str,
+    media_type: str,
+    mime_type: str,
+) -> list[ExternalAssetCandidate]:
+    normalized = " ".join(str(query or "").split())
+    if not normalized:
+        raise ValueError("Search query is required.")
+    params = urlencode(
+        {
+            "q": f"({normalized[:100]}) AND mediatype:{collection}",
+            "fl[]": _ARCHIVE_FIELDS,
+            "rows": max(3, min(limit, 20)),
+            "page": 1,
+            "output": "json",
+        },
+        doseq=True,
+    )
+    response = _archive_get_json(f"{ARCHIVE_SEARCH_API}?{params}")
+    docs = response.get("response", {}).get("docs", [])
+    if not isinstance(docs, list):
+        return []
+    candidates: list[ExternalAssetCandidate] = []
+    for doc in docs:
+        # The query already filters mediatype server-side; re-check client-side
+        # so loose API responses can never mix stills into video results.
+        if isinstance(doc, dict) and doc.get("mediatype") not in (None, "", collection):
+            continue
+        candidate = _archive_candidate_from_doc(doc, media_type=media_type, mime_type=mime_type)
+        if candidate is not None:
+            candidates.append(candidate)
+        if len(candidates) >= limit:
+            break
+    return candidates
+
+
+def _search_archive_images(query: str, limit: int = 12) -> list[ExternalAssetCandidate]:
+    """Keyless Internet Archive image search (no key, no quota)."""
+    return _search_archive(query, limit, collection="image",
+                           media_type="IMAGE", mime_type="image/unknown")
+
+
+def _search_archive_videos(query: str, limit: int = 12) -> list[ExternalAssetCandidate]:
+    """Keyless Internet Archive video search (no key, no quota)."""
+    return _search_archive(query, limit, collection="movies",
+                           media_type="VIDEO", mime_type="video/unknown")
+
+
+def _archive_detail(identifier: str) -> ExternalAssetCandidate:
+    if not isinstance(identifier, str) or not ARCHIVE_ID_RE.fullmatch(identifier):
+        raise ValueError("Invalid Internet Archive candidate ID.")
+    params = urlencode(
+        {
+            "q": f"identifier:{identifier}",
+            "fl[]": _ARCHIVE_FIELDS,
+            "rows": 1,
+            "page": 1,
+            "output": "json",
+        },
+        doseq=True,
+    )
+    try:
+        response = _archive_get_json(f"{ARCHIVE_SEARCH_API}?{params}")
+    except DiscoveryError as error:
+        raise DiscoveryError(
+            "The selected Internet Archive item is no longer available."
+        ) from error
+    docs = response.get("response", {}).get("docs", [])
+    if not docs or not isinstance(docs[0], dict):
+        raise DiscoveryError("The selected Internet Archive item is no longer available.")
+    doc = docs[0]
+    collection = str(doc.get("mediatype", ""))
+    if collection == "movies":
+        media_type, mime_type = "VIDEO", "video/unknown"
+    elif collection == "image":
+        media_type, mime_type = "IMAGE", "image/unknown"
+    else:
+        raise DiscoveryError("The selected Internet Archive item is not a supported media type.")
+    candidate = _archive_candidate_from_doc(doc, media_type=media_type, mime_type=mime_type)
+    if candidate is None:
+        raise DiscoveryError("The selected Internet Archive item is no longer available.")
+    return candidate
+
+
+def _archive_file_url(identifier: str, *, video: bool) -> str:
+    """Re-resolve a direct file URL at download time via the metadata API."""
+    try:
+        meta = _archive_get_json(ARCHIVE_METADATA_URL.format(identifier=identifier))
+    except DiscoveryError as error:
+        raise DiscoveryError(
+            "The selected Internet Archive item is no longer available."
+        ) from error
+    files = meta.get("files", [])
+    if not isinstance(files, list):
+        raise DiscoveryError("The selected Internet Archive item has no downloadable file.")
+    suffixes = ARCHIVE_VIDEO_SUFFIXES if video else ARCHIVE_IMAGE_SUFFIXES
+    cap = MAX_VIDEO_BYTES if video else MAX_DOWNLOAD_BYTES
+    shortlisted: list[str] = []
+    for entry in files:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get("name", ""))
+        if not name or name.startswith("/") or "/" in name:
+            continue
+        if not name.lower().endswith(suffixes):
+            continue
+        try:
+            size = int(entry.get("size", 0) or 0)
+        except (TypeError, ValueError):
+            size = 0
+        if size and size > cap:
+            continue
+        shortlisted.append(name)
+    if not shortlisted:
+        raise DiscoveryError("The selected Internet Archive item has no downloadable file.")
+    # Prefer the most widely playable rendition (mp4 for video, jpeg for
+    # stills) instead of whichever file the item lists first.
+    preferred = ".mp4" if video else ".jpg"
+    chosen = next((name for name in shortlisted if name.lower().endswith(preferred)),
+                  shortlisted[0])
+    return ARCHIVE_DOWNLOAD_URL.format(identifier=identifier, name=chosen)
+
+
+def _download_archive_candidate(candidate: ExternalAssetCandidate) -> tuple[bytes, str]:
+    video = candidate.media_type == "VIDEO"
+    allowed = ALLOWED_VIDEO_TYPES if video else ALLOWED_IMAGE_TYPES
+    cap = MAX_VIDEO_BYTES if video else MAX_DOWNLOAD_BYTES
+    kind = "video" if video else "image"
+    file_url = _archive_file_url(candidate.candidate_id.removeprefix("archive:"), video=video)
+    _validate_public_https_url(file_url)
+    request = Request(file_url, headers={"User-Agent": COMMONS_USER_AGENT})
+    opener = build_opener(_PublicHttpsRedirectHandler())
+    try:
+        with opener.open(request, timeout=60 if video else 30) as response:
+            _validate_public_https_url(response.geturl())
+            mime_type = response.headers.get_content_type().lower()
+            if mime_type not in allowed:
+                raise DiscoveryError(f"Unsupported {kind} MIME type: {mime_type}")
+            declared_size = response.headers.get("Content-Length")
+            if declared_size and int(declared_size) > cap:
+                raise DiscoveryError(
+                    f"{'Video' if video else 'Image'} exceeds the download limit."
+                )
+            data = response.read(cap + 1)
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError) as error:
+        if isinstance(error, DiscoveryError):
+            raise
+        raise DiscoveryError(f"Internet Archive {kind} download failed: {error}") from error
+    if len(data) > cap:
+        raise DiscoveryError(f"{'Video' if video else 'Image'} exceeds the download limit.")
     return data, mime_type
 
 
@@ -1324,14 +2105,16 @@ def search_candidates(
     api_keys: dict | None = None,
     sort: str = "relevance",
     orientation: str | None = None,
+    exact_terms: list[str] | None = None,
 ) -> tuple[list[ExternalAssetCandidate], list[dict[str, str]]]:
     """Search every eligible provider for images or video.
 
     Returns (candidates, provider_status). Keyed providers without a key are
     reported, not queried. sort=newest puts dated uploads first (Wikimedia
     Commons exposes upload dates; other providers do not). orientation hints
-    portrait/landscape to providers that support it. Raises only when every
-    queried provider failed.
+    portrait/landscape to providers that support it. exact_terms (player /
+    match names from the planner) grade candidates as exact vs generic.
+    Raises only when every queried provider failed.
     """
     normalized_query = _validate_search_args(query, resource_type, limit, sort, orientation)
     statuses = provider_status(api_keys)
@@ -1340,14 +2123,21 @@ def search_candidates(
     if not collected and failures:
         raise DiscoveryError("; ".join(failures))
     ranked = _rank_collected(collected, normalized_query, limit, sort)
-    return ranked, statuses
+    return _stamp_grades(ranked, normalized_query, exact_terms), statuses
 
 
 # Cost tiers, cheapest first. Mirrors the Visibly "Google-first" pattern:
 # free sources serve every request; quota-limited keyed sources run only
 # when the free tier cannot satisfy the need.
-FREE_PROVIDER_KEYS = frozenset({"openverse_image", "commons_image", "commons_video"})
+FREE_PROVIDER_KEYS = frozenset({
+    "openverse_image", "commons_image", "commons_video",
+    "archive_image", "archive_video", "youtube_referral",
+})
 KEYED_PROVIDER_KEYS = frozenset({"pexels_image", "pexels_video", "pixabay_image", "pixabay_video"})
+# Providers that may be listed for discovery but must never be downloaded
+# as assets (referral-only: find + link to the source, nothing else).
+REFERRAL_ONLY_KEYS = frozenset({"youtube_referral"})
+REFERRAL_ONLY_PREFIXES = ("youtube:",)
 
 
 def tier_of_provider_key(key: str) -> str:
@@ -1364,9 +2154,19 @@ def tier_of_provider(label: str) -> str:
     text = (label or "").lower()
     if text.startswith("openverse") or text.startswith("wikimedia"):
         return "keyless"
+    if text.startswith("internet archive") or text.startswith("youtube"):
+        return "keyless"
     if text.startswith("pexels") or text.startswith("pixabay"):
         return "keyed"
     return "unknown"
+
+
+def is_referral_only(candidate: ExternalAssetCandidate) -> bool:
+    """True when the candidate must never be downloaded as an asset."""
+    provider = (candidate.provider or "").lower()
+    if candidate.candidate_id.startswith(REFERRAL_ONLY_PREFIXES):
+        return True
+    return "referral only" in provider or provider.startswith("youtube")
 
 
 def _validate_search_args(
@@ -1429,6 +2229,12 @@ def _collect_from_providers(
         lambda: search_commons_images(normalized_query, limit=min(limit, 12)))
     run("commons_video", "video",
         lambda: _search_commons_videos(normalized_query, limit=min(limit, 12)))
+    run("archive_image", "image",
+        lambda: _search_archive_images(normalized_query, limit=min(limit, 12)))
+    run("archive_video", "video",
+        lambda: _search_archive_videos(normalized_query, limit=min(limit, 12)))
+    run("youtube_referral", "video",
+        lambda: search_youtube_referrals(normalized_query, limit, api_keys=per_key))
     if pexels_key:
         run("pexels_image", "image",
             lambda: _search_pexels_images(normalized_query, pexels_key, limit, orientation))
@@ -1476,10 +2282,12 @@ def search_candidates_tiered(
     min_free: int = 6,
     min_good: int = 3,
     good_score: float = 4.0,
+    exact_terms: list[str] | None = None,
 ) -> tuple[list[ExternalAssetCandidate], list[dict[str, str]], dict[str, Any]]:
     """Free-first discovery with keyed-tier escalation.
 
-    Phase 1 queries only keyless providers (Openverse, Wikimedia Commons:
+    Phase 1 queries only keyless providers (Openverse, Wikimedia Commons,
+    Internet Archive, YouTube referrals: no quota, no key). Phase 2 (Pexels,
     no quota, no key). Phase 2 (Pexels, Pixabay) runs when the free tier
     is insufficient — by *count* (fewer than ``min_free`` usable
     candidates) or by *quality* (fewer than ``min_good`` candidates
@@ -1530,7 +2338,7 @@ def search_candidates_tiered(
             "escalation_reason": reason,
             "keyed_available": keyed_available,
         }
-        return _stamp_tiers(free_ranked), statuses, report
+        return _stamp_grades(_stamp_tiers(free_ranked), normalized_query, exact_terms), statuses, report
 
     if short_on_count and short_on_quality:
         why = (f"free tier returned {len(free_ranked)} < min_free {effective_min} "
@@ -1555,4 +2363,4 @@ def search_candidates_tiered(
         "escalation_reason": why,
         "keyed_available": keyed_available,
     }
-    return _stamp_tiers(merged), statuses, report
+    return _stamp_grades(_stamp_tiers(merged), normalized_query, exact_terms), statuses, report

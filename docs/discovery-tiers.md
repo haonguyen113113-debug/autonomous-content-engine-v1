@@ -34,3 +34,12 @@ library (reuse-first, 0 cost)
 - Khóa bằng `tests/test_discovery_tiers.py`: free đủ thì keyed
   không được gọi (boom guard), thiếu thì merge, không keys thì
   không escalate.
+
+## Free tier mở rộng (workstream 2/4, 2026-10-16)
+
+Free phase giờ gồm Openverse + Wikimedia Commons (image/video) +
+**Internet Archive** (image/video, keyless advancedsearch) + **YouTube
+referral** (video, keyless, `acquisition: referral_only`, mặc định `[]`
+cho tới khi planner gắn search hook — xem `docs/discovery-referral.md`).
+`FREE_PROVIDER_KEYS` cập nhật tương ứng; keyed escalation và
+`min_free/min_good` giữ nguyên semantics.

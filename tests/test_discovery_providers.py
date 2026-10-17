@@ -7,6 +7,14 @@ import apps.asset_library.discovery as discovery
 from apps.asset_library.asset_intelligence import ResourceRequirement
 
 
+@pytest.fixture(autouse=True)
+def _stub_keyless_adapters(monkeypatch):
+    """Pin new keyless adapters offline: tests inject fixtures per-case."""
+    monkeypatch.setattr(discovery, "_search_archive_images", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_archive_videos", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "search_youtube_referrals", lambda *a, **k: [])
+
+
 def _ov_item(**overrides):
     item = {
         "id": "12345678-1234-1234-1234-1234567890ab",

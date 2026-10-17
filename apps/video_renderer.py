@@ -2030,6 +2030,16 @@ def _render(
         f"enable='between(t,{title_start:.3f},{title_end:.3f})'"
     )
     segments = [] if preview else draft.get("segments", [])
+    # Scene Graph mode (workstream 4, flag-gated): beat timings come from
+    # the frozen graphs, never from segment math. Validation raises - the
+    # renderer never remaps an unknown mode or a count mismatch.
+    sg_graphs = _scene_graph_clip(draft, preview, phase_ranges)
+    if sg_graphs is not None:
+        phase_ranges = [(float(graph["timing"]["start"]), float(graph["timing"]["end"]))
+                        for graph in sg_graphs]
+    sg_purpose = _render_purpose(run, draft) if sg_graphs is not None else None
+    sg_media_records: dict[int, dict[str, Any]] = {}
+    sg_credit_texts: dict[int, str | None] = {}
     fallback_diagrams = _diagram_specs()
     diagram_specs: list[dict[str, Any]] = []
     scene_paths: list[Path] = []
@@ -2046,13 +2056,18 @@ def _render(
         if not preview and index < len(segments):
             segment = segments[index]
             spec = segment.get("tactical_diagram")
-        mode = str(segment.get("visual_mode", "tactical_explainer"))
+        if sg_graphs is not None:
+            # Frozen mode, verbatim. No silent remap, no timeline-driven
+            # mode switch (both are storytelling decisions).
+            mode = str(sg_graphs[index].get("mode"))
+        else:
+            mode = str(segment.get("visual_mode", "tactical_explainer"))
         supported_modes = {"tactical_explainer", "statline_scorecard", "source_card", "chart_comparison", "chart_timeline", "media_b_roll", "hook_card", "player_card", "comparison_duel", "stat_leader", "player_poster", "goal_card", "fixture_card", "score_card", "duel_columns", "player_poster_side", "player_poster_top", "fixture_list", "quote_card", "potm_card", "discipline_card", "welcome_card"}
-        if mode not in supported_modes:
+        if sg_graphs is None and mode not in supported_modes:
             mode = "tactical_explainer"
         # A typed timeline event can select a dedicated data layout when the
         # segment has not explicitly selected a visual mode.
-        if not segment.get("visual_mode"):
+        if sg_graphs is None and not segment.get("visual_mode"):
             event_types = {item.get("item_type") for item in segment.get("timeline_events", []) if isinstance(item, dict)}
             if "stat_card" in event_types:
                 mode = "statline_scorecard"
@@ -2060,28 +2075,51 @@ def _render(
                 mode = "source_card"
         selected_modes.append(mode)
         beat_graphic = segment.get("graphic_data", {}) if isinstance(segment.get("graphic_data"), dict) else {}
-        if mode == "hook_card" or (mode == "statline_scorecard" and isinstance(beat_graphic.get("hero"), dict)):
+        # Scene Graph mode executes frozen motion only: hook_punch_in and
+        # number_pop punch in (numerals stay frozen, no re-layout). Per-beat
+        # motion choice and kinetic text re-wraps stay banned.
+        if sg_graphs is not None:
+            sg_motion = sg_graphs[index].get("motion")
+            sg_motion = sg_motion if isinstance(sg_motion, dict) else {}
+            if sg_motion.get("enter") == "hook_punch_in" or sg_motion.get("effect") == "number_pop":
+                punch_beats.add(index)
+        elif mode == "hook_card" or (mode == "statline_scorecard" and isinstance(beat_graphic.get("hero"), dict)):
             punch_beats.add(index)
         hook_text = str(beat_graphic.get("hook_text", "")).strip() if isinstance(beat_graphic, dict) else ""
         hero = beat_graphic.get("hero") if isinstance(beat_graphic, dict) else None
         try:
             from apps.card_selector import STARTERS_SHORT as _STARTERS
-            _starter_ok = (not is_long and _STARTERS.get(mode)
+            _starter_ok = (sg_graphs is None and not is_long and _STARTERS.get(mode)
                            and not (segment.get("media_asset_id") if isinstance(segment, dict) else None))
         except Exception:
             _starter_ok = False
         # Starter scenes carry their own text: kinetic text overlays below
         # are gated on not _starter_ok so nothing renders twice (owner 16/10).
-        if mode == "hook_card" and hook_text and not _starter_ok:
+        # Scene Graph mode adds no kinetic overlays at all (re-wraps banned).
+        if sg_graphs is None and mode == "hook_card" and hook_text and not _starter_ok:
             kinetic_overlays[index] = {"kind": "hook", "text": hook_text}
-        elif (mode == "statline_scorecard" and isinstance(hero, dict)
+        elif (sg_graphs is None and mode == "statline_scorecard" and isinstance(hero, dict)
                 and str(hero.get("value", "")).strip() and not beat_graphic.get("metrics")
                 and not _starter_ok):
             kinetic_overlays[index] = {"kind": "hero", "value": str(hero.get("value", ""))[:12]}
         scene_palette = dict(palette)
         graphic_data = segment.get("graphic_data", {}) if isinstance(segment.get("graphic_data"), dict) else {}
         media_record = None
-        if not preview and segment.get("media_asset_id"):
+        if sg_graphs is not None:
+            # Frozen media only: planner-approved refs resolve through the
+            # verified/active gate plus the upload-intent scope (both raise
+            # when denied). The mode stays verbatim - never forced, never
+            # dropped.
+            frozen_params = sg_graphs[index].get("params")
+            frozen_params = frozen_params if isinstance(frozen_params, dict) else {}
+            frozen_graphic = frozen_params.get("graphic_data")
+            graphic_data = dict(frozen_graphic) if isinstance(frozen_graphic, dict) else {}
+            gated_record, gated_credit = _scene_graph_media(root, sg_graphs[index], sg_purpose)
+            if gated_record is not None:
+                media_record = gated_record
+                sg_media_records[index] = gated_record
+                sg_credit_texts[index] = gated_credit
+        elif not preview and segment.get("media_asset_id"):
             media_record = _library_image_record(root, str(segment["media_asset_id"]))
             if mode in {"player_card", "player_poster", "player_poster_side", "player_poster_top",
                             "potm_card", "welcome_card", "score_card", "quote_card"}:
@@ -2094,7 +2132,7 @@ def _render(
             else:
                 mode = "media_b_roll"
                 selected_modes[-1] = mode
-        elif mode == "media_b_roll":
+        elif mode == "media_b_roll" and sg_graphs is None:
             mode = "tactical_explainer"
             selected_modes[-1] = mode
         for role in ("team_home", "team_away"):
@@ -2106,7 +2144,23 @@ def _render(
         diagram_specs.append(spec)
         scene_path = work_dir / f"tactical-scene-{index}.png"
         scene_text_paths.append(None)
-        if mode == "tactical_explainer":
+        if sg_graphs is not None:
+            # Execute the frozen graph verbatim (absolute layers only).
+            returned_text = _write_scene_graph_beat(
+                scene_path,
+                sg_graphs[index],
+                root=root,
+                font_path=font,
+                display_font_path=latin_font,
+                palette=scene_palette,
+                is_long=is_long,
+                scene_number=index + 1,
+                media_record=media_record,
+                credit_text=sg_credit_texts.get(index),
+                text_path=work_dir / f"tactical-text-{index}.png",
+            )
+            scene_text_paths[index] = returned_text
+        elif mode == "tactical_explainer":
             starter_card = graphic_data.get("tactical_card", "") if isinstance(graphic_data, dict) else ""
             try:
                 if not is_long:
@@ -2192,9 +2246,11 @@ def _render(
     _write_ball_sprite(ball_sprite, palette)
     # Authored ending card (owner 16/10): the prebuilt C-10 end card closes
     # short videos instead of bare background+text. +4s music tail.
+    # Scene Graph mode skips it: the ending must arrive as a frozen graph
+    # beat - the renderer never appends story beats on its own.
     ending_path = None
     out_duration = duration
-    if not preview and not visual_only and not is_long:
+    if not preview and not visual_only and not is_long and sg_graphs is None:
         try:
             from pathlib import Path as _P
             from apps.studio_templates.render_starters import render_design as _render_design
@@ -2334,20 +2390,37 @@ def _render(
         scene_enable = f"gte(t,{start:.3f})*lt(t,{end:.3f})"
         scene_slide = f"18*(1-min(max((t-{start:.3f})/0.24,0),1))^2"
         scene_y_expr = f"{scene_y}+{scene_slide}"
+        # Frozen transition: chalk_line_wipe executes as the standard 0.3s
+        # slide-in; clean_cut suppresses the slide (hard cut).
+        sg_transition = sg_graphs[index].get("transition") if sg_graphs is not None else None
+        sg_cut = (isinstance(sg_transition, dict) and sg_transition.get("in") == "clean_cut")
+        enter_slide = "0" if sg_cut else f"{panel_w}*max(0,1-(t-{start:.3f})/0.3)"
         beat_events: list[Any] = list(chapter_pool)
         if not preview and index < len(full_segments) and isinstance(full_segments[index], dict):
             beat_events += full_segments[index].get("timeline_events", [])
         fade_in, fade_out = _beat_fades(beat_events, start, end)
+        if sg_graphs is not None:
+            # Frozen enter only: fade_0_3s fades the beat in and out.
+            # Timeline enter/exit flags are not consulted (outside the
+            # graph contract).
+            sg_enter = sg_graphs[index].get("motion")
+            sg_enter = sg_enter.get("enter") if isinstance(sg_enter, dict) else None
+            fade_in = fade_out = (sg_enter == "fade_0_3s")
         if fade_in or fade_out:
             fades_used += 1
         scene_source = f"{scene_idx}:v"
         if selected_modes[index] == "media_b_roll":
             media_layer = f"mediamotion{index}"
             media_width, media_height = (1540, 840) if is_long else (1080, 1920)
+            media_fades = ""
+            if sg_graphs is not None and fade_in:
+                media_fades += f",fade=t=in:st={start:.3f}:d=0.45:alpha=1"
+            if sg_graphs is not None and fade_out:
+                media_fades += f",fade=t=out:st={max(start, end - 0.45):.3f}:d=0.45:alpha=1"
             chains.append(
                 f"[{scene_idx}:v]zoompan=z='min(1.035,zoom+0.00002)':"
                 f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
-                f"s={media_width}x{media_height}:fps={fps},format=rgba[{media_layer}]"
+                f"s={media_width}x{media_height}:fps={fps},format=rgba{media_fades}[{media_layer}]"
             )
             scene_source = media_layer
         else:
@@ -2375,10 +2448,11 @@ def _render(
             chains.append(f"{motion_chain}{fade_chain}[{motion_label}]")
             scene_source = motion_label
         chains.append(
-            f"[{current}][{scene_source}]overlay=x='{scene_x}+{panel_w}*max(0,1-(t-{start:.3f})/0.3)':y='{scene_y_expr}':eval=frame:eof_action=pass:format=auto:"
+            f"[{current}][{scene_source}]overlay=x='{scene_x}+{enter_slide}':y='{scene_y_expr}':eval=frame:eof_action=pass:format=auto:"
             f"enable='{scene_enable}'[{scene_label}]"
         )
-        slide_used += 1
+        if not sg_cut:
+            slide_used += 1
         # Glitch cut: 3 thin RGB-split strips flash at each scene entrance.
         for glitch_no, (tint, height_frac) in enumerate(
                 (("0xFF2FB3", 0.012), ("0x00E5FF", 0.009), ("0xFFFFFF", 0.006))):
@@ -2409,11 +2483,13 @@ def _render(
                 f"fade=t=out:st={max(start, end - 0.45):.3f}:d=0.45:alpha=1[text{index}]"
             )
             chains.append(
-                f"[{current}][text{index}]overlay=x='{scene_x}+{panel_w}*max(0,1-(t-{start:.3f})/0.3)':y='{scene_y_expr}':eval=frame:eof_action=pass:format=auto:"
+                f"[{current}][text{index}]overlay=x='{scene_x}+{enter_slide}':y='{scene_y_expr}':eval=frame:eof_action=pass:format=auto:"
                 f"enable='{scene_enable}'[textlayer{index}]"
             )
             current = f"textlayer{index}"
-        if selected_modes[index] != "tactical_explainer":
+        # Scene Graph mode skips the authored ball/trail pass: its vector
+        # comes from an unfrozen fallback storyboard, not the graph.
+        if sg_graphs is not None or selected_modes[index] != "tactical_explainer":
             continue
         vector = spec.get("pass_vector", {})
         start_point = vector.get("from", [0.18, 0.5])
@@ -2479,7 +2555,9 @@ def _render(
         pool: list[Any] = list(chapter_pool)
         if not preview and index < len(full_segments) and isinstance(full_segments[index], dict):
             pool += full_segments[index].get("timeline_events", [])
-        for job, item in enumerate(_overlay_items(pool, start, end)):
+        # Scene Graph mode renders no timeline overlays: lower-thirds and
+        # captions are not in the graph contract yet (waiting point: ws3).
+        for job, item in enumerate(_overlay_items(pool, start, end) if sg_graphs is None else []):
             try:
                 item_start = max(start, float(item.get("start_seconds", start)))
                 item_end = min(end, float(item.get("end_seconds", end)))
@@ -2615,7 +2693,24 @@ def _render(
         raise RuntimeError((result.stderr or "FFmpeg render failed.")[-2500:])
 
     selected_media = []
-    for item in (draft.get("segments", []) if not preview else []):
+    # Scene Graph mode attributes the frozen graph assets (already
+    # rights-gated at scene-paint time); legacy mode reads the segments.
+    sg_media_jobs: list[dict[str, Any]] | None = None
+    if sg_graphs is not None:
+        from apps.measurement.render_qa import graph_asset_refs as _sg_refs
+
+        sg_media_jobs = []
+        for graph in sg_graphs:
+            for ref in _sg_refs(graph):
+                graphic = (graph.get("params") or {}).get("graphic_data") or {}
+                if not isinstance(graphic, dict):
+                    graphic = {}
+                sg_media_jobs.append({
+                    "media_asset_id": ref["asset_id"],
+                    "media_caption": graphic.get("media_caption"),
+                    "visual": graphic.get("media_caption"),
+                })
+    for item in (sg_media_jobs if sg_media_jobs is not None else (draft.get("segments", []) if not preview else [])):
         asset_id = str(item.get("media_asset_id", "")) if isinstance(item, dict) else ""
         if not asset_id:
             continue
@@ -2683,6 +2778,56 @@ def _render(
                 "status": "NOT USED",
                 "detail": f"Voice-only render ({sound_note or 'soundpack off'}).",
             })
+    # Scene Graph mode: QA the ACTUAL rendered beats (frozen geometry +
+    # rendered pixels + both workstream-1 rights gates). Verdicts are
+    # PASS | FAIL | NEEDS_REVIEW with evidence; pixel checks that lack
+    # their layer NEEDS_REVIEW instead of passing blind.
+    sg_qa: dict[str, Any] | None = None
+    if sg_graphs is not None:
+        from PIL import Image as _Image
+
+        from apps.measurement.render_qa import qa_clip as _qa_clip
+
+        sg_full: list[Any] = []
+        sg_bg: list[Any] = []
+        for beat_index, beat_graph in enumerate(sg_graphs):
+            try:
+                beat_bg = _Image.open(scene_paths[beat_index]).convert("RGBA")
+            except (OSError, ValueError):
+                sg_full.append(None)
+                sg_bg.append(None)
+                continue
+            beat_text_path = scene_text_paths[beat_index]
+            if beat_graph.get("kind") == "starter":
+                sg_bg.append(beat_bg.convert("RGB"))
+                if beat_text_path is not None and Path(beat_text_path).is_file():
+                    try:
+                        beat_tx = _Image.open(beat_text_path).convert("RGBA")
+                        if beat_tx.size != beat_bg.size:
+                            beat_tx = beat_tx.resize(beat_bg.size)
+                        sg_full.append(_Image.alpha_composite(beat_bg, beat_tx).convert("RGB"))
+                    except (OSError, ValueError):
+                        sg_full.append(beat_bg.convert("RGB"))
+                else:
+                    sg_full.append(beat_bg.convert("RGB"))
+            else:
+                sg_full.append(beat_bg.convert("RGB"))
+                sg_bg.append(None)
+        sg_narrations: dict[str, str] = {}
+        for seg in (draft.get("segments", []) if isinstance(draft.get("segments"), list) else []):
+            if isinstance(seg, dict) and seg.get("segment_id") and isinstance(seg.get("narration"), str):
+                sg_narrations[str(seg["segment_id"])] = str(seg["narration"])
+        sg_qa = _qa_clip(
+            sg_graphs,
+            sg_full,
+            bg_images=sg_bg,
+            narrations=sg_narrations,
+            duration_target=float(duration),
+            roles=None,
+            root=root,
+            purpose=sg_purpose,
+        )
+        checks.extend(sg_qa["checks"])
     if not video_streams:
         raise RuntimeError("The rendered MP4 has no video stream.")
     report = {
@@ -2696,6 +2841,12 @@ def _render(
         "selected_media": selected_media,
         "soundpack": run.get("soundpack"),
         "quality_checks": checks,
+        "scene_graph_qa": (
+            {"mode": "scene_graph", "verdict": sg_qa["verdict"],
+             "ready": sg_qa["ready"],
+             "scenes": sg_qa["scenes"], "clip_checks": sg_qa["clip_checks"]}
+            if sg_qa is not None else None
+        ),
         "ffprobe": metadata,
         "limitations": ([
             "TTS voice naturalness and similarity have not been audited by the owner.",
@@ -2794,3 +2945,366 @@ def render_full_run(root: Path, run_id: str) -> dict[str, Any]:
     run["status"] = "WAITING_FOR_RENDER_AUDIT"
     path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return result
+
+
+# ---------------------------------------------------------------------------
+# Scene Graph execution path (workstream 4).
+#
+# Boundary: the renderer draws frozen Scene Graphs and executes their frozen
+# motion vocabulary with the existing primitives. It NEVER decides
+# storytelling or layout here: no mode/starter selection, no timeline-driven
+# mode switching, no text re-wrapping (hook stagger, count-up, phrase
+# balancing), no media auto-attach, no invented ending card. Unknown modes,
+# pending (uncleared) assets and unverified media raise loudly instead of
+# falling back - fallback decisions belong to the planner + builder
+# (apps.scene_graph.builder).
+#
+# Schema is owned by workstream 3 (apps/scene_graph/schema.py); this path
+# consumes it via validate_scene_graph and apps.scene_graph.executor only.
+# Media rights call the workstream-1 checks: verified + active library
+# records with files inside runtime/assets/library, then is_usable_for()
+# against the upload intent (platform/territory from the run's
+# distribution destinations; never guessed). Crest slots keep the
+# monogram-initials fallback until a licensed file lands
+# (apps.sportskit.crests.resolve_crest). Pillow draws the static layers.
+#
+# Frozen motion executes verbatim with the existing grammar: hook_punch_in
+# and number_pop -> fast punch zoom (numerals stay frozen, no re-layout);
+# slide_in_right_0_3s -> standard 0.3s slide-in; fade_0_3s -> fade in/out;
+# chalk_line_wipe -> 0.3s slide-in; clean_cut -> hard cut (slide
+# suppressed). Anything outside this table is a planner/builder gap, and
+# QA NEEDS_REVIEWs it instead of the renderer inventing motion.
+#
+# Gated by ACE_SCENE_GRAPH_RENDER=1 plus draft["scene_graphs"] (one graph
+# per segment, validated up front). Default off: legacy behavior is
+# byte-identical when the flag is unset.
+# ---------------------------------------------------------------------------
+
+SCENE_GRAPH_RENDER_ENV = "ACE_SCENE_GRAPH_RENDER"
+
+
+def _scene_graph_clip(
+    draft: dict[str, Any],
+    preview: bool,
+    phase_ranges: list[tuple[int, int]],
+) -> list[dict[str, Any]] | None:
+    """Validate the draft's frozen Scene Graphs, or None for legacy path.
+
+    Flag-off (ACE_SCENE_GRAPH_RENDER != "1") is the ONLY legacy path —
+    preview does not gate scene-graph mode. When the flag is "1" and the
+    draft carries no frozen scene_graphs, the renderer refuses to fall back
+    to legacy and raises ValueError (fail-closed).
+    """
+    if os.environ.get(SCENE_GRAPH_RENDER_ENV) != "1":
+        return None
+    graphs = draft.get("scene_graphs")
+    if not graphs:
+        raise ValueError(
+            "ACE_SCENE_GRAPH_RENDER=1 but draft.scene_graphs is missing/empty — refusing legacy fallback."
+        )
+    if not isinstance(graphs, list):
+        raise ValueError("draft scene_graphs must be a list of Scene Graphs.")
+    from apps.scene_graph.schema import validate_scene_graph
+
+    checked = [validate_scene_graph(graph) for graph in graphs]
+    if len(checked) != len(phase_ranges):
+        raise ValueError(
+            f"scene_graphs carries {len(checked)} beat(s) but the draft has "
+            f"{len(phase_ranges)} segment(s); the planner must emit exactly "
+            "one Scene Graph per segment."
+        )
+    return checked
+
+
+def _render_purpose(run: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any] | None:
+    """Upload intent for the per-purpose media scope check, or None.
+
+    Reads the run/draft distribution destinations ({platform, market});
+    commercial/monetization pass through only when explicitly declared.
+    edit=True is factual (composition always crops/scales) and
+    credit_planned=True is factual (the primitive burns a credit line).
+    Missing platform/territory -> None: workstream 1 forbids guessing, so
+    the scope gate stays unevaluated (QA NEEDS_REVIEWs it).
+    """
+    destinations: list[dict[str, Any]] = []
+    for container in (run, draft):
+        if not isinstance(container, dict):
+            continue
+        for key in ("destinations", "distribution"):
+            value = container.get(key)
+            if isinstance(value, dict):
+                value = value.get("destinations")
+            if isinstance(value, list):
+                destinations.extend(item for item in value if isinstance(item, dict))
+    picked: dict[str, Any] | None = None
+    for item in destinations:
+        platform = str(item.get("platform", "")).strip()
+        if platform and platform != "local_file":
+            picked = item
+            break
+    if picked is None and destinations:
+        picked = destinations[0]
+    if picked is None:
+        return None
+    platform = str(picked.get("platform", "")).strip()
+    territory = str(picked.get("market") or picked.get("territory") or "").strip()
+    if not platform or not territory:
+        return None
+    commercial = picked.get("commercial", (run if isinstance(run, dict) else {}).get("commercial", False))
+    monetization = picked.get("monetization", (run if isinstance(run, dict) else {}).get("monetization", False))
+    return {
+        "platform": platform,
+        "territory": territory,
+        "commercial": bool(commercial),
+        "monetization": bool(monetization),
+        "edit": True,
+        "credit_planned": True,
+        "use_count": 0,
+    }
+
+
+def _scene_graph_media(
+    root: Path, graph: dict[str, Any], purpose: dict[str, Any] | None = None
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Resolve the media this scene paints: (record, credit_text_override).
+
+    Returns (None, None) for media-free scenes. Every painted asset must be
+    planner-approved AND verified/active/with-file; when the upload intent
+    is known the workstream-1 scope gate must additionally allow it.
+    Anything else raises - no silent drop, no substitution. Monogram
+    fallbacks paint no image and need no resolution.
+    """
+    from apps.measurement.render_qa import graph_asset_refs
+
+    if not isinstance(graph, dict):
+        raise ValueError("scene graph media: graph must be an object")
+    if graph.get("kind") == "starter":
+        return None, None  # frozen design pixels only; portraits unused
+    refs = [ref for ref in graph_asset_refs(graph)
+            if ref.get("kind") == "library_image"]
+    if str(graph.get("mode", "")) != "media_b_roll":
+        if refs:
+            raise ValueError(
+                f"scene graph beat {graph.get('segment_id', '?')} carries media refs "
+                "on a non-b-roll primitive the frozen design cannot paint; "
+                "the planner must re-freeze the beat."
+            )
+        return None, None
+    if not refs:
+        raise ValueError(
+            f"scene graph b-roll beat {graph.get('segment_id', '?')} names no "
+            "frozen asset; the planner must freeze one - the renderer never "
+            "picks media."
+        )
+    ref = refs[0]
+    if ref.get("approval_status") == "pending":
+        raise ValueError(
+            f"library asset {ref['asset_id']} is frozen as approval_status=pending "
+            f"({ref.get('rights_scope')}); the planner did not clear it - "
+            "route to human rights review instead of rendering."
+        )
+    # Full-row probe (same shape QA uses): gate-1 on verified/active/file,
+    # then the scope gate on the complete record incl. source_type and any
+    # persisted rights_scope_json. Never migrates the user DB.
+    from apps.measurement.render_qa import _registry_row
+
+    row, error = _registry_row(Path(root), ref["asset_id"])
+    if error is not None and error not in ("", "absent"):
+        raise ValueError(
+            f"library asset {ref['asset_id']} is unverifiable at render time: "
+            f"{error}; refusing to paint it."
+        )
+    if error == "absent" or row is None:
+        raise ValueError(
+            f"library asset {ref['asset_id']} does not exist in the registry."
+        )
+    if row.get("asset_type") != "image" or row.get("rights_state") != "verified" \
+            or row.get("lifecycle_state") != "active":
+        raise ValueError(
+            f"library asset {ref['asset_id']} is {row.get('asset_type')}/"
+            f"{row.get('rights_state')}/{row.get('lifecycle_state')} - only "
+            "verified + active images may render."
+        )
+    library_root = (Path(root) / "runtime/assets/library").resolve()
+    try:
+        image_path = (Path(root) / str(row.get("stored_path") or "")).resolve()
+    except Exception:
+        raise ValueError(
+            f"library asset {ref['asset_id']} has an unresolvable stored_path."
+        )
+    if library_root not in image_path.parents or not image_path.is_file():
+        raise ValueError(
+            f"library asset {ref['asset_id']} file is missing or outside "
+            "runtime/assets/library."
+        )
+    try:
+        import json as _json
+
+        metadata = _json.loads(row.get("metadata_json") or "{}")
+        metadata = metadata if isinstance(metadata, dict) else {}
+    except ValueError:
+        metadata = {}
+    record = {
+        "asset_id": ref["asset_id"],
+        "path": image_path,
+        "source_url": row.get("source_url"),
+        "creator": row.get("creator"),
+        "license_type": row.get("license_type"),
+        "metadata": metadata,
+    }
+    credit_text: str | None = None
+    if purpose is not None:
+        from apps.asset_library.rights_scope import is_usable_for
+
+        scope_out = is_usable_for(row, purpose)
+        if not scope_out.get("allowed"):
+            raise ValueError(
+                f"library asset {ref['asset_id']} denied for this upload: "
+                f"{'; '.join(str(r) for r in scope_out.get('reasons', []))} "
+                f"(action: {scope_out.get('required_action')})."
+            )
+        credit = (scope_out.get("scope") or {}).get("credit") or {}
+        if credit.get("required") and isinstance(credit.get("text"), str) and credit["text"].strip():
+            credit_text = credit["text"].strip()[:80]
+    return record, credit_text
+
+
+def _scene_graph_plate(
+    root: Path, canvas: dict[str, Any]
+) -> tuple[dict[str, str], Path, Path]:
+    """Read-only palette + brand fonts for media primitives (released pack)."""
+    anchor = Path(__file__).resolve().parents[1]
+    is_long = (int(canvas.get("width", 0)), int(canvas.get("height", 0))) == (1920, 1080)
+    package_id = ("allen-knows-ball.longform-analyst" if is_long
+                  else "allen-knows-ball.shortform-analyst")
+    package = resolve_template(anchor, package_id, allow_draft=True)
+    palette = package.design_tokens.get("palette", {})
+    font = package.root / "resources/fonts/BeVietnamPro-Bold.ttf"
+    latin = package.root / "resources/fonts/BarlowCondensed-Bold.ttf"
+    if not font.is_file() or not latin.is_file():
+        raise RuntimeError("The template's brand font files are missing.")
+    return palette, font, latin
+
+
+def _paint_broll_primitive(
+    out: Path,
+    graph: dict[str, Any],
+    record: dict[str, Any],
+    credit_text: str | None,
+    palette: dict[str, str],
+    font_path: Path,
+    display_font_path: Path,
+    is_long: bool,
+) -> None:
+    """Paint the owner-fixed b-roll void (contained photo, never cover)."""
+    params = graph.get("params") if isinstance(graph.get("params"), dict) else {}
+    params = params if isinstance(params, dict) else {}
+    graphic = params.get("graphic_data")
+    graphic = dict(graphic) if isinstance(graphic, dict) else {}
+    _write_editorial_data_scene(
+        out,
+        font_path=font_path,
+        display_font_path=display_font_path,
+        mode="media_b_roll",
+        data={
+            **graphic,
+            "media_file": str(record["path"]),
+            "media_caption": graphic.get("media_caption")
+            or record["metadata"].get("visual_context_note")
+            or "",
+            "media_creator": record.get("creator"),
+            "media_license": credit_text or record.get("license_type"),
+        },
+        palette=palette,
+        is_long=is_long,
+        scene_number=int(graph.get("index", 0)) + 1,
+    )
+
+
+def render_scene_png(
+    graph: dict[str, Any],
+    path: str | Path,
+    *,
+    root: str | Path | None = None,
+    purpose: dict[str, Any] | None = None,
+) -> Path:
+    """Render ONE frozen Scene Graph to a PNG (single scene/frame verify).
+
+    Validate -> rights-gate media (planner approval + verified/active/file
+    + optional upload-intent scope) -> execute verbatim -> save. Raises on
+    invalid graphs, unknown modes, pending assets and unverified/denied
+    media. Pillow draws the static layers; no motion, no storytelling.
+    """
+    from apps.scene_graph import executor as _executor
+    from apps.scene_graph.schema import validate_scene_graph
+
+    checked = validate_scene_graph(graph)
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if checked.get("kind") == "starter":
+        image = _executor.render_scene_graph(checked)
+        image.convert("RGB").save(out)
+        return out
+    if checked.get("mode") != "media_b_roll":
+        image = _executor.render_scene_graph(checked)
+        image.convert("RGB").save(out)
+        return out
+    if root is None:
+        raise ValueError(
+            "scene graph b-roll needs a library root to resolve its "
+            "rights-verified image; refusing to render without one."
+        )
+    record, credit_text = _scene_graph_media(Path(root), checked, purpose)
+    if record is None:  # pragma: no cover - _scene_graph_media raises first
+        raise ValueError("scene graph b-roll resolved to no media record.")
+    canvas = checked.get("canvas", {})
+    palette, font, latin = _scene_graph_plate(Path(root), canvas)
+    width, height = int(canvas.get("width", 1080)), int(canvas.get("height", 1920))
+    _paint_broll_primitive(out, checked, record, credit_text, palette,
+                           font, latin, (width, height) == (1920, 1080))
+    return out
+
+
+def _write_scene_graph_beat(
+    scene_path: Path,
+    graph: dict[str, Any],
+    *,
+    root: Path,
+    font_path: Path,
+    display_font_path: Path,
+    palette: dict[str, str],
+    is_long: bool,
+    scene_number: int,
+    media_record: dict[str, Any] | None,
+    credit_text: str | None,
+    text_path: Path,
+) -> Path | None:
+    """Paint one clip beat from its frozen graph. Returns the text layer path.
+
+    Starter graphs split into background + text layers (type entrances
+    after the plate lands); b-roll paints the owner-fixed void from the
+    already-gated record; other primitives execute verbatim. Raises on
+    missing b-roll media instead of substituting.
+    """
+    from apps.scene_graph import executor as _executor
+
+    if graph.get("kind") == "starter":
+        bg_image, text_image = _executor.render_scene_graph_layers(graph)
+        bg_image.convert("RGB").save(scene_path)
+        if text_image is not None:
+            text_image.save(text_path)
+            return text_path
+        return None
+    if graph.get("mode") == "media_b_roll":
+        if media_record is None:
+            raise ValueError(
+                f"scene graph beat {graph.get('segment_id', '?')} reached paint "
+                "with no gated media record; unverified or missing media "
+                "blocks the render instead of falling back."
+            )
+        _paint_broll_primitive(scene_path, graph, media_record, credit_text,
+                               palette, font_path, display_font_path, is_long)
+        return None
+    image = _executor.render_scene_graph(graph)
+    image.convert("RGB").save(scene_path)
+    return None

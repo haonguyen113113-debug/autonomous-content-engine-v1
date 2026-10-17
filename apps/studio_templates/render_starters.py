@@ -15,6 +15,7 @@ Next: python apps/studio_templates/write_audit.py apps/studio_templates/proof-ro
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -56,6 +57,48 @@ PALETTE = {
 }
 PALETTE_RGB = [tuple(int(PALETTE[k][i:i + 2], 16) for i in (1, 3, 5)) for k in PALETTE]
 TOLERANCE = 90  # per-channel box, per docs/build-audit-protocol.md (AA blends)
+
+_ACCENT_RE = re.compile(r"\*([^*]+)\*")
+
+
+def _accent_split(text: str) -> list[tuple[str, bool]]:
+    """Split *accent* markup into (segment, is_accent) pieces."""
+    parts = _ACCENT_RE.split(str(text or ""))
+    out: list[tuple[str, bool]] = []
+    for index, part in enumerate(parts):
+        if part:
+            out.append((part, index % 2 == 1))
+    return out or [(str(text or ""), False)]
+
+
+def _has_accent(text: str) -> bool:
+    return "*" in str(text or "") and _ACCENT_RE.search(str(text or "")) is not None
+
+
+def _draw_rich_line(d: object, tx: float, y_top: float, line: str, font: object,
+                    fill: tuple[int, int, int, int],
+                    accent: tuple[int, int, int, int], align: str) -> None:
+    """Draw one line with *accent* segments in magenta, rest in base fill.
+
+    tx follows the element's anchor (left=x, center=x+w/2, right=x+w);
+    segments are laid left-to-right from the anchored start so the whole
+    stripped line stays centered/left/right exactly like single-fill.
+    """
+    segments = _accent_split(line)
+    widths = [d.textbbox((0, 0), part, font=font)[2]  # type: ignore[attr-defined]
+              for part, _ in segments]
+    total = sum(widths)
+    if align == "left":
+        x0 = tx
+    elif align == "right":
+        x0 = tx - total
+    else:
+        x0 = tx - total / 2
+    x = x0
+    for (part, is_acc), wseg in zip(segments, widths):
+        d.text((x, y_top), part, font=font,  # type: ignore[attr-defined]
+               fill=(accent if is_acc else fill), anchor="lt")
+        x += wseg
 
 
 def hex_rgb(value: str) -> tuple[int, int, int]:
@@ -219,15 +262,30 @@ def render_design(data: dict, *, texts: bool = True, decor: bool = True,
 
             def draw_text(d: ImageDraw.ImageDraw) -> None:
                 # Multiline: draw line by line (PIL anchors reject multiline).
-                # Single-line path is byte-identical to before.
-                lines = str(text).split("\n")
-                if len(lines) == 1:
-                    d.text((tx, y), text, font=font, fill=fill + (255,), anchor=anchor)
+                # Single-line no-accent path is byte-identical to before.
+                # Lines with *accent* render two-tone: base fill + magenta.
+                if not _has_accent(text):
+                    lines = str(text).split("\n")
+                    if len(lines) == 1:
+                        d.text((tx, y), text, font=font, fill=fill + (255,), anchor=anchor)
+                        return
+                    step = int(int(child.get("fontSize", 40)) * 1.25)
+                    for i, line in enumerate(lines):
+                        d.text((tx, y + i * step), line, font=font,
+                               fill=fill + (255,), anchor=anchor[0] + "t")
                     return
+                accent_fill = hex_rgb(PALETTE["magenta"])
+                lines = str(text).split("\n")
                 step = int(int(child.get("fontSize", 40)) * 1.25)
                 for i, line in enumerate(lines):
-                    d.text((tx, y + i * step), line, font=font,
-                           fill=fill + (255,), anchor=anchor[0] + "t")
+                    y_line = y if len(lines) == 1 else y + i * step
+                    if not _has_accent(line):
+                        line_anchor = anchor if len(lines) == 1 else anchor[0] + "t"
+                        d.text((tx, y_line), line, font=font,
+                               fill=fill + (255,), anchor=line_anchor)
+                        continue
+                    _draw_rich_line(d, tx, y_line, line, font,
+                                    fill + (255,), accent_fill + (255,), align)
 
             composite(base, draw_text, opacity)
         # image/svg/video/gif/table/group: not used by Sprint 1 starters;

@@ -6,6 +6,14 @@ import apps.asset_library.discovery as discovery
 from apps.asset_library.discovery import DiscoveryError
 
 
+@pytest.fixture(autouse=True)
+def _stub_keyless_adapters(monkeypatch):
+    """Pin new keyless adapters offline: tests inject fixtures per-case."""
+    monkeypatch.setattr(discovery, "_search_archive_images", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "_search_archive_videos", lambda *a, **k: [])
+    monkeypatch.setattr(discovery, "search_youtube_referrals", lambda *a, **k: [])
+
+
 def _fake(provider, index, *, title="Derby stadium night", license_name="CC BY 4.0",
           width=2000, height=1200, size_bytes=500000):
     return discovery.ExternalAssetCandidate(

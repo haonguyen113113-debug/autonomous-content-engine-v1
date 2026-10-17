@@ -11,7 +11,7 @@ fit) with sampling, re-audited only when the reference or params change.
 - Reference recording: `runtime/voice/` (per-machine, git-ignored — back it up separately)
 - Pacing: `TTS_SILENCE_P=0.08` (vendor default 0.15 leaves broadcast pauses)
 - Speech pace enforced in drafts: `CHARS_PER_SECOND=14`, `MAX_SPEECH_OVERRUN=1.25`
-- Sample previews audited: _list run ids + dates here_
+- Sample previews audited: _none yet — pending owner decision, see `docs/voice-decision-2026-10-16.md`_
 
 ## Production QC (automatic, fail-loud)
 

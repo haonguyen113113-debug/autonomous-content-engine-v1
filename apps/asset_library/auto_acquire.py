@@ -53,9 +53,31 @@ def auto_acquire(root: Path, *, query: str, resource_type: str = "image",
     include_terms = include_terms or []
     exclude_terms = exclude_terms or []
     candidates, statuses, report = search_candidates_tiered(
-        query, resource_type=resource_type, limit=limit, api_keys=api_keys)
+        query, resource_type=resource_type, limit=limit, api_keys=api_keys,
+        exact_terms=list(include_terms) or None)
+    # Exact footage of the named match/player first; generic football
+    # footage only as fallback. Stable: provider rank kept within a grade.
+    candidates = sorted(
+        candidates,
+        key=lambda cand: 0 if getattr(cand, "match_grade", "generic") == "exact" else 1,
+    )
     seen: list[dict[str, Any]] = []
     for cand in candidates:
+        scope = getattr(cand, "rights_scope", None) or {}
+        blocked_reason = None
+        try:
+            from apps.asset_library.discovery import rights_blocked
+            blocked_reason = rights_blocked(scope)
+        except ImportError:
+            blocked_reason = None
+        if blocked_reason is not None:
+            seen.append({"candidate_id": cand.candidate_id, "title": cand.title,
+                         "license": cand.license_name, "width": getattr(cand, "width", 0),
+                         "match_grade": getattr(cand, "match_grade", "generic"),
+                         "rights_grant": scope.get("granted_by") if isinstance(scope, dict) else None,
+                         "accepted": False,
+                         "reasons": [f"rights blocked: {blocked_reason}"]})
+            continue
         ok_license = _license_ok(getattr(cand, "license_name", ""))
         ok_title, title_reason = _title_ok(getattr(cand, "title", ""), include_terms, exclude_terms)
         width = int(getattr(cand, "width", 0) or 0)
@@ -69,9 +91,20 @@ def auto_acquire(root: Path, *, query: str, resource_type: str = "image",
             reasons.append(f"too small: {width}px < {min_width}px")
         entry = {"candidate_id": cand.candidate_id, "title": cand.title,
                  "license": cand.license_name, "width": width,
+                 "match_grade": getattr(cand, "match_grade", "generic"),
+                 "rights_grant": scope.get("granted_by") if isinstance(scope, dict) else None,
+                 "rights_scope": scope if isinstance(scope, dict) else {},
                  "accepted": not reasons, "reasons": reasons}
         seen.append(entry)
         if reasons:
+            continue
+        # Referral-only candidates (YouTube) never reach ingest: they carry
+        # rights_scope.allowed=False and are skipped above; this re-check is
+        # defense in depth so auto-acquire can never save them by accident.
+        from apps.asset_library.discovery import is_referral_only
+        if is_referral_only(cand):
+            entry["accepted"] = False
+            entry["reasons"].append("referral-only: never ingested as an asset")
             continue
         requirement = ResourceRequirement(
             requirement_id=requirement_id, resource_type=resource_type,

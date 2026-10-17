@@ -15,7 +15,10 @@ def test_database_bootstrap_is_versioned_and_idempotent():
     initialize_database(conn)
     initialize_database(conn)
 
-    assert get_schema_version(conn) == SCHEMA_VERSION == 3
+    assert get_schema_version(conn) == SCHEMA_VERSION == 4
+
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(assets)").fetchall()}
+    assert "rights_scope_json" in columns
 
     tables = {
         row[0]
@@ -55,6 +58,6 @@ def test_database_applies_orchestrator_reliability_migration():
 
     initialize_database(conn)
 
-    assert get_schema_version(conn) == 3
+    assert get_schema_version(conn) == 4
     columns = {row[1] for row in conn.execute("PRAGMA table_info(change_event_resolutions)").fetchall()}
     assert {"lease_owner", "lease_until", "next_attempt_at", "max_attempts"} <= columns

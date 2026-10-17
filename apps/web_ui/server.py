@@ -26,6 +26,7 @@ from apps.asset_library.discovery import (
     search_candidates_tiered,
 )
 from apps.asset_library.identity import apply_identity_filter
+from apps.asset_library.rights_scope import build_rights_scope
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.distribution import ChannelDestination, default_registry, plan_distribution
@@ -618,7 +619,29 @@ def _content_status(root: Path) -> dict[str, Any]:
     }
 
 
-def _review_asset_rights(db_path: Path, asset_id: str) -> dict[str, str]:
+_GRANT_FIELDS = (
+    "platforms",
+    "territories",
+    "commercial",
+    "monetization",
+    "expires_at",
+    "edit_allowed",
+    "credit_required",
+    "credit_text",
+    "clip_limit",
+    "license",
+    "source",
+    "copyright_exception",
+    "notes",
+    "reviewed_by",
+)
+
+
+def _review_asset_rights(
+    db_path: Path,
+    asset_id: str,
+    grant_fields: dict[str, Any] | None = None,
+) -> dict[str, str]:
     conn = connect(db_path)
     try:
         row = conn.execute(
@@ -637,15 +660,36 @@ def _review_asset_rights(db_path: Path, asset_id: str) -> dict[str, str]:
         metadata["rights_reviewed_by_user"] = True
         metadata["rights_reviewed_at"] = reviewed_at
         metadata["rights_review_source"] = "local_ui_confirmation"
-        conn.execute(
-            """
-            UPDATE assets
-            SET rights_state = 'verified', lifecycle_state = 'active',
-                metadata_json = ?
-            WHERE asset_id = ?
-            """,
-            (json.dumps(metadata, ensure_ascii=False, sort_keys=True), asset_id),
-        )
+
+        if grant_fields:
+            # ValueError propagates to the route handler -> HTTP 400.
+            scope = build_rights_scope(**grant_fields)
+            conn.execute(
+                """
+                UPDATE assets
+                SET rights_state = 'verified', lifecycle_state = 'active',
+                    metadata_json = ?,
+                    rights_scope_json = ?
+                WHERE asset_id = ?
+                """,
+                (
+                    json.dumps(metadata, ensure_ascii=False, sort_keys=True),
+                    json.dumps(scope, ensure_ascii=False),
+                    asset_id,
+                ),
+            )
+        else:
+            # No grant fields: verified/active flip only. NULL rights_scope_json
+            # means denied at usage time by is_usable_for.
+            conn.execute(
+                """
+                UPDATE assets
+                SET rights_state = 'verified', lifecycle_state = 'active',
+                    metadata_json = ?
+                WHERE asset_id = ?
+                """,
+                (json.dumps(metadata, ensure_ascii=False, sort_keys=True), asset_id),
+            )
         conn.commit()
         return {"status": "RIGHTS_VERIFIED", "asset_id": asset_id}
     finally:
@@ -1332,7 +1376,12 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     asset_id = payload.get("asset_id")
                     if not isinstance(asset_id, str) or not asset_id:
                         raise ValueError("Asset ID is required.")
-                    result = _review_asset_rights(db_path, asset_id)
+                    grant_fields = {
+                        key: payload[key]
+                        for key in _GRANT_FIELDS
+                        if key in payload
+                    } or None
+                    result = _review_asset_rights(db_path, asset_id, grant_fields)
                     self._send_json(result)
                     return
 

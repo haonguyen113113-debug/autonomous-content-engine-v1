@@ -22,9 +22,10 @@ import json
 import re
 import unicodedata
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from apps.content_workflow import VISUAL_MODES
+from apps.asset_library.rights_scope import is_usable_for
 
 # Renderer accepts everything _clean_segment allows, plus media_b_roll which
 # it derives itself from media_asset_id (video_renderer.py, scene loop).
@@ -134,17 +135,34 @@ def _derive_claim(narration: str, limit: int = 220) -> str:
     return first[:limit].strip()
 
 
-def _eligible_asset(asset: dict[str, Any]) -> bool:
-    return (asset.get("asset_type") == "image"
+def _eligible_asset(asset: dict[str, Any],
+                    purpose: dict[str, Any] | None = None) -> bool:
+    """Verified/active image; with a purpose, also rights-usable for that upload.
+
+    ``rights_state == "verified"`` is identity/suitability only, never usage
+    clearance: when a purpose is given the asset must additionally pass
+    ``is_usable_for`` (platform, territory, commercial, monetization, ...).
+    When purpose is None the historical verified/active image check is
+    preserved and no scope-eligibility claim is made.
+    """
+    base = (asset.get("asset_type") == "image"
             and asset.get("rights_state") == "verified"
             and asset.get("lifecycle_state") == "active")
+    if not base:
+        return False
+    if purpose is None:
+        return True
+    return is_usable_for(asset, purpose)["allowed"] is True
 
 
-def _match_portrait(player_name: str, assets: list[dict[str, Any]]) -> str | None:
+def _match_portrait(player_name: str, assets: list[dict[str, Any]],
+                    purpose: dict[str, Any] | None = None) -> str | None:
     """Find a verified image depicting the named player (advisory match).
 
     Exact identity lives in player_identity; here we match normalized names
     against asset subjects/original_name/metadata text. Returns asset_id.
+    When a purpose is given, only assets that clear ``is_usable_for`` for that
+    upload intent are eligible.
     """
     want = _strip_accents(player_name)
     if not want:
@@ -152,7 +170,7 @@ def _match_portrait(player_name: str, assets: list[dict[str, Any]]) -> str | Non
     want = re.sub(r"[-_]+", " ", want)
     want_tokens = set(want.split())
     for asset in assets:
-        if not _eligible_asset(asset):
+        if not _eligible_asset(asset, purpose):
             continue
         subjects = asset.get("subjects") or []
         haystack = " ".join([str(asset.get("original_name", ""))]
@@ -203,7 +221,9 @@ def _coverage(mode: str, data: dict[str, Any], narration: str) -> tuple[float, l
 
 def _score_candidate(mode: str, segment: dict[str, Any], data: dict[str, Any],
                      assets: list[dict[str, Any]], declared: bool,
-                     prev_modes: list[str]) -> tuple[float, list[str]]:
+                     prev_modes: list[str],
+                     purpose: dict[str, Any] | None = None
+                     ) -> tuple[float, list[str]]:
     reasons: list[str] = []
     score = 50.0 if declared else 40.0
     narration = str(segment.get("narration", ""))
@@ -216,7 +236,7 @@ def _score_candidate(mode: str, segment: dict[str, Any], data: dict[str, Any],
     if missing and mode != "tactical_explainer":
         reasons.append(f"missing {','.join(missing)}")
     if mode in PORTRAIT_MODES and _present(data, "player_name"):
-        hit = _match_portrait(str(data.get("player_name", "")), assets)
+        hit = _match_portrait(str(data.get("player_name", "")), assets, purpose)
         if hit:
             score += 10.0
             reasons.append("verified portrait available")
@@ -359,7 +379,9 @@ def _starter_for(mode: str, segment: dict[str, Any], content_type: str,
 
 def select_cards(segments: list[dict[str, Any]],
                  assets: list[dict[str, Any]] | None = None,
-                 content_type: str = "short") -> dict[str, Any]:
+                 content_type: str = "short",
+                 purpose: dict[str, Any] | None = None,
+                 exact_terms: list[str] | None = None) -> dict[str, Any]:
     """Map every segment to a render-ready card decision.
 
     Returns {"decisions": [...], "plan": {...}}. Each decision carries
@@ -393,7 +415,7 @@ def select_cards(segments: list[dict[str, Any]],
             if record is None:
                 warnings.append(f"media_asset_id '{bound}' not in fetched assets; binding dropped")
                 bound = None
-            elif not _eligible_asset(record):
+            elif not _eligible_asset(record, purpose):
                 warnings.append(f"asset '{bound}' is not verified/active; binding dropped (render would fail)")
                 bound = None
             else:
@@ -414,7 +436,8 @@ def select_cards(segments: list[dict[str, Any]],
         for mode in candidates:
             points, why = _score_candidate(mode, segment, data, assets,
                                            declared=(mode == declared),
-                                           prev_modes=prev_modes)
+                                           prev_modes=prev_modes,
+                                           purpose=purpose)
             if lock_player and mode != declared:
                 points -= 100.0
                 why = why + ["player-mode lock: identity over fit"]
@@ -433,7 +456,7 @@ def select_cards(segments: list[dict[str, Any]],
                 bound = None
 
         if best_mode in PORTRAIT_MODES and not bound and _present(data, "player_name"):
-            hit = _match_portrait(str(data.get("player_name", "")), assets)
+            hit = _match_portrait(str(data.get("player_name", "")), assets, purpose)
             if hit:
                 # Owner standing order 2026-10-16: a verified/active library
                 # portrait auto-attaches (reuse-first; acquisition still needs
@@ -497,6 +520,8 @@ def select_cards(segments: list[dict[str, Any]],
         "decisions": decisions,
         "plan": {
             "content_type": content_type,
+            "purpose": purpose,
+            "exact_terms": exact_terms,
             "beats": len(decisions),
             "mode_counts": mode_counts,
             "starters": sorted({d["starter_id"] for d in decisions if d["starter_id"]}),
@@ -570,7 +595,15 @@ def apply_card_plan(root: Path, run: dict[str, Any]) -> dict[str, Any]:
         return plan
     content_type = draft.get("content_type", "short")
     assets, note = _fetch_verified_images(root)
-    plan = select_cards([s for s in segments if isinstance(s, dict)], assets, content_type)
+    # Upload purpose: run-level first, then draft-level. A missing purpose
+    # means select_cards makes no scope-eligibility claim for any asset.
+    purpose = run.get("purpose")
+    if purpose is None:
+        purpose = draft.get("purpose")
+    if not isinstance(purpose, Mapping):
+        purpose = None
+    plan = select_cards([s for s in segments if isinstance(s, dict)],
+                        assets, content_type, purpose=purpose)
     by_id = {d["segment_id"]: d for d in plan["decisions"]}
     used_media: set[str] = set()
     for segment in segments:
@@ -597,7 +630,7 @@ def apply_card_plan(root: Path, run: dict[str, Any]) -> dict[str, Any]:
             # identity-matched portraits attach only via the portrait rule.
             if (decision["visual_mode"] == "hook_card" and index > 0
                     and content_type == "short"):
-                pick = _pick_broll(assets, used_media)
+                pick = _pick_broll(assets, used_media, purpose)
                 if pick:
                     segment["media_asset_id"] = pick
                     decision["media_asset_id"] = pick
@@ -613,15 +646,14 @@ def apply_card_plan(root: Path, run: dict[str, Any]) -> dict[str, Any]:
     return plan
 
 
-def _pick_broll(assets: list[dict[str, Any]], used: set[str]) -> str | None:
-    """First unused verified broll-generic image, deterministic order."""
+def _pick_broll(assets: list[dict[str, Any]], used: set[str],
+                purpose: dict[str, Any] | None = None) -> str | None:
+    """First unused verified broll-generic image, purpose-cleared, deterministic order."""
     for asset in sorted(assets, key=lambda a: str(a.get("asset_id", ""))):
         aid = str(asset.get("asset_id", ""))
         if not aid or aid in used:
             continue
-        if asset.get("asset_type") != "image":
-            continue
-        if asset.get("rights_state") != "verified" or asset.get("lifecycle_state") != "active":
+        if not _eligible_asset(asset, purpose):
             continue
         if asset.get("purpose_code") != "broll-generic":
             continue

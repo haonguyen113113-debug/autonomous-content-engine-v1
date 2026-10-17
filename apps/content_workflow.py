@@ -16,6 +16,7 @@ from apps.asset_library.discovery import DiscoveryError, search_candidates
 from apps.asset_library.resource_workflow import evaluate_library_requirement
 from apps.asset_library.registry import connect
 from apps.llm import budget_usd_per_run, chat_json, cost_usd, load_config
+from apps.scene_graph.intent import normalize_beat_intent
 
 
 TEMPLATE_IDS = {
@@ -245,12 +246,20 @@ def _clean_segment(item: Any) -> dict[str, Any] | None:
     timeline_events = item.get("timeline_events", [])
     if not isinstance(timeline_events, list):
         timeline_events = []
+    beat_index = 0
+    beat_match = re.match(r"(?i)^beat-(\d+)$", str(item.get("id", "beat-1")).strip())
+    if beat_match:
+        beat_index = max(0, int(beat_match.group(1)) - 1)
     return {
         "id": str(item.get("id", "beat-1")),
         "narration": _normalise(narration),
         "visual": _normalise(str(item.get("visual", "Host analysis"))),
         "evidence_refs": [_normalise(str(ref))[:500] for ref in evidence_refs[:8] if ref],
         "visual_mode": mode,
+        "beat_intent": normalize_beat_intent(
+            item.get("beat_intent"), mode=mode, index=beat_index,
+            graphic_data=graphic_data
+        ),
         "graphic_data": graphic_data,
         "duration_seconds": duration,
         "timeline_events": timeline_events,
@@ -323,6 +332,8 @@ MAX_SPEECH_OVERRUN = 1.25
 
 def _outline_beat(topic: str, arc: list[Any], index: int, target_seconds: int) -> dict[str, Any]:
     """Deterministic per-beat fallback; never invents facts the owner must verify."""
+    goal = "establish_moment" if index == 0 else (
+        "land_takeaway" if index >= len(arc) - 1 else "set_context")
     return {
         "id": f"beat-{index + 1}",
         "narration": (
@@ -341,6 +352,12 @@ def _outline_beat(topic: str, arc: list[Any], index: int, target_seconds: int) -
         ),
         "evidence_refs": [],
         "visual_mode": "tactical_explainer",
+        "beat_intent": {
+            "image_goal": goal,
+            "focus_subject": "",
+            "evidence_type": "none",
+            "emphasis_level": "hero" if index == 0 else "standard",
+        },
         "graphic_data": {},
         "duration_seconds": max(1, int(target_seconds) // max(1, len(arc))),
         "timeline_events": [],
@@ -420,7 +437,16 @@ def _ollama_beat(
         "player_name, stats (up to 3), meta (up to 3 label/value); goal_card needs "
         "hook_text plus score; fixture_list needs fixtures (up to 3); quote_card "
         "needs claim; potm/discipline/welcome/score need player_name (+minute). "
-        "Never estimate or invent missing values, units, order, dates, or sources."
+        "Never estimate or invent missing values, units, order, dates, or sources. "
+        "Also return beat_intent, the ONLY visual decision you own: an object with "
+        "image_goal (establish_moment, show_evidence, compare_numbers, "
+        "introduce_player, set_context, or land_takeaway), focus_subject (who or "
+        "what the frame focuses on, at most 120 characters), evidence_type "
+        "(sourced_stat, sourced_quote, match_event, table_standing, "
+        "tactical_observation, or none), and emphasis_level (quiet, standard, "
+        "or hero). Do NOT choose layout, starter, camera, motion, transition, "
+        "colors, or fonts: the planner determines composition from your "
+        "beat_intent plus approved assets and the locked template."
     )
     user_payload = {
         "locale": "vi-VN",
