@@ -143,7 +143,7 @@ def test_asset_rights_pending_by_default_approved_with_record():
     validate(pending)
     ref = pending["roles"]["hero_image"]
     assert ref["asset_id"] == "asset-3960da53eba5"
-    assert ref["rights_scope"] == "pending-rights-review"
+    assert ref["rights_scope"] == "rights-scope-missing"
     assert ref["approval_status"] == "pending"
 
     cleared = build_scene_graph(
@@ -152,7 +152,10 @@ def test_asset_rights_pending_by_default_approved_with_record():
                     "license_type": "CC BY 4.0", "purpose_code": "broll-generic"})
     validate(cleared)
     ref = cleared["roles"]["hero_image"]
-    assert ref["approval_status"] == "approved"
+    # verified/active không tự grants scope: cần rights_scope_json human-grant
+    # để builder đánh approved. Chưa có scope → pending.
+    assert ref["approval_status"] == "pending"
+    assert ref["rights_scope"] == "rights-scope-missing"
     assert ref["license_type"] == "CC BY 4.0"
 
 
@@ -236,14 +239,17 @@ def test_llm_limited_to_beat_meaning():
         "id": "beat-2",
         "narration": "Mot nhan dinh co nguon cu the ve tran dau hom qua.",
         "visual": "Host analysis",
-        "visual_mode": "hook_card",
+        # LLM no longer decides composition: visual_mode/timeline_events are
+        # ignored by _clean_segment; intent is normalized from internal
+        # defaults only, never stored as a composition decision.
         "graphic_data": {"hook_text": "Dem ac mong *Etihad*"},
         "beat_intent": {"image_goal": "bogus", "emphasis_level": "maximum"},
         "duration_seconds": 8,
     })
     assert segment is not None
+    assert "visual_mode" not in segment and "timeline_events" not in segment
     assert segment["beat_intent"] == {
-        "image_goal": "establish_moment",  # deterministic fallback, never garbage
+        "image_goal": "set_context",  # deterministic fallback from internal mode, never garbage
         "focus_subject": "",
         "evidence_type": "sourced_quote",
         "emphasis_level": "standard",
@@ -290,17 +296,26 @@ def test_tactical_diagram_emitted_on_graph_and_params():
         **_tactical_kwargs(),
         tactical_diagram=diagram,
         media_caption="Cao dien da san",
-        overlays=[{"kind": "lower_third", "text": "Tin tuc"}],
+        overlays=[
+            {"type": "lower_third", "text": "Tin tuc",
+             "start_seconds": 1.0, "end_seconds": 4.0}
+        ],
     )
     validate(graph)
     assert graph["tactical_diagram"] == diagram
     assert graph["media_caption"] == "Cao dien da san"
-    assert graph["overlays"] == [{"kind": "lower_third", "text": "Tin tuc"}]
+    assert graph["overlays"] == [
+        {"type": "lower_third", "text": "Tin tuc",
+         "start_seconds": 1.0, "end_seconds": 4.0}
+    ]
     # Primitive graph: params mirror so the executor can read them.
     assert graph["kind"] == "primitive"
     assert graph["params"]["tactical_diagram"] == diagram
     assert graph["params"]["media_caption"] == "Cao dien da san"
-    assert graph["params"]["overlays"] == [{"kind": "lower_third", "text": "Tin tuc"}]
+    assert graph["params"]["overlays"] == [
+        {"type": "lower_third", "text": "Tin tuc",
+         "start_seconds": 1.0, "end_seconds": 4.0}
+    ]
     # Hash covers the new blocks (builder emits before freeze).
     from apps.scene_graph import graph_hash
 
@@ -412,8 +427,9 @@ def test_graph_without_tactical_blocks_still_validates():
         ({"media_caption": 123}, "media_caption"),
         # overlays must be a list.
         ({"overlays": "not-a-list"}, "overlays"),
-        # Each overlay must be a dict.
-        ({"overlays": [{"k": 1}, "nope"]}, r"overlays\[1\]"),
+        # Each overlay must be a dict. overlay[0] hop le theo contract moi,
+        # overlay[1] khong phai dict -> loi o chi muc 1.
+        ({"overlays": [{"type": "caption", "text": "ok", "start_seconds": 0.0, "end_seconds": 1.0}, "nope"]}, r"overlays\[1\]"),
     ],
 )
 def test_validator_rejects_bad_tactical_and_media_blocks(bad_kwargs, match):
@@ -436,13 +452,13 @@ def test_build_from_decision_carries_tactical_blocks():
         "graphic_data": {"hook_text": "q"},
         "tactical_diagram": diagram,
         "media_caption": "Caption tu decision",
-        "overlays": [{"kind": "overlay", "text": "x"}],
+        "overlays": [{"type": "caption", "text": "x", "start_seconds": 1.0, "end_seconds": 4.0}],
     }
     graph = build_from_decision(decision, evidence=[])
     validate(graph)
     assert graph["tactical_diagram"] == diagram
     assert graph["media_caption"] == "Caption tu decision"
-    assert graph["overlays"] == [{"kind": "overlay", "text": "x"}]
+    assert graph["overlays"] == [{"type": "caption", "text": "x", "start_seconds": 1.0, "end_seconds": 4.0}]
     assert graph["params"]["tactical_diagram"] == diagram
 
 
@@ -460,7 +476,8 @@ def test_build_clip_graphs_passes_segment_tactical_blocks():
     ]
     segments = {"beat-s1": {"tactical_diagram": diagram,
                             "media_caption": "segment-cap",
-                            "overlays": [{"kind": "o"}],
+                            "overlays": [{"type": "lower_third", "text": "o",
+                                         "start_seconds": 1.0, "end_seconds": 4.0}],
                             "start_seconds": 0.0, "end_seconds": 5.0}}
     graphs = build_clip_graphs(decisions, segments, content_type="short")
     from apps.scene_graph.schema import validate_scene_graph
@@ -469,7 +486,8 @@ def test_build_clip_graphs_passes_segment_tactical_blocks():
     # Segment overrides decision when present.
     assert graphs[0]["tactical_diagram"] == diagram
     assert graphs[0]["media_caption"] == "segment-cap"
-    assert graphs[0]["overlays"] == [{"kind": "o"}]
+    assert graphs[0]["overlays"] == [{"type": "lower_third", "text": "o",
+                                      "start_seconds": 1.0, "end_seconds": 4.0}]
     assert graphs[0]["params"]["tactical_diagram"] == diagram
 
 

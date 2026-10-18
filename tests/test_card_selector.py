@@ -8,9 +8,10 @@ from apps.card_selector import (
     REQUIRED_SLOTS,
     SUPPORTED_MODES,
     _eligible_asset,
+    normalize_upload_purpose,
     select_cards,
 )
-from apps.content_workflow import VISUAL_MODES
+from apps.content_workflow import LAYOUT_MODES, VISUAL_MODES
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -29,6 +30,9 @@ def _assets():
          "rights_state": "verified", "lifecycle_state": "active",
          "original_name": "Nguyen Van A portrait",
          "subjects": ["Nguyen Van A"],
+         "rights_scope": build_rights_scope(
+             platforms=["youtube"], territories=["VN"],
+             commercial=True, monetization=True),
          "metadata": {"visual_context_note": "striker portrait"}},
         {"asset_id": "a-unverified", "asset_type": "image",
          "rights_state": "unverified", "lifecycle_state": "ingested",
@@ -94,19 +98,49 @@ def test_portrait_without_verified_asset_warns_and_penalizes():
     assert second["media_asset_id"] is None
 
 
-def test_portrait_auto_attaches_verified_asset():
+def test_portrait_auto_attaches_purpose_cleared_portrait():
+    cleared = {
+        "asset_id": "a-portrait", "asset_type": "image",
+        "rights_state": "verified", "lifecycle_state": "active",
+        "original_name": "Nguyen Van A portrait", "subjects": ["Nguyen Van A"],
+        "rights_scope": build_rights_scope(
+            platforms=["youtube"], territories=["VN"],
+            commercial=True, monetization=True),
+    }
     out = select_cards([
         _seg("Mo dau", mode="hook_card",
              data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
         _seg("Tien dao Nguyen Van A toa sang", mode="player_poster_side",
              data={"player_name": "Nguyen Van A",
                    "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"),
-    ], assets=_assets())
+    ], assets=[cleared], purpose=PURPOSE)
     second = out["decisions"][1]
-    # Owner standing order 16/10: verified/active portraits auto-attach.
+    # purpose given + is_usable_for clears the asset: auto-attach applies.
     assert second["media_asset_id"] == "a-portrait"
     assert second["suggested_asset_id"] is None
     assert any("auto-attached" in w for w in second["warnings"])
+
+
+def test_portrait_not_attached_without_purpose_even_when_verified():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Tien dao Nguyen Van A toa sang", mode="player_poster_side",
+             data={"player_name": "Nguyen Van A",
+                   "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"),
+    ], assets=[{
+        "asset_id": "a-portrait", "asset_type": "image",
+        "rights_state": "verified", "lifecycle_state": "active",
+        "original_name": "Nguyen Van A portrait", "subjects": ["Nguyen Van A"],
+        "rights_scope": build_rights_scope(
+            platforms=["youtube"], territories=["VN"],
+            commercial=True, monetization=True),
+    }])  # purpose omitted
+    second = out["decisions"][1]
+    # Fail-closed: verified/active without a purpose never attaches.
+    assert second["media_asset_id"] is None
+    assert any("no purpose/scope" in w for w in second["warnings"])
+    assert any("purpose missing" in w for w in out["plan"]["warnings"])
 
 
 def test_unverified_binding_is_dropped():
@@ -120,7 +154,7 @@ def test_unverified_binding_is_dropped():
     ], assets=_assets())
     second = out["decisions"][1]
     assert second["media_asset_id"] is None
-    assert any("binding dropped" in w for w in second["warnings"])
+    assert any("no purpose/scope" in w for w in second["warnings"])
 
 
 def test_bound_asset_forces_broll_outside_portrait_modes():
@@ -131,7 +165,7 @@ def test_bound_asset_forces_broll_outside_portrait_modes():
              data={"stats": [{"label": "Ban", "value": "19"}],
                    "source": "D", "date": "D"},
              media_asset_id="a-portrait", id="beat-2"),
-    ], assets=_assets())
+    ], assets=_assets(), purpose=PURPOSE)
     second = out["decisions"][1]
     assert second["visual_mode"] == "media_b_roll"
     assert second["media_asset_id"] == "a-portrait"
@@ -225,7 +259,38 @@ def test_deterministic():
 
 
 def test_supported_modes_mirror_workflow():
+    # card_selector.SUPPORTED_MODES is computed at import time from VISUAL_MODES.
+    # create_script_draft must never mutate VISUAL_MODES (template layout ids go
+    # to LAYOUT_MODES), so this mirror holds regardless of import/test order.
     assert SUPPORTED_MODES == set(VISUAL_MODES) | {"media_b_roll"}
+    assert "media_b_roll" in SUPPORTED_MODES
+    assert "media_b_roll" not in VISUAL_MODES
+
+
+def test_supported_modes_immune_to_layout_modes_mutation():
+    """Regression: create_script_draft registers template layout ids
+    (opening, ending, myth, takes, ...) into LAYOUT_MODES. That must never
+    leak into VISUAL_MODES or change card_selector.SUPPORTED_MODES, whatever
+    the order tests run in."""
+    from apps.content_workflow import LAYOUT_MODES
+
+    before_visual = set(VISUAL_MODES)
+    before_supported = set(SUPPORTED_MODES)
+    snapshot = set(LAYOUT_MODES)
+
+    # Simulate create_script_draft populating LAYOUT_MODES from the template
+    # package layouts.
+    fake_layout_ids = {"opening", "ending", "myth", "takes", "layout_hero"}
+    LAYOUT_MODES.clear()
+    LAYOUT_MODES.update(fake_layout_ids)
+    try:
+        assert VISUAL_MODES == before_visual
+        assert SUPPORTED_MODES == before_supported
+        assert SUPPORTED_MODES == set(VISUAL_MODES) | {"media_b_roll"}
+        assert fake_layout_ids <= (VISUAL_MODES | LAYOUT_MODES)
+    finally:
+        LAYOUT_MODES.clear()
+        LAYOUT_MODES.update(snapshot)
 
 
 def test_registry_slots_match_package():
@@ -320,13 +385,18 @@ def test_apply_auto_attaches_library_portrait(tmp_path):
     from apps.asset_library.registry import connect
     from apps.card_selector import apply_card_plan
 
+    cleared_scope = build_rights_scope(
+        platforms=["youtube"], territories=["VN"],
+        commercial=True, monetization=True,
+    )
     conn = connect(tmp_path / "runtime/engine.db")
     conn.execute(
         "INSERT INTO assets (asset_id, original_name, stored_path, asset_type,"
         " size_bytes, sha256, source_type, rights_state, lifecycle_state,"
         " metadata_json) VALUES (?,?,?,?,?,?,?,?,?,?)",
         ("enzo-por", "Enzo Fernandes portrait", "runtime/assets/library/x.png",
-         "image", 10, "sha256-" + "e" * 58, "test", "verified", "active", "{}"))
+         "image", 10, "sha256-" + "e" * 58, "test", "verified", "active",
+         json.dumps({"rights_scope": cleared_scope})))
     conn.commit()
     conn.close()
     run = _feed_run(
@@ -334,8 +404,12 @@ def test_apply_auto_attaches_library_portrait(tmp_path):
              data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
         _seg("Tien dao Enzo Fernandes toa sang", mode="player_poster_side",
              data={"player_name": "Enzo Fernandes",
-                   "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"))
+                   "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"),
+        purpose=PURPOSE,
+    )
     plan = apply_card_plan(tmp_path, run)
+    plan_purpose = plan["plan"]["purpose"]
+    assert {k: plan_purpose[k] for k in PURPOSE} == PURPOSE
     second = run["draft"]["segments"][1]
     assert second.get("media_asset_id") == "enzo-por"  # owner standing order: auto-attach
     assert plan["decisions"][1]["suggested_asset_id"] is None
@@ -347,6 +421,10 @@ def test_apply_auto_picks_broll_pool_for_closing_hook(tmp_path):
     from apps.asset_library.registry import connect
     from apps.card_selector import apply_card_plan
 
+    cleared_scope = build_rights_scope(
+        platforms=["youtube"], territories=["VN"],
+        commercial=True, monetization=True,
+    )
     conn = connect(tmp_path / "runtime/engine.db")
     conn.execute(
         "INSERT INTO assets (asset_id, original_name, stored_path, asset_type,"
@@ -354,14 +432,16 @@ def test_apply_auto_picks_broll_pool_for_closing_hook(tmp_path):
         " purpose_code, metadata_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         ("stad-pool", "Night stadium wide", "runtime/assets/library/x.png",
          "image", 10, "sha256-" + "f" * 58, "test", "verified", "active",
-         "broll-generic", "{}"))
+         "broll-generic", json.dumps({"rights_scope": cleared_scope})))
     conn.commit()
     conn.close()
     run = _feed_run(
         _seg("Mo dau", mode="hook_card",
              data={"hook_text": "Dem nay"}, id="beat-1"),
         _seg("Ket luan", mode="hook_card",
-             data={"hook_text": "Het gio"}, id="beat-2"))
+             data={"hook_text": "Het gio"}, id="beat-2"),
+        purpose=PURPOSE,
+    )
     apply_card_plan(tmp_path, run)
     first, second = run["draft"]["segments"]
     assert "media_asset_id" not in first  # opener keeps branded hook
@@ -455,10 +535,11 @@ def test_sprint3_long_hook_and_fallbacks():
 
 def test_eligible_asset_verified_not_sufficient_with_purpose():
     denied, cleared = _portrait_assets()
-    # purpose omitted: legacy verified/active image behavior preserved.
+    # purpose omitted: verified/active is NOT sufficient — fail closed, no
+    # library asset is treated as cleared for use.
     for asset in (denied, cleared):
-        assert _eligible_asset(asset) is True
-        assert _eligible_asset(asset, None) is True
+        assert _eligible_asset(asset) is False
+        assert _eligible_asset(asset, None) is False
     # purpose given: verified alone is not sufficient.
     assert _eligible_asset(cleared, PURPOSE) is True
     assert _eligible_asset(denied, PURPOSE) is False  # tiktok-only, non-commercial
@@ -479,14 +560,18 @@ def test_select_cards_purpose_blocks_uncleared_portrait():
     assert any("auto-attached" in w for w in second["warnings"])
 
 
-def test_select_cards_without_purpose_keeps_legacy_behavior():
+def test_select_cards_without_purpose_is_fail_closed():
     out = select_cards([
         _seg("Mo dau", mode="hook_card",
              data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
         _portrait_segment(),
     ], assets=_portrait_assets())  # purpose omitted
     second = out["decisions"][1]
-    assert second["media_asset_id"] == "a-scoped-denied"  # legacy first eligible match
+    # Fail-closed: no purpose → no library asset attached, even when a
+    # name-matched portrait exists and verified/active images are available.
+    assert second["media_asset_id"] is None
+    assert any("no purpose/scope" in w for w in second["warnings"])
+    assert any("purpose missing" in w for w in out["plan"]["warnings"])
     assert out["plan"]["purpose"] is None
     assert out["plan"]["exact_terms"] is None
 
@@ -539,7 +624,8 @@ def test_apply_card_plan_derives_purpose_and_blocks_uncleared_portrait(tmp_path)
         purpose=PURPOSE,
     )
     plan = apply_card_plan(tmp_path, run)
-    assert plan["plan"]["purpose"] == PURPOSE
+    plan_purpose = plan["plan"]["purpose"]
+    assert {k: plan_purpose[k] for k in PURPOSE} == PURPOSE
     # verified/active but not cleared for youtube + commercial: no auto-attach.
     assert run["draft"]["segments"][1].get("media_asset_id") is None
     assert any("typographic fallback" in r
@@ -555,5 +641,102 @@ def test_apply_card_plan_derives_purpose_and_blocks_uncleared_portrait(tmp_path)
     )
     run2["draft"]["purpose"] = PURPOSE
     plan2 = apply_card_plan(tmp_path, run2)
-    assert plan2["plan"]["purpose"] == PURPOSE
+    plan2_purpose = plan2["plan"]["purpose"]
+    assert {k: plan2_purpose[k] for k in PURPOSE} == PURPOSE
     assert run2["draft"]["segments"][1].get("media_asset_id") is None
+
+
+def test_normalize_upload_purpose_flat_destinations_and_none():
+    # Flat purpose: run-level wins over draft-level.
+    got = normalize_upload_purpose(
+        {"purpose": {"platform": "youtube", "territory": "VN",
+                     "commercial": True, "monetization": True}},
+        {"purpose": {"platform": "tiktok", "territory": "VN",
+                     "commercial": False, "monetization": False}},
+    )
+    assert {k: got[k] for k in PURPOSE} == PURPOSE
+    assert got["edit"] is False
+    assert got["credit_planned"] is False
+    assert got["credit_text"] is None
+    assert got["use_count"] == 0
+
+    # destinations/distribution: {platform, market/territory, commercial, monetization}.
+    got = normalize_upload_purpose(
+        {},
+        {"distribution": {"destinations": [
+            {"platform": "local_file"},
+            {"platform": "tiktok", "market": "VN",
+             "commercial": False, "monetization": False},
+        ]}},
+    )
+    assert got["platform"] == "tiktok"
+    assert got["territory"] == "VN"
+    assert got["commercial"] is False
+    assert got["monetization"] is False
+
+    # No usable intent -> None (fail closed).
+    assert normalize_upload_purpose({}, {}) is None
+    assert normalize_upload_purpose(
+        {"destinations": [{"platform": "local_file"}]}, {}) is None
+    assert normalize_upload_purpose(
+        {"purpose": {"commercial": True}}, {}) is None  # no platform/territory
+
+
+def test_normalize_upload_purpose_matches_renderer():
+    from apps.video_renderer import _render_purpose
+
+    run = {
+        "run_id": "a" * 12,
+        "purpose": {"platform": "youtube", "territory": "VN",
+                    "commercial": True, "monetization": True},
+    }
+    draft = {"destinations": [{"platform": "tiktok", "market": "VN",
+                               "commercial": False, "monetization": False}]}
+    selector = normalize_upload_purpose(run, draft)
+    renderer = _render_purpose(run, draft)
+    # Selector and renderer share the normalizer -> identical purpose shape.
+    assert selector == renderer
+    assert selector["platform"] == "youtube"
+    assert selector["territory"] == "VN"
+    assert selector["commercial"] is True
+    assert selector["monetization"] is True
+
+    # Empty intent -> None on both sides.
+    assert normalize_upload_purpose({}, {}) is None
+    assert _render_purpose({}, {}) is None
+
+
+def test_missing_visual_mode_warns_and_falls_back_to_tactical():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        # Segment thuần khong co khoa visual_mode (khong qua helper _seg, vi
+        # helper mac dinh visual_mode = tactical_explainer).
+        {"id": "beat-2", "narration": "Nhin lai dien bien tran dau",
+         "visual": "", "graphic_data": {}, "duration_seconds": 6},
+    ])
+    second = out["decisions"][1]
+    # Not silently defaulted: declared fallback with an explicit warning.
+    assert second["visual_mode"] == "tactical_explainer"
+    assert any(
+        "no visual_mode declared; deterministic pitch-plate fallback" in w
+        for w in second["warnings"])
+
+
+def test_apply_card_plan_normalizes_destinations_purpose(tmp_path):
+    from apps.card_selector import apply_card_plan
+
+    run = _feed_run(
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+    )
+    run["draft"]["destinations"] = [
+        {"platform": "tiktok", "market": "VN",
+         "commercial": False, "monetization": False}]
+    plan = apply_card_plan(tmp_path, run)
+    plan_purpose = plan["plan"]["purpose"]
+    assert plan_purpose is not None
+    assert plan_purpose["platform"] == "tiktok"
+    assert plan_purpose["territory"] == "VN"
+    assert plan_purpose["commercial"] is False
+    assert plan_purpose["monetization"] is False

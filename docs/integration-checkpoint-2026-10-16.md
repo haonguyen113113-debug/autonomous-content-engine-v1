@@ -132,3 +132,76 @@ into `main` on 2026-10-17 as commit `14a62eb`.
 For each integration gap, report files changed, behavior before/after, tests
 run and results, remaining limitations, and whether any overlap with
 `stash@{0}` remains unresolved. Keep all changes uncommitted and unpushed.
+
+## Integration review update — 2026-10-18 (local, uncommitted)
+
+### Repository state
+
+- Branch: `main`; HEAD: `f6f841e182d58be0a385b48c022196421122e86a`.
+- All integration work below is unstaged/uncommitted. No commit or push was
+  performed.
+- `stash@{0}` remains `WIP on feature/template-nova: ecdba9c`; it was not
+  applied, popped, dropped, or otherwise changed.
+- `runtime/` was not read, written, or modified. No long render or MP4 visual
+  review was performed.
+- `git diff --check` is clean.
+
+### Integrated paths reviewed
+
+1. **Rights and asset selection:** explicit `grant_fields` are persisted by
+   discovery/approval routes; missing grants remain deny-default. The shared
+   upload-purpose normalizer is used by card selection and rendering. Missing
+   purpose does not clear or attach a library asset. Scene Graph asset
+   approval comes from persisted `rights_scope_json`, not `verified` alone.
+2. **LLM/planner boundary:** script generation retains semantic
+   `beat_intent`; deterministic selection uses it only as a small advisory
+   scoring tie-break. The model does not choose layout, coordinates, font,
+   color, or motion. `LAYOUT_MODES` is separated from `VISUAL_MODES` so
+   template layouts do not mutate the shared visual-mode vocabulary.
+3. **Scene Graph production path:** `render_full_run` builds and attaches one
+   validated graph per beat when `ACE_SCENE_GRAPH_RENDER=1`. Missing graphs
+   fail closed; flag-off remains the legacy path. Rights references and
+   overlays are frozen into the graph and covered by `graph_hash`.
+4. **Timeline overlays:** `build_clip_graphs` converts supported absolute
+   caption/lower-third event times into beat-relative overlay times, preserves
+   explicit overlays, deduplicates matching timeline events, and rejects
+   malformed supported events. Other timeline event types are not converted
+   to overlays. The renderer executes only frozen graph overlays in Scene
+   Graph mode.
+5. **Overlay contract and QA:** schema accepts only the documented overlay
+   keys and role presets (`lower_third/name_tag`, `caption/hook`); unsupported
+   styling/layout keys and role/type mismatches fail validation. QA does not
+   call a structurally valid declared overlay visually verified: it remains
+   `NEEDS_REVIEW` pending final-video inspection.
+
+### Verification performed in this review
+
+Focused combined suite, run after correcting the timeline-overlay test
+fixture to call the production `build_clip_graphs` path:
+
+```text
+python -m pytest tests/test_card_selector.py tests/test_card_selector_intent.py tests/test_script_decomposition.py tests/test_workflow_end_to_end.py tests/test_scene_graph.py tests/test_scene_graph_v1_roles.py tests/test_scene_graph_pipeline.py tests/test_scene_graph_overlay_contract.py tests/test_scene_graph_executor_overlays.py tests/test_scene_graph_timeline_overlay_freeze.py tests/test_renderer_scenegraph_timeline_overlay_freeze.py tests/test_renderer_scenegraph.py tests/test_renderer_motion.py tests/test_rights_scope.py tests/test_database.py tests/test_discovery_referral.py tests/test_discovery_providers.py tests/test_ingest.py tests/test_tactical_cards.py tests/test_summary.py tests/test_web_ui_approve_candidate.py -q
+```
+
+Result: **280 passed in 15.81s**. This is a focused integration suite, not a
+full repository test run. The earlier six failures in the separate timeline
+bridge report came from a test helper that passed absolute timeline-shaped
+data as explicit overlays instead of exercising `build_clip_graphs`; the
+production-path tests now cover conversion, filtering, deduplication,
+timebase, and fail-closed validation.
+
+### Remaining limits / owner review
+
+- No final MP4 was rendered or visually reviewed in this pass. Overlay paint,
+  actual transition/motion appearance, narration synchronization, and overall
+  aesthetic still need an owner review on a rendered clip. QA correctly keeps
+  such checks at `NEEDS_REVIEW` where pixels or motion cannot be established
+  from the frozen graph alone.
+- The full test suite was not run; only the focused command above was run.
+- Strict overlay validation is a compatibility tightening: legacy graphs
+  without an `overlays` field remain accepted, while old graphs that include
+  non-preset roles or extra per-overlay styling/layout keys will now be
+  rejected and must be rebuilt under the current contract.
+- The active change set contains 15 modified tracked files and 8 new files;
+  no overlap with `stash@{0}` was applied or resolved wholesale. Keep the
+  stash intact until any future file-by-file comparison is explicitly needed.

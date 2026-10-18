@@ -555,29 +555,54 @@ def _asset_ref(
 ) -> dict[str, Any]:
     """Asset reference carrying Rights/Discovery-compatible rights fields.
 
-    Canonical rights_scope/approval_status values belong to the
-    Rights/Discovery workstream (not yet landed): this function passes
-    through a supplied verified/active record as approved and otherwise
-    emits explicit pending placeholders the renderer/QA must gate on.
-    The graph never implies clearance it was not given.
+    Approval is derived from the persisted ``rights_scope_json`` (the source
+    of truth), NOT from ``rights_state``/``lifecycle_state`` alone: a
+    verified/active record is not automatically cleared.
+
+    - scope JSON valid and ``granted_by == "human"`` -> ``approved`` with a
+      summarized ``rights_scope`` (non-empty string).
+    - scope JSON valid and ``granted_by == "deny-default"`` -> ``"deny-default"``,
+      ``pending``.
+    - scope missing / unparseable / invalid / any other grant -> ``"rights-scope-missing"``,
+      ``pending``.
+
+    The graph never implies clearance it was not given. Renderer/QA still
+    re-check against the real purpose via ``is_usable_for``.
     """
+    from apps.asset_library.rights_scope import validate_scope
+
     info = asset_info if isinstance(asset_info, dict) else {}
-    verified = (info.get("rights_state") == "verified"
-                and info.get("lifecycle_state") == "active")
-    if verified:
-        return {
-            "asset_id": asset_id,
-            "kind": kind,
-            "rights_scope": str(info.get("rights_scope", "verified-library")),
-            "approval_status": "approved",
-            "license_type": info.get("license_type"),
-            "purpose_code": info.get("purpose_code"),
-        }
+    rights_scope = "rights-scope-missing"
+    approval_status = "pending"
+    granted_by = None
+    scope = None
+    raw = info.get("rights_scope_json")
+    if isinstance(raw, str) and raw.strip():
+        try:
+            scope = json.loads(raw)
+        except (ValueError, TypeError):
+            scope = None
+    elif isinstance(raw, dict):
+        scope = raw
+    if isinstance(scope, dict) and not validate_scope(scope):
+        granted_by = scope.get("granted_by")
+    if granted_by == "human":
+        platforms = [
+            str(p) for p in (scope.get("platforms") or []) if str(p).strip()
+        ]
+        rights_scope = (
+            "human-granted:" + ",".join(platforms) if platforms else "human-granted"
+        )
+        approval_status = "approved"
+    elif granted_by == "deny-default":
+        rights_scope = "deny-default"
+        approval_status = "pending"
+    # any other case keeps "rights-scope-missing" / "pending"
     return {
         "asset_id": asset_id,
         "kind": kind,
-        "rights_scope": "pending-rights-review",
-        "approval_status": "pending",
+        "rights_scope": rights_scope,
+        "approval_status": approval_status,
         "license_type": info.get("license_type"),
         "purpose_code": info.get("purpose_code"),
     }
@@ -944,6 +969,8 @@ def build_clip_graphs(
                 media_caption = seg.get("media_caption")
             if seg.get("overlays") is not None:
                 overlays = seg.get("overlays")
+        if overlays is not None and not isinstance(overlays, list):
+            raise ValueError("scene graph: overlays must be a list when provided")
         media_id = decision.get("media_asset_id")
         info = asset_map.get(str(media_id)) if isinstance(media_id, str) else None
         try:
@@ -956,6 +983,75 @@ def build_clip_graphs(
             end = start + 5.0
         if not end > start:
             end = start + 5.0
+
+        # Chuyển đổi timeline_events (timebase tuyệt đối từ content_workflow)
+        # thành overlay clip-relative (0 = đầu beat) cho beat này.
+        # Overlays rõ ràng (từ decision/segment, đã gán vào `overlays` ở trên)
+        # được bảo toàn trước; overlay từ timeline append sau cùng sau dedup.
+        timeline_events = seg.get("timeline_events")
+        if isinstance(timeline_events, list):
+            beat_duration = end - start
+            for event in timeline_events:
+                if not isinstance(event, dict):
+                    continue
+                item_type = event.get("item_type")
+                if item_type not in ("caption", "lower_third"):
+                    continue
+                item_id = event.get("item_id", "<unknown>")
+                text = event.get("text")
+                if not isinstance(text, str) or not text.strip():
+                    raise ValueError(
+                        f"scene graph: timeline event {item_id!r} text must be "
+                        "a non-empty string"
+                    )
+                abs_start = event.get("start_seconds")
+                abs_end = event.get("end_seconds")
+                if (
+                    isinstance(abs_start, bool)
+                    or isinstance(abs_end, bool)
+                    or not isinstance(abs_start, (int, float))
+                    or not isinstance(abs_end, (int, float))
+                ):
+                    raise ValueError(
+                        f"scene graph: timeline event {item_id!r} "
+                        "start_seconds/end_seconds must be real numbers"
+                    )
+                start_rel = float(abs_start) - start
+                end_rel = float(abs_end) - start
+                if not (
+                    start_rel >= 0
+                    and end_rel > start_rel
+                    and end_rel <= beat_duration
+                ):
+                    raise ValueError(
+                        f"scene graph: timeline event {item_id!r} times "
+                        f"[{start_rel}, {end_rel}] outside beat window "
+                        f"[0, {beat_duration}]"
+                    )
+                overlay = {
+                    "type": item_type,
+                    "text": text.strip(),
+                    "start_seconds": start_rel,
+                    "end_seconds": end_rel,
+                }
+                role = event.get("role")
+                if isinstance(role, str) and role.strip():
+                    overlay["role"] = role.strip()
+                # Dedup: bỏ qua nếu đã có overlay trùng type+text+start+end
+                # (tránh trùng khi cùng sự kiện đến từ nhiều nguồn).
+                if any(
+                    isinstance(o, dict)
+                    and o.get("type") == overlay["type"]
+                    and o.get("text") == overlay["text"]
+                    and o.get("start_seconds") == overlay["start_seconds"]
+                    and o.get("end_seconds") == overlay["end_seconds"]
+                    for o in (overlays or [])
+                ):
+                    continue
+                if overlays is None:
+                    overlays = []
+                overlays.append(overlay)
+
         graphs.append(build_from_decision(
             decision,
             evidence=evidence if isinstance(evidence, list) else [],

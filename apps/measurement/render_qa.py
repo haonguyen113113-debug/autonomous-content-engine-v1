@@ -277,6 +277,77 @@ def check_media_rights(
     return _check(name, NEEDS_REVIEW, "No media refs collected — cannot evaluate.")
 
 
+def _overlay_rendered_check(graph: dict[str, Any]) -> dict[str, Any]:
+    """Overlay rendered check on the RAW graph (lenient, never raises).
+
+    Overlays are declared in ``graph["overlays"]`` (frozen by ws3, covered
+    by graph_hash). Each overlay must carry a valid type / text / timing
+    and lie inside the beat window. A single rendered still cannot confirm
+    in-frame paint or timing, so a declared + structurally valid overlay is
+    NEEDS_REVIEW (confirm on the rendered MP4), never a blind PASS on mere
+    presence in the input. No overlay declared -> PASS (nothing to render).
+    """
+    if not isinstance(graph, dict):
+        return _check("Overlay rendered", NEEDS_REVIEW,
+                      "Graph is not an object — overlay cannot be checked.")
+    overlays = graph.get("overlays")
+    if overlays is None:
+        return _check("Overlay rendered", PASS,
+                      "No overlay declared in the graph — nothing to render.")
+    if not isinstance(overlays, list):
+        return _check("Overlay rendered", FAIL,
+                      "Graph declares overlays but the value is not a list.")
+    if not overlays:
+        return _check("Overlay rendered", PASS,
+                      "Overlay list is empty — nothing to render.")
+    timing = graph.get("timing")
+    t_start = t_end = None
+    if isinstance(timing, dict):
+        try:
+            t_start = float(timing.get("start"))
+            t_end = float(timing.get("end"))
+        except (TypeError, ValueError):
+            t_start = t_end = None
+    duration = (t_end - t_start) if (t_start is not None and t_end is not None) else None
+    problems: list[str] = []
+    for index, item in enumerate(overlays):
+        prefix = f"overlays[{index}]"
+        if not isinstance(item, dict):
+            problems.append(f"{prefix} is not an object")
+            continue
+        otype = item.get("type")
+        if otype not in ("lower_third", "caption"):
+            problems.append(f"{prefix} type={otype!r} is not lower_third/caption")
+            continue
+        text = item.get("text")
+        if not isinstance(text, str) or not text.strip():
+            problems.append(f"{prefix} missing non-empty text")
+            continue
+        try:
+            start = float(item.get("start_seconds"))
+            end = float(item.get("end_seconds"))
+        except (TypeError, ValueError):
+            problems.append(f"{prefix} timing is not numeric")
+            continue
+        if not end > start:
+            problems.append(f"{prefix} end_seconds <= start_seconds")
+            continue
+        if duration is not None and start > duration:
+            problems.append(f"{prefix} starts after the beat window "
+                            f"({start} > {duration})")
+            continue
+        if duration is not None and end > duration:
+            problems.append(f"{prefix} ends after the beat window "
+                            f"({end} > {duration})")
+            continue
+    if problems:
+        return _check("Overlay rendered", FAIL, "; ".join(problems))
+    return _check("Overlay rendered", NEEDS_REVIEW,
+                  f"{len(overlays)} overlay(s) declared with valid text/timing "
+                  "inside the beat window; a still cannot confirm in-frame "
+                  "paint — verify on the rendered MP4.")
+
+
 def qa_scene(
     graph: dict[str, Any],
     image: Any | None = None,
@@ -306,12 +377,16 @@ def qa_scene(
       per-purpose scope check; None NEEDS_REVIEWs the scope gate.
     """
     checked, error = _validate(graph)
+    subject = str((graph or {}).get("segment_id", "?"))
+    # Overlay check on the raw graph (lenient, never raises): surfaces a bad
+    # overlay timing/content as "Overlay rendered" even when the core gate
+    # already rejects the graph. Never PASSes on mere presence in input.
+    overlay_check = _overlay_rendered_check(graph)
     if checked is None:
-        return {"subject": str((graph or {}).get("segment_id", "?")),
-                "verdict": FAIL,
+        return {"subject": subject, "verdict": FAIL, "ready": False,
                 "checks": [_check("Scene graph contract", FAIL,
-                                  f"Invalid scene graph — must not render: {error}")]}
-    subject = str(checked.get("segment_id", "?"))
+                                  f"Invalid scene graph — must not render: {error}"),
+                           overlay_check]}
     canvas = checked.get("canvas", {})
     width, height = int(canvas.get("width", 0)), int(canvas.get("height", 0))
     layers = visible_text_layers(checked)
@@ -475,6 +550,7 @@ def qa_scene(
             "Primitive tactical plate: pass/run/press vectors come from an "
             "unfrozen fallback storyboard, not the graph — verify the rendered "
             "diagram against the reviewed tactical data by eye."))
+    checks.append(overlay_check)
 
     verdict = FAIL if any(c["status"] == FAIL for c in checks) \
         else (NEEDS_REVIEW if any(c["status"] == NEEDS_REVIEW for c in checks) else PASS)
@@ -710,6 +786,26 @@ def qa_clip(
                 f"Opens on {first} ({first_role or 'unlabelled'}), closes on {last} "
                 f"({last_role or 'unlabelled'}) — expected a hook/opening first "
                 "and an ending/takeaway last."))
+
+    # Clip-level overlay aggregation: every scene's overlay gate must be
+    # clean for the clip to PASS the overlay criterion.
+    scene_overlay = [next((c["status"] for c in s["checks"]
+                           if c["criterion"] == "Overlay rendered"), None)
+                     for s in scenes]
+    if any(st == FAIL for st in scene_overlay):
+        checks.append(_check(
+            "Overlay rendered", FAIL,
+            "One or more scenes declare invalid overlay text/timing "
+            "(outside the beat window or malformed)."))
+    elif any(st == NEEDS_REVIEW for st in scene_overlay):
+        checks.append(_check(
+            "Overlay rendered", NEEDS_REVIEW,
+            "Overlay(s) declared valid but a still cannot confirm in-frame "
+            "paint — verify on the rendered MP4."))
+    else:
+        checks.append(_check(
+            "Overlay rendered", PASS,
+            "No overlay declared in any scene — nothing to render."))
 
     scene_verdicts = [s["verdict"] for s in scenes]
     bad = FAIL in scene_verdicts or any(c["status"] == FAIL for c in checks)

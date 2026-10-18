@@ -1899,6 +1899,45 @@ def _beat_fades(events: list[Any], start: float, end: float) -> tuple[bool, bool
     return fade_in, fade_out
 
 
+# Fixed role presets for Scene Graph overlays. Geometry / font / color come
+# from these locked presets (type + role); the overlay payload contributes
+# only text + timing — the renderer never computes per-instance layout.
+_SG_OVERLAY_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
+    "lower_third": {
+        None: {
+            "wrap": 34, "max_lines": 2, "fs_frac": 0.022,
+            "box_dx": 24, "box_dy_from_bottom": 168, "box_h": 118,
+            "box_w_dx": 48, "accent_w": 7, "text_dx": 48,
+            "text_dy_from_box": 16,
+            "color": "chalk", "accent": "signal_lime",
+        },
+        "name_tag": {
+            "wrap": 30, "max_lines": 1, "fs_frac": 0.020,
+            "box_dx": 24, "box_dy_from_bottom": 260, "box_h": 70,
+            "box_w_dx": 48, "accent_w": 7, "text_dx": 48,
+            "text_dy_from_box": 10,
+            "color": "chalk", "accent": "signal_lime",
+        },
+    },
+    "caption": {
+        None: {
+            "wrap": 40, "max_lines": 2, "fs_frac": 0.028,
+            "box_dx": 0, "box_dy_from_bottom": 96, "box_h": 0,
+            "box_w_dx": 0, "accent_w": 0, "text_dx": 0,
+            "text_dy_from_box": 0,
+            "color": "chalk", "accent": "signal_lime", "boxborderw": 14,
+        },
+        "hook": {
+            "wrap": 36, "max_lines": 2, "fs_frac": 0.034,
+            "box_dx": 0, "box_dy_from_bottom": 96, "box_h": 0,
+            "box_w_dx": 0, "accent_w": 0, "text_dx": 0,
+            "text_dy_from_box": 0,
+            "color": "signal_lime", "accent": "signal_lime", "boxborderw": 14,
+        },
+    },
+}
+
+
 def _overlay_items(events: list[Any], start: float, end: float, *,
                    kinds: tuple[str, ...] = ("lower_third", "caption"),
                    limit: int = 6) -> list[dict[str, Any]]:
@@ -1920,6 +1959,64 @@ def _overlay_items(events: list[Any], start: float, end: float, *,
     picked.sort(key=lambda item: (float(item.get("start_seconds", 0)),
                                   float(item.get("end_seconds", 0))))
     return picked
+
+
+def _draw_sg_overlay(
+    item: dict[str, Any], window: str, *,
+    index: int, job: int, work_dir: Path,
+    scene_x: float, scene_y: float, panel_w: float, panel_h: float,
+    font_path: str, chalk: str, signal_lime: str, ink: str,
+) -> list[str]:
+    """FFmpeg drawtext/drawbox filters for ONE frozen graph overlay.
+
+    Geometry / font / color come from fixed role presets (type + role);
+    the overlay payload contributes only text + timing. Nothing else is
+    derived from the payload — no LLM layout, no per-instance layout.
+    `index` / `job` keep the intermediate text file unique per overlay.
+    """
+    otype = str(item.get("type", "")).strip()
+    role = str(item.get("role") or "").strip() or None
+    if otype not in ("lower_third", "caption"):
+        return []
+    preset = (_SG_OVERLAY_PRESETS.get(otype, {}).get(role)
+              or _SG_OVERLAY_PRESETS.get(otype, {}).get(None))
+    if preset is None:
+        return []
+    text = str(item.get("text", ""))
+    lines = textwrap.wrap(text, width=preset["wrap"], break_long_words=False,
+                          break_on_hyphens=False)[: preset["max_lines"]]
+    text_path = _write_text(
+        work_dir / f"sg-overlay-{index}-{job}-{otype}.txt", "\n".join(lines))
+    color = {"chalk": chalk, "signal_lime": signal_lime, "ink": ink}[preset["color"]]
+    accent = {"chalk": chalk, "signal_lime": signal_lime, "ink": ink}[preset["accent"]]
+    box_x = scene_x + preset["box_dx"]
+    box_y = scene_y + panel_h - preset["box_dy_from_bottom"]
+    filters: list[str] = []
+    if otype == "lower_third":
+        filters.append(
+            f"drawbox=x={box_x}:y={box_y}:w={panel_w - preset['box_w_dx']}:h={preset['box_h']}:"
+            f"color={accent}@0.78:t=fill:enable='{window}'"
+        )
+        if preset.get("accent_w"):
+            filters.append(
+                f"drawbox=x={box_x}:y={box_y}:w={preset['accent_w']}:h={preset['box_h']}:"
+                f"color={accent}@1:t=fill:enable='{window}'"
+            )
+        filters.append(
+            f"drawtext=fontfile='{font_path}':textfile='{text_path}':fontcolor={color}:"
+            f"fontsize=h*{preset['fs_frac']:.3f}:line_spacing=7:"
+            f"x={box_x + preset['text_dx']}:y={box_y + preset['text_dy_from_box']}:"
+            f"shadowcolor=black@0.6:shadowx=1:shadowy=2:enable='{window}'"
+        )
+    else:  # caption
+        filters.append(
+            f"drawtext=fontfile='{font_path}':textfile='{text_path}':fontcolor={color}:"
+            f"fontsize=h*{preset['fs_frac']:.3f}:line_spacing=7:text_align=center:"
+            f"x='(w-text_w)/2':y={box_y}:"
+            f"box=1:boxcolor=black@0.62:boxborderw={preset.get('boxborderw', 14)}:"
+            f"enable='{window}'"
+        )
+    return filters
 
 
 def _render(
@@ -2093,9 +2190,11 @@ def _render(
                            and not (segment.get("media_asset_id") if isinstance(segment, dict) else None))
         except Exception:
             _starter_ok = False
-        # Starter scenes carry their own text: kinetic text overlays below
-        # are gated on not _starter_ok so nothing renders twice (owner 16/10).
-        # Scene Graph mode adds no kinetic overlays at all (re-wraps banned).
+        # Starter scenes carry their own text: legacy kinetic text overlays
+        # below are gated on not _starter_ok so nothing renders twice (owner 16/10).
+        # Scene Graph mode skips the legacy kinetic overlays (re-wraps banned)
+        # and instead draws frozen overlays from sg_graphs[index]["overlays"]
+        # in the scene paint/filter path below.
         if sg_graphs is None and mode == "hook_card" and hook_text and not _starter_ok:
             kinetic_overlays[index] = {"kind": "hook", "text": hook_text}
         elif (sg_graphs is None and mode == "statline_scorecard" and isinstance(hero, dict)
@@ -2549,18 +2648,37 @@ def _render(
     # Typed on-screen items declared in the production timeline. Lower-thirds
     # identify who/what is on screen; captions carry the hook for muted
     # viewers. Both sit above every scene layer.
+
     for index, (start, end) in enumerate(phase_ranges):
         if end <= start:
             continue
         pool: list[Any] = list(chapter_pool)
         if not preview and index < len(full_segments) and isinstance(full_segments[index], dict):
             pool += full_segments[index].get("timeline_events", [])
-        # Scene Graph mode renders no timeline overlays: lower-thirds and
-        # captions are not in the graph contract yet (waiting point: ws3).
-        for job, item in enumerate(_overlay_items(pool, start, end) if sg_graphs is None else []):
+        if sg_graphs is not None:
+            # Frozen graph overlays only: read from sg_graphs[index]["overlays"],
+            # never re-derive composition from timeline_events/segment (the
+            # composition is frozen by ws3; the renderer only executes).
+            graph_overlays = sg_graphs[index].get("overlays")
+            overlay_items = list(graph_overlays) if isinstance(graph_overlays, list) else []
+        else:
+            overlay_items = _overlay_items(pool, start, end)
+        for job, item in enumerate(overlay_items):
             try:
-                item_start = max(start, float(item.get("start_seconds", start)))
-                item_end = min(end, float(item.get("end_seconds", end)))
+                if sg_graphs is not None:
+                    # Overlay thoi gian clip-relative (0 = dau beat): chuyen
+                    # sang thoi gian tuyet doi cua mot lan duyet, dong cua so
+                    # [timing.start, timing.end]. Khong doc lai
+                    # timeline_events/segment de tai suy overlay o che do SG.
+                    graph_start = float(sg_graphs[index]["timing"]["start"])
+                    graph_end = float(sg_graphs[index]["timing"]["end"])
+                    overlay_start = float(item.get("start_seconds", 0))
+                    overlay_end = float(item.get("end_seconds", graph_end - graph_start))
+                    item_start = max(graph_start, graph_start + overlay_start)
+                    item_end = min(graph_end, graph_start + overlay_end)
+                else:
+                    item_start = max(start, float(item.get("start_seconds", start)))
+                    item_end = min(end, float(item.get("end_seconds", end)))
             except (TypeError, ValueError):
                 continue
             if item_end <= item_start:
@@ -2569,7 +2687,20 @@ def _render(
             if not raw_text:
                 continue
             window = f"between(t,{item_start:.3f},{item_end:.3f})"
-            if item.get("item_type") == "lower_third":
+            if sg_graphs is not None:
+                # Frozen graph overlay: fixed role preset (type + role); the
+                # payload contributes only text + timing — no LLM layout, no
+                # per-instance coordinates/font/color/motion.
+                filters.extend(
+                    _draw_sg_overlay(
+                        item, window,
+                        index=index, job=job, work_dir=work_dir,
+                        scene_x=scene_x, scene_y=scene_y, panel_w=panel_w, panel_h=panel_h,
+                        font_path=font_path, chalk=chalk, signal_lime=signal_lime,
+                        ink=color_token("ink"),
+                    )
+                )
+            elif item.get("item_type") == "lower_third":
                 lines = textwrap.wrap(raw_text, width=34, break_long_words=False,
                                        break_on_hyphens=False)[:2]
                 text_path = _write_text(work_dir / f"lower-{index}-{job}.txt", "\n".join(lines))
@@ -2734,7 +2865,7 @@ def _render(
         {"criterion": "Narration subtitles", "status": "NOT USED", "detail": "Subtitles are intentionally omitted; the narration carries the explanation."},
         {"criterion": "Personal voice and speech pacing", "status": "PENDING OWNER AUDIT" if not preview and not visual_only else "NOT ASSESSED", "detail": "TTS preview is muxed as one continuous narration track; naturalness and voice similarity await owner review." if not preview and not visual_only else ("Voice evaluation is intentionally excluded from this benchmark." if visual_only else "This is a silent visual preview.")},
         {"criterion": "Asset Library media", "status": "PASS" if selected_media else ("NOT ASSESSED" if preview else "FAIL"), "detail": f"{len(selected_media)} verified, attributed library images are used as contextual B-roll; they are not footage from the current Premier League matches." if selected_media else ("Media placement is exercised in full runs, not in silent template previews." if preview else "No verified library media is attached to this script.")},
-        {"criterion": "Lower-third and caption overlays", "status": "PASS" if overlays_used else "NOT USED", "detail": f"{overlays_used} timeline lower-third/caption item(s) rendered in their declared windows." if overlays_used else "This script declares no lower-third or caption timeline items."},
+        {"criterion": "Lower-third and caption overlays", "status": "PASS" if overlays_used else "NOT USED", "detail": f"{overlays_used} lower-third/caption overlay(s) rendered in their declared windows." if overlays_used else "No lower-third or caption overlay is declared or rendered."},
         {"criterion": "Script-specific transitions and effects", "status": "PARTIAL", "detail": f"chalk_line_wipe executes as 0.3s slide-in on {slide_used} scene(s); fade in/out executes from timeline enter/exit on {fades_used} beat(s); hook/hero punch-in executes on {punch_used} beat(s); all other beats cut clean. draw/wipe transitions and freeze_and_trace/pitch_grid effects remain unexecuted."},
         {"criterion": "Impact kinetic type: stagger and count-up", "status": "PASS" if (stagger_used or count_used) else "NOT USED", "detail": f"Hook lines stagger across {stagger_used} overlay(s); hero numerals count up across {count_used} step(s)." if (stagger_used or count_used) else "This script uses no kinetic hook or hero-numeral beat."},
         {"criterion": "Nova hook card and hero metric", "status": "PASS" if punch_used else "NOT USED", "detail": f"Hook punch-in / hero pop executes on {punch_used} beat(s)." if punch_used else "This script uses no hook card or hero-metric beat."},
@@ -2936,6 +3067,13 @@ def render_full_run(root: Path, run_id: str) -> dict[str, Any]:
     from apps.card_selector import apply_card_plan
 
     apply_card_plan(root, run)
+    # Scene Graph production path: build + gắn frozen graphs trước khi render.
+    # Flag tắt: giữ legacy path byte-identical, không build graphs. Flag bật:
+    # build_run_scene_graphs gắn run["draft"]["scene_graphs"]; raise rõ nếu
+    # không thể build/validate (fail closed, không rơi về legacy).
+    if os.environ.get("ACE_SCENE_GRAPH_RENDER") == "1":
+        from apps.scene_graph.pipeline import build_run_scene_graphs
+        build_run_scene_graphs(root, run)  # mutate run["draft"]["scene_graphs"]; raise nếu fail
     result = _render(root, run, preview=False, output_name="full-render.mp4")
     run["render"] = {
         "path": "full-render.mp4",
@@ -3019,48 +3157,16 @@ def _scene_graph_clip(
 def _render_purpose(run: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any] | None:
     """Upload intent for the per-purpose media scope check, or None.
 
-    Reads the run/draft distribution destinations ({platform, market});
-    commercial/monetization pass through only when explicitly declared.
-    edit=True is factual (composition always crops/scales) and
-    credit_planned=True is factual (the primitive burns a credit line).
-    Missing platform/territory -> None: workstream 1 forbids guessing, so
-    the scope gate stays unevaluated (QA NEEDS_REVIEWs it).
+    Uses the same normalizer as the card selector
+    (``apps.card_selector.normalize_upload_purpose``) so selector and
+    renderer see identical platform/territory/commercial/monetization.
+    Imported lazily inside the function to avoid a module import cycle.
+    Missing platform/territory -> None: the scope gate stays unevaluated
+    (QA NEEDS_REVIEWs it) instead of guessing an upload scope.
     """
-    destinations: list[dict[str, Any]] = []
-    for container in (run, draft):
-        if not isinstance(container, dict):
-            continue
-        for key in ("destinations", "distribution"):
-            value = container.get(key)
-            if isinstance(value, dict):
-                value = value.get("destinations")
-            if isinstance(value, list):
-                destinations.extend(item for item in value if isinstance(item, dict))
-    picked: dict[str, Any] | None = None
-    for item in destinations:
-        platform = str(item.get("platform", "")).strip()
-        if platform and platform != "local_file":
-            picked = item
-            break
-    if picked is None and destinations:
-        picked = destinations[0]
-    if picked is None:
-        return None
-    platform = str(picked.get("platform", "")).strip()
-    territory = str(picked.get("market") or picked.get("territory") or "").strip()
-    if not platform or not territory:
-        return None
-    commercial = picked.get("commercial", (run if isinstance(run, dict) else {}).get("commercial", False))
-    monetization = picked.get("monetization", (run if isinstance(run, dict) else {}).get("monetization", False))
-    return {
-        "platform": platform,
-        "territory": territory,
-        "commercial": bool(commercial),
-        "monetization": bool(monetization),
-        "edit": True,
-        "credit_planned": True,
-        "use_count": 0,
-    }
+    from apps.card_selector import normalize_upload_purpose
+
+    return normalize_upload_purpose(run, draft)
 
 
 def _scene_graph_media(

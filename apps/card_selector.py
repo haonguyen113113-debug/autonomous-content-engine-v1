@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from apps.content_workflow import VISUAL_MODES
-from apps.asset_library.rights_scope import is_usable_for
+from apps.asset_library.rights_scope import is_usable_for, normalize_purpose
 
 # Renderer accepts everything _clean_segment allows, plus media_b_roll which
 # it derives itself from media_asset_id (video_renderer.py, scene loop).
@@ -36,6 +36,28 @@ PORTRAIT_MODES = {
     "player_card", "player_poster", "player_poster_side", "player_poster_top",
     "potm_card", "welcome_card", "score_card", "quote_card",
 }
+
+# image_goal -> preferred visual modes (advisory tie-break, never a hard
+# composition decision). The LLM owns image_goal meaning only; the planner
+# uses these hints as a soft nudge when candidate fit scores are nearly equal.
+# Keys come from apps.scene_graph.intent.IMAGE_GOALS; values are a subset of
+# SUPPORTED_MODES chosen so the hinted mode is coherent with the goal meaning.
+_INTENT_GOAL_MODE_HINTS: dict[str, list[str]] = {
+    "establish_moment": ["hook_card"],
+    "show_evidence": ["source_card", "quote_card", "statline_scorecard", "goal_card"],
+    "compare_numbers": ["duel_columns", "stat_leader", "chart_comparison", "score_card"],
+    "introduce_player": ["player_card", "player_poster",
+                         "player_poster_side", "player_poster_top", "potm_card"],
+    "set_context": ["fixture_card", "fixture_list", "welcome_card",
+                    "chart_timeline"],
+    "land_takeaway": ["media_b_roll", "tactical_explainer", "quote_card"],
+}
+
+# Soft bonus points applied when a candidate mode matches the intent hint.
+# Small enough to break near-ties only; never overrides hard constraints
+# (beat-0 hook, player lock, rights/purpose eligibility, mode support),
+# which are applied before/after scoring independently of this bonus.
+_INTENT_MODE_HINT_BONUS = 2.0
 
 # Short starters live in apps/studio_templates/*.short.json, long ones in
 # *.long.json. Starter is only suggested when its aspect matches the content.
@@ -142,16 +164,17 @@ def _eligible_asset(asset: dict[str, Any],
     ``rights_state == "verified"`` is identity/suitability only, never usage
     clearance: when a purpose is given the asset must additionally pass
     ``is_usable_for`` (platform, territory, commercial, monetization, ...).
-    When purpose is None the historical verified/active image check is
-    preserved and no scope-eligibility claim is made.
+    When purpose is missing or not a valid mapping the asset is NOT eligible:
+    verified/active is never treated as sufficient usage rights, so the
+    selector fails closed and attaches no library asset as if cleared.
     """
     base = (asset.get("asset_type") == "image"
             and asset.get("rights_state") == "verified"
             and asset.get("lifecycle_state") == "active")
     if not base:
         return False
-    if purpose is None:
-        return True
+    if not isinstance(purpose, Mapping):
+        return False
     return is_usable_for(asset, purpose)["allowed"] is True
 
 
@@ -222,7 +245,8 @@ def _coverage(mode: str, data: dict[str, Any], narration: str) -> tuple[float, l
 def _score_candidate(mode: str, segment: dict[str, Any], data: dict[str, Any],
                      assets: list[dict[str, Any]], declared: bool,
                      prev_modes: list[str],
-                     purpose: dict[str, Any] | None = None
+                     purpose: dict[str, Any] | None = None,
+                     intent: dict[str, str] | None = None
                      ) -> tuple[float, list[str]]:
     reasons: list[str] = []
     score = 50.0 if declared else 40.0
@@ -252,6 +276,17 @@ def _score_candidate(mode: str, segment: dict[str, Any], data: dict[str, Any],
     elif mode in prev_modes[-3:]:
         score -= 10.0
         reasons.append("card repeated within 3 beats")
+    # Advisory intent tie-break: soft nudge toward modes that fit the
+    # segment's image_goal when fit scores are nearly equal. Never overrides
+    # hard constraints (applied before/after scoring: beat-0 hook, player
+    # lock, rights/purpose eligibility, mode support). Missing/invalid intent
+    # leaves scoring unchanged.
+    if intent is not None:
+        goal = str(intent.get("image_goal", ""))
+        hints = _INTENT_GOAL_MODE_HINTS.get(goal)
+        if hints and mode in hints:
+            score += _INTENT_MODE_HINT_BONUS
+            reasons.append(f"intent hint: {goal} fits {mode}")
     return max(0.0, min(100.0, score)), reasons
 
 
@@ -377,6 +412,73 @@ def _starter_for(mode: str, segment: dict[str, Any], content_type: str,
     return table.get(mode)
 
 
+def normalize_upload_purpose(
+    run: Mapping[str, Any] | None,
+    draft: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Return ONE normalized upload intent for ``run``/``draft``, or None.
+
+    Accepts a flat purpose ``{platform, territory, commercial, monetization,
+    ...}`` (normalized via ``rights_scope.normalize_purpose``; run-level wins
+    over draft-level) or a ``destinations`` / ``distribution`` list of
+    ``{platform, market|territory, commercial, monetization}`` items (the
+    first destination with a real platform, i.e. not ``local_file``, is used).
+    Returns None when there is no usable platform+territory intent, so the
+    selector and the renderer fail closed instead of guessing an upload scope.
+    Selector and renderer share this normalizer so both see identical
+    platform/territory/commercial/monetization.
+    """
+    containers = tuple(c for c in (run, draft) if isinstance(c, Mapping))
+
+    # 1. Flat purpose: run-level first, then draft-level.
+    purpose: Mapping[str, Any] | None = None
+    for container in containers:
+        candidate = container.get("purpose")
+        if isinstance(candidate, Mapping):
+            purpose = candidate
+            break
+
+    # 2. destinations / distribution: {platform, market|territory,
+    #    commercial, monetization}.
+    if purpose is None:
+        picked: dict[str, Any] | None = None
+        for container in containers:
+            destinations: list[dict[str, Any]] | None = None
+            for key in ("destinations", "distribution"):
+                value = container.get(key)
+                if isinstance(value, dict):
+                    value = value.get("destinations")
+                if isinstance(value, list):
+                    destinations = [item for item in value if isinstance(item, dict)]
+                    break
+            if not destinations:
+                continue
+            for item in destinations:
+                platform = str(item.get("platform", "")).strip()
+                if platform and platform != "local_file":
+                    picked = item
+                    break
+            if picked is None:
+                picked = destinations[0]
+            break
+        if picked is None:
+            return None
+        run_container = run if isinstance(run, Mapping) else {}
+        purpose = {
+            "platform": picked.get("platform"),
+            "territory": picked.get("market") or picked.get("territory"),
+            "commercial": picked.get(
+                "commercial", run_container.get("commercial", False)),
+            "monetization": picked.get(
+                "monetization", run_container.get("monetization", False)),
+        }
+
+    normalized = normalize_purpose(purpose)
+    if not normalized.get("platform") or not normalized.get("territory"):
+        return None
+    return normalized
+
+
 def select_cards(segments: list[dict[str, Any]],
                  assets: list[dict[str, Any]] | None = None,
                  content_type: str = "short",
@@ -388,11 +490,25 @@ def select_cards(segments: list[dict[str, Any]],
     segment_id, visual_mode, starter_id (Sprint 1 card for Studio, or None),
     graphic_data (completed), media_asset_id (validated), score, reasons and
     warnings. Never raises on bad input; problems become warnings.
+
+    ``beat_intent`` (already normalized on each segment by
+    ``apps.scene_graph.intent.normalize_beat_intent``) is used only as a soft,
+    deterministic advisory tie-break: when two candidate modes have nearly
+    equal fit scores, the mode whose image_goal hints fit the intent gains a
+    small bonus. Intent never overrides hard constraints (beat-0 hook, player
+    lock, rights/purpose eligibility, mode support) and never chooses layout,
+    coordinates, font, color, motion or transition.
     """
     assets = list(assets or [])
     if content_type not in ("short", "long"):
         content_type = "short"
+    # A missing or invalid upload purpose means no scope-eligibility claim is
+    # made for any asset: the selector fails closed (verified/active is never
+    # sufficient usage clearance by itself).
+    if not isinstance(purpose, Mapping):
+        purpose = None
     decisions: list[dict[str, Any]] = []
+    library_skipped_no_purpose = False
     prev_modes: list[str] = []
     plan_warnings: list[str] = []
     for index, raw in enumerate(segments or []):
@@ -401,11 +517,24 @@ def select_cards(segments: list[dict[str, Any]],
         narration = str(segment.get("narration", ""))
         data = segment.get("graphic_data")
         data = dict(data) if isinstance(data, dict) else {}
-        declared = str(segment.get("visual_mode") or "tactical_explainer")
+        # Advisory beat intent from the LLM (already normalized). Only used as
+        # a soft tie-break; missing/invalid intent leaves scoring unchanged.
+        beat_intent = segment.get("beat_intent")
+        if not isinstance(beat_intent, dict):
+            beat_intent = None
+        # Declared visual_mode is None when the segment lacks it entirely: we
+        # never silently default every undeclared beat to tactical_explainer.
+        declared_raw = segment.get("visual_mode")
+        declared: str | None = None
+        declared_bonus = False
         warnings: list[str] = []
-        if declared not in SUPPORTED_MODES:
-            warnings.append(f"unknown visual_mode '{declared}'; fell back to tactical_explainer")
-            declared = "tactical_explainer"
+        if declared_raw is not None:
+            declared = str(declared_raw)
+            if declared not in SUPPORTED_MODES:
+                warnings.append(
+                    f"unknown visual_mode '{declared}'; fell back to tactical_explainer")
+                declared = "tactical_explainer"
+            declared_bonus = True
 
         # Renderer rule: a bound asset forces media_b_roll outside portrait modes.
         bound = segment.get("media_asset_id")
@@ -416,17 +545,30 @@ def select_cards(segments: list[dict[str, Any]],
                 warnings.append(f"media_asset_id '{bound}' not in fetched assets; binding dropped")
                 bound = None
             elif not _eligible_asset(record, purpose):
-                warnings.append(f"asset '{bound}' is not verified/active; binding dropped (render would fail)")
+                if purpose is None:
+                    warnings.append(
+                        f"asset '{bound}' skipped: no purpose/scope — library asset not attached without upload purpose")
+                    library_skipped_no_purpose = True
+                else:
+                    warnings.append(f"asset '{bound}' is not usable for this purpose; binding dropped (render would fail)")
                 bound = None
             else:
                 asset_ok = True
 
-        candidates = [declared]
+        candidates: list[str] = []
+        if declared is not None:
+            candidates.append(declared)
         for mode in _signal_modes(narration, str(segment.get("visual", ""))):
             if mode not in candidates and mode in SUPPORTED_MODES:
                 candidates.append(mode)
             if len(candidates) >= 3:
                 break
+        if not candidates:
+            # No declared visual_mode and no signal evidence: deterministic
+            # pitch-plate fallback, warned explicitly.
+            warnings.append(
+                "no visual_mode declared; deterministic pitch-plate fallback")
+            candidates = ["tactical_explainer"]
 
         # Owner 16/10: a declared player/portrait mode with a named player
         # stays — reselecting to a nameless data card would silently drop
@@ -435,9 +577,11 @@ def select_cards(segments: list[dict[str, Any]],
         scored = []
         for mode in candidates:
             points, why = _score_candidate(mode, segment, data, assets,
-                                           declared=(mode == declared),
+                                           declared=(declared_bonus
+                                                     and mode == declared),
                                            prev_modes=prev_modes,
-                                           purpose=purpose)
+                                           purpose=purpose,
+                                           intent=beat_intent)
             if lock_player and mode != declared:
                 points -= 100.0
                 why = why + ["player-mode lock: identity over fit"]
@@ -465,6 +609,12 @@ def select_cards(segments: list[dict[str, Any]],
                 bound = hit
                 asset_ok = True
                 warnings.append(f"verified portrait '{hit}' auto-attached (owner standing order 16/10)")
+            elif purpose is None:
+                # Fail-closed: without an upload purpose we do not attach a
+                # library asset as if usage rights were cleared.
+                warnings.append(
+                    f"portrait for '{data.get('player_name')}' skipped: no purpose/scope — library asset not attached")
+                library_skipped_no_purpose = True
             suggested = None
         else:
             suggested = None
@@ -513,6 +663,9 @@ def select_cards(segments: list[dict[str, Any]],
         if any("missing 'source'" in w or "missing 'date'" in w for w in d["warnings"]))
     if missing_source:
         plan_warnings.append(f"{missing_source} beat(s) make data claims without source+date")
+    if library_skipped_no_purpose:
+        plan_warnings.append(
+            "purpose missing — library assets not attached (fail-closed): no media_asset_id cleared without an upload purpose")
     mode_counts: dict[str, int] = {}
     for d in decisions:
         mode_counts[d["visual_mode"]] = mode_counts.get(d["visual_mode"], 0) + 1
@@ -595,13 +748,11 @@ def apply_card_plan(root: Path, run: dict[str, Any]) -> dict[str, Any]:
         return plan
     content_type = draft.get("content_type", "short")
     assets, note = _fetch_verified_images(root)
-    # Upload purpose: run-level first, then draft-level. A missing purpose
-    # means select_cards makes no scope-eligibility claim for any asset.
-    purpose = run.get("purpose")
-    if purpose is None:
-        purpose = draft.get("purpose")
-    if not isinstance(purpose, Mapping):
-        purpose = None
+    # Upload purpose: one normalized intent for the whole run/draft, via the
+    # same normalizer the renderer uses. A missing purpose means
+    # select_cards makes no scope-eligibility claim for any asset
+    # (fail-closed).
+    purpose = normalize_upload_purpose(run, draft)
     plan = select_cards([s for s in segments if isinstance(s, dict)],
                         assets, content_type, purpose=purpose)
     by_id = {d["segment_id"]: d for d in plan["decisions"]}
@@ -640,6 +791,9 @@ def apply_card_plan(root: Path, run: dict[str, Any]) -> dict[str, Any]:
                     used_media.add(pick)
                     decision["warnings"].append(
                         f"b-roll '{pick}' auto-picked from broll-generic pool")
+                elif purpose is None:
+                    decision["warnings"].append(
+                        "b-roll pool not used: no purpose/scope — library asset not attached without upload purpose")
     if note:
         plan["plan"]["warnings"].insert(0, note)
     run["card_plan"] = plan

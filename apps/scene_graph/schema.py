@@ -62,6 +62,18 @@ TRANSITION_OUTS = frozenset({"clean_cut"})
 APPROVAL_STATUSES = frozenset({"approved", "pending"})
 ASSET_KINDS = frozenset({"library_image", "monogram_fallback", "none"})
 
+# Overlay preset types and roles (planner/renderer contract). Geometry,
+# typography, and colors come from these finite presets; payloads may not add
+# per-overlay layout or styling fields.
+OVERLAY_TYPES = frozenset({"lower_third", "caption"})
+OVERLAY_ROLES = {
+    "lower_third": frozenset({"name_tag"}),
+    "caption": frozenset({"hook"}),
+}
+OVERLAY_KEYS = frozenset({
+    "type", "text", "start_seconds", "end_seconds", "role",
+})
+
 
 def is_supported_mode(mode: str) -> bool:
     return str(mode) in SUPPORTED_MODES
@@ -306,14 +318,82 @@ def _check_media_caption(caption: Any) -> None:
         )
 
 
-def _check_overlays(overlays: Any) -> None:
+def _check_overlays(overlays: Any, timing: Any = None) -> None:
+    """Kiểm tra nghiêm ngặt danh sách overlay theo contract overlay/caption.
+
+    Mỗi overlay (thời gian clip-relative so với đầu beat):
+        {
+            "type": "lower_third" | "caption",  # required
+            "text": str,                         # required, non-empty
+            "start_seconds": float,              # required, >= 0
+            "end_seconds": float,                # required, > start_seconds
+            "role": str,                         # optional preset role
+        }
+    Thời gian là clip-relative so với đầu beat (0 = đầu beat). Khi timing
+    có sẵn, start_seconds/end_seconds không được vượt quá
+    beat_duration = timing.end - timing.start.
+    """
     if not isinstance(overlays, list):
         raise ValueError(
             f"scene graph: 'overlays' must be a list when present, got {overlays!r}"
         )
     for index, item in enumerate(overlays):
+        prefix = f"overlays[{index}]"
         if not isinstance(item, dict):
-            raise ValueError(f"scene graph: overlays[{index}] must be an object, got {item!r}")
+            raise ValueError(f"scene graph: {prefix} must be an object, got {item!r}")
+        extra_keys = set(item) - OVERLAY_KEYS
+        if extra_keys:
+            raise ValueError(
+                f"scene graph: {prefix} has unsupported keys {sorted(extra_keys)!r}"
+            )
+        otype = item.get("type")
+        if otype not in OVERLAY_TYPES:
+            raise ValueError(
+                f"scene graph: {prefix}.type must be one of {sorted(OVERLAY_TYPES)}, "
+                f"got {otype!r}"
+            )
+        text = item.get("text")
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError(f"scene graph: {prefix}.text must be a non-empty string")
+        start = _need_number(item.get("start_seconds"), f"{prefix}.start_seconds")
+        if start < 0:
+            raise ValueError(
+                f"scene graph: {prefix}.start_seconds must be >= 0, got {start}"
+            )
+        end = _need_number(item.get("end_seconds"), f"{prefix}.end_seconds")
+        if not end > start:
+            raise ValueError(
+                f"scene graph: {prefix}.end_seconds must be > start_seconds "
+                f"({end} <= {start})"
+            )
+        if isinstance(timing, dict):
+            try:
+                beat_start = float(timing.get("start"))
+                beat_end = float(timing.get("end"))
+            except (TypeError, ValueError):
+                beat_start = beat_end = None
+        else:
+            beat_start = beat_end = None
+        if beat_start is not None and beat_end is not None and beat_end > beat_start:
+            duration = beat_end - beat_start
+            if start > duration:
+                raise ValueError(
+                    f"scene graph: {prefix} starts after the beat window "
+                    f"({start} > {duration})"
+                )
+            if end > duration:
+                raise ValueError(
+                    f"scene graph: {prefix} ends after the beat window "
+                    f"({end} > {duration})"
+                )
+        role = item.get("role")
+        if role is not None and not isinstance(role, str):
+            raise ValueError(f"scene graph: {prefix}.role must be a string when present")
+        if role is not None and role not in OVERLAY_ROLES[otype]:
+            raise ValueError(
+                f"scene graph: {prefix}.role {role!r} is not supported for {otype!r}; "
+                f"expected one of {sorted(OVERLAY_ROLES[otype])!r} or null"
+            )
 
 
 def _check_provenance(provenance: Any, graph: dict[str, Any]) -> None:
@@ -437,7 +517,7 @@ def validate_scene_graph(graph: dict[str, Any]) -> dict[str, Any]:
     if "media_caption" in graph and graph["media_caption"] is not None:
         _check_media_caption(graph["media_caption"])
     if "overlays" in graph and graph["overlays"] is not None:
-        _check_overlays(graph["overlays"])
+        _check_overlays(graph["overlays"], graph.get("timing"))
     return graph
 
 

@@ -753,9 +753,18 @@ def save_commons_candidate(
     requirement: ResourceRequirement,
     *,
     rights_reviewed: bool,
+    grant_fields: dict[str, Any] | None = None,
     api_keys: dict | None = None,
 ) -> dict[str, Any]:
-    """Download and ingest a user-selected external candidate (image or video)."""
+    """Download and ingest a user-selected external candidate (image or video).
+
+    When ``rights_reviewed`` is true and ``grant_fields`` is supplied, the
+    scope is built exactly from the grant (license/evidence or explicit owner
+    grant) via :func:`build_rights_scope` — no broad platform, commercial,
+    monetization, or edit rights are inferred. Without ``grant_fields`` the
+    scope is deny-default even when reviewed: the asset is saved but not
+    cleared for use until a human records a valid scope.
+    """
 
     if requirement.resource_type not in {"image", "video"}:
         raise ValueError("External providers only support image and video requests.")
@@ -837,27 +846,22 @@ def save_commons_candidate(
         if _RIGHTS_W1_AVAILABLE:
             try:
                 if rights_reviewed:
-                    # Credit comes from the sidecar metadata (license_credit)
-                    # or the candidate credit; never inferred beyond that.
-                    credit = (
-                        sidecar.get("metadata", {}).get("license_credit")
-                        or candidate.credit
-                    )
-                    scope = _w1_build_rights_scope(
-                        platforms=["youtube", "tiktok", "facebook", "instagram"],
-                        territories=["*"],
-                        commercial=True,
-                        monetization=True,
-                        edit_allowed=True,
-                        credit_required=bool(credit),
-                        credit_text=credit,
-                        license=sidecar.get("license_type"),
-                        source=sidecar.get("source_type"),
-                        reviewed_by="human",
-                        reviewed_at=now,
-                        copyright_exception=False,
-                        notes="human-reviewed grant persisted at save",
-                    )
+                    if grant_fields:
+                        # Specific grant from the license/evidence or an
+                        # explicit owner grant: build the exact scope, never
+                        # infer a broad platform / commercial / monetization /
+                        # edit grant.
+                        scope = _w1_build_rights_scope(**grant_fields)
+                    else:
+                        # rights_reviewed=True without an explicit grant must
+                        # not auto-synthesize broad rights. The asset is saved
+                        # but not cleared for use until a human records a
+                        # valid scope.
+                        scope = _w1_default_deny_scope(
+                            license=sidecar.get("license_type"),
+                            source=sidecar.get("source_type"),
+                            notes="rights reviewed but no explicit grant recorded; deny by default, needs human review",
+                        )
                 else:
                     scope = _w1_default_deny_scope(
                         license=sidecar.get("license_type"),
@@ -865,13 +869,13 @@ def save_commons_candidate(
                         notes="not rights-reviewed; deny by default",
                     )
             except ValueError:
-                # Review data is insufficient to build a grant: do not infer
-                # rights, deny by default so usage stays gated until a human
-                # records a valid scope.
+                # Grant data is missing or invalid: do not infer rights,
+                # deny by default so usage stays gated until a human records
+                # a valid scope.
                 scope = _w1_default_deny_scope(
                     license=sidecar.get("license_type"),
                     source=sidecar.get("source_type"),
-                    notes="not rights-reviewed; deny by default",
+                    notes="grant data insufficient; deny by default, needs human review",
                 )
             try:
                 conn = connect(project_root / "runtime/engine.db")

@@ -7,6 +7,7 @@ import pytest
 
 import apps.content_workflow as workflow
 from apps import llm as llm_module
+from apps.scene_graph.intent import normalize_beat_intent
 
 
 @pytest.fixture(autouse=True)
@@ -423,3 +424,112 @@ def test_persistent_fact_repetition_falls_back(monkeypatch):
 
     failed = next(s for s in result["segments"] if s["id"] == "beat-2")
     assert failed["generation"]["error"] == "repeated_facts"
+
+
+def test_beat_intent_prompt_forbids_layout_decisions(monkeypatch):
+    """The system prompt must own only beat_intent and must never ask the LLM
+    to pick layout, starter, camera, motion, transition, colors, or fonts."""
+    captured: dict[str, str] = {}
+
+    def fake_call(env, system, user_payload, *, num_predict, timeout, ledger):
+        captured["system"] = system
+        return None, {
+            "provider": "", "model": "", "prompt_tokens": 0,
+            "completion_tokens": 0, "cost_usd": 0.0,
+        }
+
+    monkeypatch.setattr(workflow, "_ollama_call", fake_call)
+    workflow._ollama_beat(
+        {}, topic="Vì sao pressing tầm cao hiệu quả?", beat_id="beat-1",
+        purpose="open", position="beat 1 of 6", previous_summary="",
+        evidence=[], duration_hint=8, num_predict=512,
+        ledger={"spent": 0.0, "calls": [], "budget": 1.0, "budget_stops": 0},
+    )
+    system = captured["system"]
+    assert "beat_intent" in system
+    assert all(field in system for field in (
+        "image_goal", "focus_subject", "evidence_type", "emphasis_level",
+    ))
+    assert "visual_mode" not in system
+    assert "timeline_events" not in system
+    assert ("Do NOT choose layout, starter, camera, motion, transition, "
+            "colors, or fonts") in system
+
+
+def test_clean_segment_drops_llm_visual_mode_and_timeline_events():
+    """_clean_segment keeps only beat_intent from the model reply: visual_mode
+    and timeline_events supplied by the LLM must not survive into the segment,
+    and beat_intent is reduced to its four meaning fields."""
+    payload = {
+        "id": "beat-3",
+        "narration": "Narration with enough substance to fill its slot here.",
+        "visual": "Bảng chiến thuật",
+        "evidence_refs": ["ref-1"],
+        "visual_mode": "statline_scorecard",  # the LLM must not choose this
+        "timeline_events": [{"item_id": "e1", "item_type": "tactical_diagram",
+                             "start_offset_seconds": 0, "end_offset_seconds": 8}],
+        "graphic_data": {},
+        "duration_seconds": 8,
+        "beat_intent": {"image_goal": "show_evidence", "focus_subject": "pressing",
+                        "evidence_type": "tactical_observation",
+                        "emphasis_level": "standard",
+                        "visual_mode": "forbidden", "timeline_events": [],
+                        "layout": "forbidden"},
+    }
+    segment = workflow._clean_segment(payload)
+    assert segment is not None
+    assert "visual_mode" not in segment
+    assert "timeline_events" not in segment
+    assert set(segment["beat_intent"]) == {
+        "image_goal", "focus_subject", "evidence_type", "emphasis_level",
+    }
+    assert segment["beat_intent"] == {
+        "image_goal": "show_evidence",
+        "focus_subject": "pressing",
+        "evidence_type": "tactical_observation",
+        "emphasis_level": "standard",
+    }
+
+
+def test_normalize_beat_intent_only_four_fields_invalid_falls_back():
+    """normalize_beat_intent returns exactly the four meaning fields, never
+    visual_mode/timeline_events/layout, and invalid input falls back
+    deterministically without raising or inventing facts."""
+    out = normalize_beat_intent(
+        {"image_goal": "garbage", "focus_subject": "x" * 500,
+         "evidence_type": "bogus", "emphasis_level": "extreme",
+         "visual_mode": "forbidden", "timeline_events": [], "layout": "forbidden"},
+        mode="", index=1, graphic_data={},
+    )
+    assert set(out) == {"image_goal", "focus_subject", "evidence_type", "emphasis_level"}
+    assert "visual_mode" not in out and "timeline_events" not in out and "layout" not in out
+    assert out["focus_subject"] == "x" * 120  # truncated, never padded
+    assert out["image_goal"] == "set_context"  # deterministic fallback, no raise
+    assert out["evidence_type"] == "none"
+    assert out["emphasis_level"] == "standard"
+
+    # Missing/invalid input never raises; fallback comes from mode +
+    # graphic_data only (tactical_explainer + data => tactical_observation).
+    assert normalize_beat_intent(None)["image_goal"] == "set_context"
+    assert normalize_beat_intent({}, mode="tactical_explainer", graphic_data={})["evidence_type"] == "none"
+    assert normalize_beat_intent(
+        {}, mode="tactical_explainer", graphic_data={"metrics": [1]},
+    )["evidence_type"] == "tactical_observation"
+
+
+def test_outline_fallback_warns_rather_than_silent_tactical_explainer():
+    """_outline_beat assigns tactical_explainer as a SYSTEM fallback and must
+    warn explicitly (no tactical_diagram spec) instead of going silent."""
+    segment = workflow._outline_beat(
+        "Vì sao pressing tầm cao hiệu quả?", ["hook", "evidence", "takeaway"], 0, 45,
+    )
+    assert segment["visual_mode"] == "tactical_explainer"
+    assert segment["graphic_data"] == {}
+    assert segment["timeline_events"] == []
+    warnings = segment.get("warnings")
+    assert isinstance(warnings, list) and warnings, "fallback must not be silent"
+    text = " ".join(warnings).lower()
+    assert "tactical_explainer" in text
+    assert "system fallback" in text
+    assert "tactical_diagram" in text
+    assert "owner review" in text

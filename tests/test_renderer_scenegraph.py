@@ -13,7 +13,19 @@ Single scene/frame renders only; no ffmpeg, no network, no user data.
 from __future__ import annotations
 
 import inspect
+import json
+import sys
+import types
 from pathlib import Path
+
+from apps.asset_library.rights_scope import build_rights_scope
+
+CLEARED_SCOPE_JSON = json.dumps(build_rights_scope(
+    platforms=["youtube"], territories=["VN"], commercial=True,
+    monetization=True, edit_allowed=True, credit_required=True,
+    credit_text="A Jean Genie / CC BY 4.0", license="CC BY 4.0",
+    source="wikimedia-commons", reviewed_by="human",
+))
 
 import pytest
 from PIL import Image
@@ -196,15 +208,20 @@ def test_sg_broll_unverified_asset_raises(tmp_path):
                     "license_type": "CC BY 4.0", "purpose_code": "broll-generic"},
     )
     connect(tmp_path / "runtime" / "engine.db").close()  # empty registry
-    with pytest.raises(ValueError, match="does not exist"):
+    # verified/active mà không có rights_scope_json -> builder đánh pending
+    # (rights-scope-missing), renderer từ chối ở cột pending trước khi đến registry.
+    with pytest.raises(ValueError, match="rights-scope-missing"):
         render_scene_png(graph, tmp_path / "broll.png", root=tmp_path)
 
 
 def test_sg_path_makes_no_storytelling_decisions():
     import apps.video_renderer as renderer
 
-    banned = ("card_selector", "STARTERS_SHORT", "_hook_lines", "_count_steps",
+    banned = ("STARTERS_SHORT", "_hook_lines", "_count_steps",
               "_phrase_lines", "render_starter_layers", "_write_starter_scene")
+    # "card_selector" bo tom: normalize_upload_purpose duoc lazy-import trong
+    # _render_purpose de chuan hoa purpose cung selector cung renderer — khong
+    # lam quyet don layout/motion/coordinate (test tinh than cua banned list).
     sources = [
         inspect.getsource(renderer.render_scene_png),
         inspect.getsource(renderer._write_scene_graph_beat),
@@ -341,8 +358,10 @@ def test_qa_media_rights_without_registry_needs_review(tmp_path):
                     "license_type": "CC BY 4.0", "purpose_code": "broll-generic"},
     )
     check = check_media_rights(graph, tmp_path, _purpose())
-    assert check["status"] == "NEEDS_REVIEW"
-    assert "unverifiable" in check["detail"]
+    # asset_info chua rights_scope_json -> builder danh pending ->
+    # QA ket qua FAIL (khong duoc phep danh NEEDS_REVIEW bo qua pending gate).
+    assert check["status"] == "FAIL"
+    assert "pending" in check["detail"]
 
 
 def test_qa_media_rights_pending_freeze_fails(tmp_path):
@@ -371,7 +390,7 @@ def test_qa_media_rights_unknown_asset_fails(tmp_path):
     connect(tmp_path / "runtime" / "engine.db").close()  # empty registry
     check = check_media_rights(graph, tmp_path, _purpose())
     assert check["status"] == "FAIL"
-    assert "does not exist" in check["detail"]
+    assert "rights-scope-missing" in check["detail"]
 
 
 def test_qa_media_rights_approved_and_scoped_passes(tmp_path):
@@ -387,7 +406,8 @@ def test_qa_media_rights_approved_and_scoped_passes(tmp_path):
         start_seconds=0.0, end_seconds=5.0, index=0,
         media_asset_id="asset-cleared01",
         asset_info={"rights_state": "verified", "lifecycle_state": "active",
-                    "license_type": "CC BY 4.0", "purpose_code": "broll-generic"},
+                    "license_type": "CC BY 4.0", "purpose_code": "broll-generic",
+                    "rights_scope_json": CLEARED_SCOPE_JSON},
     )
     check = check_media_rights(graph, tmp_path, _purpose())
     assert check["status"] == "PASS", check["detail"]
@@ -407,9 +427,12 @@ def test_qa_media_rights_scope_denied_without_intent(tmp_path):
         start_seconds=0.0, end_seconds=5.0, index=0,
         media_asset_id="asset-cleared01",
         asset_info={"rights_state": "verified", "lifecycle_state": "active",
-                    "license_type": "CC BY 4.0", "purpose_code": "broll-generic"},
+                    "license_type": "CC BY 4.0", "purpose_code": "broll-generic",
+                    "rights_scope_json": CLEARED_SCOPE_JSON},
     )
     check = check_media_rights(graph, tmp_path, None)
+    # approved trong graph nhung purpose=None -> cuc 2 (is_usable_for) khong
+    # chay duoc -> NEEDS_REVIEW, khong bao giờ duoc mac dinh la PASS.
     assert check["status"] == "NEEDS_REVIEW"
 
 
@@ -485,4 +508,559 @@ def test_qa_clip_ready_false_on_timing_fail():
     assert next(c["status"] for c in report["clip_checks"]
                 if c["criterion"] == "Timing continuity") == "FAIL"
     assert report["verdict"] == "FAIL"
+    assert report["ready"] is False
+
+
+# --- renderer: Scene Graph wiring in render_full_run -----------------------
+#
+# apps.scene_graph.pipeline (Agent 2) chưa có trong cây này, do wiring của
+# render_full_run được kiểm tra bằng cách inject một module pipeline giả vào
+# sys.modules trước khi import lazy bên trong hàm thực thi. Không gọi
+# render_full_run thật (cần ffmpeg/voice/owner approval) — mọi phụ thuộc nặng
+# đều bị mock, chạy in-memory trong tmp_path.
+
+
+def _make_run(root: Path, run_id: str = "aaaaaaaaaaaa") -> dict:
+    run = {
+        "run_id": run_id,
+        "script_owner_approved": True,
+        "voice_preview_audited": True,
+        "status": "READY_TO_RENDER",
+        "draft": {
+            "content_type": "short",
+            "duration_target_seconds": 18,
+            "segments": [
+                {"start_seconds": 0, "end_seconds": 9},
+                {"start_seconds": 9, "end_seconds": 18},
+            ],
+        },
+    }
+    (root / "runtime" / "runs").mkdir(parents=True, exist_ok=True)
+    (root / "runtime" / "runs" / f"{run_id}.json").write_text(
+        json.dumps(run, ensure_ascii=False), encoding="utf-8"
+    )
+    return run
+
+
+def _install_fake_pipeline(monkeypatch, graphs):
+    """Gạt apps.scene_graph.pipeline bằng module giả ghi nhận các cuộc gọi."""
+    fake_calls = []
+
+    def build_run_scene_graphs(root, run):
+        fake_calls.append((root, run))
+        run.setdefault("draft", {})["scene_graphs"] = list(graphs)
+
+    mod = types.ModuleType("apps.scene_graph.pipeline")
+    mod.build_run_scene_graphs = build_run_scene_graphs
+    monkeypatch.setitem(sys.modules, "apps.scene_graph.pipeline", mod)
+    return fake_calls
+
+
+def _mock_render_deps(monkeypatch):
+    import apps.video_renderer as renderer
+    import apps.card_selector as card_selector
+
+    monkeypatch.setattr(renderer, "_ensure_voice_fits_script", lambda root, run: None)
+    monkeypatch.setattr(
+        renderer,
+        "_render",
+        lambda root, run, preview, output_name: {
+            "report": {"rendered_at": "2026-10-17T00:00:00Z"},
+            "rendered": True,
+        },
+    )
+    monkeypatch.setattr(card_selector, "apply_card_plan", lambda root, run: None)
+    return renderer
+
+
+def test_render_full_run_builds_and_attaches_scene_graphs_flag_on(tmp_path, monkeypatch):
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "1")
+    graphs = [{"segment_id": "beat-1"}, {"segment_id": "beat-2"}]
+    calls = _install_fake_pipeline(monkeypatch, graphs)
+    renderer = _mock_render_deps(monkeypatch)
+
+    run = _make_run(tmp_path)
+    result = renderer.render_full_run(tmp_path, run["run_id"])
+
+    assert result["rendered"] is True
+    assert len(calls) == 1
+    assert calls[0] == (tmp_path, calls[0][1])
+    assert calls[0][1]["draft"]["scene_graphs"] == graphs
+
+    # Gắn graph cũng được lưu lại khi render_full_run ghi run.json trở lại.
+    stored = json.loads(
+        (tmp_path / "runtime" / "runs" / f"{run['run_id']}.json").read_text(encoding="utf-8")
+    )
+    assert stored["draft"]["scene_graphs"] == graphs
+
+
+def test_render_full_run_skips_build_flag_off(tmp_path, monkeypatch):
+    monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    graphs = [{"segment_id": "beat-1"}, {"segment_id": "beat-2"}]
+    calls = _install_fake_pipeline(monkeypatch, graphs)
+    renderer = _mock_render_deps(monkeypatch)
+
+    run = _make_run(tmp_path)
+    result = renderer.render_full_run(tmp_path, run["run_id"])
+
+    assert result["rendered"] is True
+    assert calls == []
+    assert "scene_graphs" not in run.get("draft", {})
+
+    # Legacy path: flag tắt -> _scene_graph_clip trả None, không rơi vào fail-closed.
+    from apps.video_renderer import _scene_graph_clip
+    assert _scene_graph_clip(run["draft"], False, [(0, 9), (9, 18)]) is None
+
+
+def test_render_full_run_fail_closed_when_scene_graph_build_fails(tmp_path, monkeypatch):
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "1")
+
+    def boom(root, run):
+        raise ValueError("scene graph build failed: missing starter mapping")
+
+    mod = types.ModuleType("apps.scene_graph.pipeline")
+    mod.build_run_scene_graphs = boom
+    monkeypatch.setitem(sys.modules, "apps.scene_graph.pipeline", mod)
+    renderer = _mock_render_deps(monkeypatch)
+
+    run = _make_run(tmp_path)
+    with pytest.raises(ValueError, match="scene graph build failed"):
+        renderer.render_full_run(tmp_path, run["run_id"])
+
+
+# --- render_full_run: production path với pipeline thật (không fake) -------
+# build_run_scene_graphs thật (apps.scene_graph.pipeline), run đầy đủ
+# card_plan/decisions, chạy in-memory trong tmp_path. Mock _render +
+# _ensure_voice_fits_script (tránh ffmpeg/voice) và apply_card_plan (giữ
+# card_plan đã bait); không fake pipeline. Không viết runtime thực.
+
+
+_HOOK_DECISION = {
+    "segment_id": "beat-1",
+    "visual_mode": "hook_card",
+    "starter_id": "C-03",
+    "graphic_data": {"hook_text": "Demo *Etihad*"},
+    "evidence": ["ESPN 14/10/2026"],
+    "index": 0,
+}
+
+_SCORE_DECISION = {
+    "segment_id": "beat-2",
+    "visual_mode": "score_card",
+    "starter_id": "MR-03",
+    "graphic_data": {
+        "home": "Manchester City", "away": "Paris Saint-Germain",
+        "score": "2 - 4", "source": "ESPN", "date": "14/10/2026",
+        "context": "Champions League",
+    },
+    "evidence": ["ESPN 14/10/2026"],
+    "index": 1,
+}
+
+_BROLL_DECISION = {
+    "segment_id": "beat-9",
+    "visual_mode": "media_b_roll",
+    "starter_id": None,
+    "graphic_data": {},
+    "evidence": [],
+    "media_asset_id": "asset-cleared01",
+    "index": 0,
+}
+
+_SEGMENTS = [
+    {"id": "beat-1", "start_seconds": 0, "end_seconds": 9,
+     "beat_intent": {"image_goal": "establish_moment", "focus_subject": "Etihad hook",
+                     "evidence_type": "sourced_stat", "emphasis_level": "hero"}},
+    {"id": "beat-2", "start_seconds": 9, "end_seconds": 18,
+     "beat_intent": {"image_goal": "show_evidence", "focus_subject": "Man City vs PSG",
+                     "evidence_type": "match_event", "emphasis_level": "standard"}},
+    {"id": "beat-9", "start_seconds": 0, "end_seconds": 5,
+     "beat_intent": {"image_goal": "land_takeaway", "focus_subject": "closing b-roll",
+                     "evidence_type": "none", "emphasis_level": "quiet"}},
+]
+
+
+def _make_full_run(root: Path, run_id: str, decisions, segments,
+                   content_type: str = "short", template_version: str = "12.0.0"):
+    run = {
+        "run_id": run_id,
+        "script_owner_approved": True,
+        "voice_preview_audited": True,
+        "status": "READY_TO_RENDER",
+        "draft": {
+            "content_type": content_type,
+            "template_version": template_version,
+            "segments": segments,
+        },
+        "card_plan": {"decisions": list(decisions)},
+    }
+    (root / "runtime" / "runs").mkdir(parents=True, exist_ok=True)
+    (root / "runtime" / "runs" / f"{run_id}.json").write_text(
+        json.dumps(run, ensure_ascii=False), encoding="utf-8"
+    )
+    return run
+
+
+def _mock_full_render_deps(monkeypatch):
+    import apps.video_renderer as renderer
+    import apps.card_selector as card_selector
+
+    render_calls = []
+    monkeypatch.setattr(renderer, "_ensure_voice_fits_script", lambda root, run: None)
+    monkeypatch.setattr(
+        renderer,
+        "_render",
+        lambda root, run, preview, output_name: (
+            render_calls.append((root, run, output_name)),
+            {"report": {"rendered_at": "2026-10-18T00:00:00Z"}, "rendered": True},
+        )[1],
+    )
+    # Giữ nguyên card_plan đã bait trong run; chỉ build_run_scene_graphs là thật.
+    monkeypatch.setattr(card_selector, "apply_card_plan", lambda root, run: None)
+    return renderer, render_calls
+
+
+def test_render_full_run_real_pipeline_flag_on_attaches_graphs(tmp_path, monkeypatch):
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "1")
+    renderer, render_calls = _mock_full_render_deps(monkeypatch)
+    run = _make_full_run(tmp_path, "aaaaaaaaaaaa",
+                         [_HOOK_DECISION, _SCORE_DECISION], _SEGMENTS[:2])
+
+    result = renderer.render_full_run(tmp_path, run["run_id"])
+
+    assert result["rendered"] is True
+    assert len(render_calls) == 1  # _render được gọi 1 lần, không rơi về legacy
+
+    stored = json.loads(
+        (tmp_path / "runtime" / "runs" / f"{run['run_id']}.json").read_text(encoding="utf-8")
+    )
+    graphs = stored["draft"]["scene_graphs"]
+    assert isinstance(graphs, list) and len(graphs) == 2
+    # build_run_scene_graphs truyền template_version + beat_intent từ draft segments
+    assert graphs[0]["provenance"]["template_version"] == "12.0.0"
+    assert graphs[0]["provenance"]["beat_intent"] == _SEGMENTS[0]["beat_intent"]
+    assert graphs[1]["provenance"]["template_version"] == "12.0.0"
+    assert graphs[1]["provenance"]["beat_intent"] == _SEGMENTS[1]["beat_intent"]
+    # Mỗi graph đã freeze (graph_hash) và validate lại vẫn pass.
+    from apps.scene_graph.schema import validate_scene_graph
+
+    for graph in graphs:
+        assert len(graph["provenance"]["graph_hash"]) == 64
+        validate_scene_graph(graph)
+
+
+def test_render_full_run_real_pipeline_flag_off_no_graphs(tmp_path, monkeypatch):
+    monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    renderer, render_calls = _mock_full_render_deps(monkeypatch)
+    run = _make_full_run(tmp_path, "bbbbbbbbbbbb",
+                         [_HOOK_DECISION, _SCORE_DECISION], _SEGMENTS[:2])
+
+    result = renderer.render_full_run(tmp_path, run["run_id"])
+
+    assert result["rendered"] is True
+    assert len(render_calls) == 1
+    # Flag tắt: legacy path byte-identical, không build/gắn scene_graphs.
+    assert "scene_graphs" not in run.get("draft", {})
+
+
+def test_render_full_run_real_pipeline_build_fail_raises_valueerror(tmp_path, monkeypatch):
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "1")
+    renderer, render_calls = _mock_full_render_deps(monkeypatch)
+
+    def _write(run: dict) -> None:
+        (tmp_path / "runtime" / "runs").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "runtime" / "runs" / f"{run['run_id']}.json").write_text(
+            json.dumps(run, ensure_ascii=False), encoding="utf-8"
+        )
+
+    # Thiếu card_plan -> build_run_scene_graphs raise ValueError; render_full_run
+    # dừng ngay, KHÔNG gọi _render (không rơi về legacy render).
+    run_no_plan = {
+        "run_id": "cccccccccccc",
+        "script_owner_approved": True,
+        "voice_preview_audited": True,
+        "status": "READY_TO_RENDER",
+        "draft": {"content_type": "short", "segments": [_SEGMENTS[0]]},
+    }
+    _write(run_no_plan)
+    with pytest.raises(ValueError, match="card plan"):
+        renderer.render_full_run(tmp_path, run_no_plan["run_id"])
+    assert render_calls == []
+
+    # Thiếu segments -> ValueError, cũng không gọi _render.
+    run_no_segments = {
+        "run_id": "dddddddddddd",
+        "script_owner_approved": True,
+        "voice_preview_audited": True,
+        "status": "READY_TO_RENDER",
+        "draft": {"content_type": "short"},
+        "card_plan": {"decisions": [_HOOK_DECISION]},
+    }
+    _write(run_no_segments)
+    with pytest.raises(ValueError, match="segments"):
+        renderer.render_full_run(tmp_path, run_no_segments["run_id"])
+    assert render_calls == []
+
+
+def test_render_full_run_real_pipeline_asset_map_reads_rights_scope_json(tmp_path, monkeypatch):
+    # asset_map đọc rights_scope_json từ DB; verified/active đơn lẻ KHÔNG đủ
+    # để coi là cleared (không suy quyền từ rights_state).
+    from apps.asset_library.registry import connect
+
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "1")
+    renderer, render_calls = _mock_full_render_deps(monkeypatch)
+
+    db_path = tmp_path / "runtime" / "engine.db"
+    conn = connect(db_path)
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(assets)").fetchall()}
+    if "rights_scope_json" not in cols:
+        conn.execute("ALTER TABLE assets ADD COLUMN rights_scope_json TEXT")
+    conn.execute(
+        "INSERT INTO assets (asset_id, original_name, stored_path, asset_type, size_bytes,"
+        " sha256, source_type, source_url, creator, license_type, rights_state,"
+        " lifecycle_state, metadata_json, rights_scope_json)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("asset-cleared01", "cleared.jpg", "runtime/assets/library/cleared.jpg", "image", 204,
+         "ab" * 32, "wikimedia-commons", "https://commons.wikimedia.org/wiki/Cleared",
+         "A Jean Genie", "CC BY 4.0", "verified", "active", "{}", CLEARED_SCOPE_JSON),
+    )
+    conn.commit()
+    conn.close()
+
+    run = _make_full_run(tmp_path, "eeeeeeeeeeee", [_BROLL_DECISION], [_SEGMENTS[2]])
+    result = renderer.render_full_run(tmp_path, run["run_id"])
+
+    assert result["rendered"] is True
+    stored = json.loads(
+        (tmp_path / "runtime" / "runs" / f"{run['run_id']}.json").read_text(encoding="utf-8")
+    )
+    graphs = stored["draft"]["scene_graphs"]
+    assert len(graphs) == 1
+    hero = graphs[0]["roles"]["hero_image"]
+    assert hero["asset_id"] == "asset-cleared01"
+    # Quyền được cấp từ rights_scope_json (granted_by="human"), không từ rights_state.
+    assert hero["approval_status"] == "approved", hero
+    assert "human-granted" in hero["rights_scope"], hero
+
+
+# --- SG overlay: renderer reads from graph, never re-derives from timeline ---
+
+
+def _ol_graph(**overrides):
+    from apps.scene_graph.builder import build_scene_graph
+
+    kwargs = {
+        "segment_id": "beat-ol",
+        "visual_mode": "hook_card",
+        "starter_id": "C-03",
+        "graphic_data": {"hook_text": "Etihad leads"},
+        "evidence": ["ESPN 14/10/2026"],
+        "content_type": "short",
+        "start_seconds": 0.0,
+        "end_seconds": 9.0,
+        "index": 0,
+        "overlays": [
+            {"type": "lower_third", "text": "Etihad leads", "start_seconds": 2.0,
+             "end_seconds": 5.0, "role": "name_tag"},
+        ],
+    }
+    kwargs.update(overrides)
+    return build_scene_graph(**kwargs)
+
+
+def test_sg_clip_preserves_graph_overlays(monkeypatch):
+    # Freeze flag on: one graph per segment, overlays carried through verbatim.
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "1")
+    from apps.video_renderer import _scene_graph_clip
+
+    graphs = _scene_graph_clip(
+        {"scene_graphs": [_ol_graph()]}, False, [(0.0, 9.0)])
+    assert len(graphs) == 1
+    assert graphs[0]["overlays"] == [
+        {"type": "lower_third", "text": "Etihad leads",
+         "start_seconds": 2.0, "end_seconds": 5.0, "role": "name_tag"}]
+
+
+def test_sg_overlay_clip_relative_on_nonzero_beat_not_rejected(monkeypatch):
+    """Beat [9.0, 18.0] (start_seconds > 0) kem overlay clip-relative [2.0, 5.0].
+
+    Thoi gian overlay la CLIP-RELATIVE (bat dau tu dau beat): duoc so sanh
+    voi beat_duration = 18 - 9 = 9, KHONG so thang truc tiep voi
+    timing.start = 9. Sau Agent A chinh sua validator timebase, [2.0, 5.0]
+    thoa 0 <= 2 < 5 <= 9 nen schema/clip KHONG tu choi (hien tai chua sua
+    thi se bi "starts before the beat window" — chay lai sau Agent A/B).
+    Renderer (sau Agent B) chuyen clip-relative sang absolute ve khung:
+    abs_start = 9.0 + 2.0 = 11.0, abs_end = 9.0 + 5.0 = 14.0
+    (window between(t,11.000,14.000)). Test nay KHONG render video dai: chi
+    validate graph va goi _scene_graph_clip de xac nhan khong bi tu choi.
+    Co the them mock _draw_sg_overlay de bat window tiep tuc sau khi co _render."""
+    from apps.video_renderer import _scene_graph_clip
+    from apps.scene_graph.builder import build_scene_graph
+    from apps.scene_graph.schema import validate_scene_graph
+
+    graph = build_scene_graph(
+        segment_id="beat-2",
+        visual_mode="hook_card",
+        starter_id="C-03",
+        graphic_data={"hook_text": "Etihad leads"},
+        evidence=["ESPN 14/10/2026"],
+        content_type="short",
+        start_seconds=9.0,
+        end_seconds=18.0,
+        index=1,
+        overlays=[
+            {"type": "caption", "text": "Xin chao Viet Nam",
+             "start_seconds": 2.0, "end_seconds": 5.0}
+        ],
+    )
+
+    # Schema chap nhan (clip-relative vs beat_duration), khong tu choi overlay.
+    validate_scene_graph(graph)
+
+    # Clip-level khong tu choi (flag on, dung 1 graph / 1 beat).
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "1")
+    checked = _scene_graph_clip(
+        {"scene_graphs": [graph]}, False, [(9.0, 18.0)]
+    )
+    assert len(checked) == 1
+    assert checked[0]["segment_id"] == "beat-2"
+    assert checked[0]["overlays"] == [
+        {"type": "caption", "text": "Xin chao Viet Nam",
+         "start_seconds": 2.0, "end_seconds": 5.0}
+    ]
+
+
+def test_draw_sg_overlay_emits_drawtext_from_graph_text_and_timing(tmp_path):
+    from apps.video_renderer import _draw_sg_overlay
+
+    item = {"type": "caption", "text": "Xin chào Việt Nam",
+            "start_seconds": 1.0, "end_seconds": 4.0}
+    filters = _draw_sg_overlay(
+        item, "between(t,1.000,4.000)", index=0, job=0, work_dir=tmp_path,
+        scene_x=0, scene_y=0, panel_w=1080, panel_h=1920,
+        font_path=str(tmp_path / "f.ttf"), chalk="0xFFFFFF",
+        signal_lime="0x00FF00", ink="0x101814",
+    )
+    assert any("drawtext" in f and "textfile=" in f for f in filters)
+    assert any("between(t,1.000,4.000)" in f for f in filters)
+    # The overlay text is frozen into the text file (not re-derived).
+    text_file = tmp_path / "sg-overlay-0-0-caption.txt"
+    assert text_file.is_file()
+    assert text_file.read_text(encoding="utf-8") == "Xin chào Việt Nam"
+
+
+def test_draw_sg_overlay_role_preset_changes_render(tmp_path):
+    from apps.video_renderer import _draw_sg_overlay
+
+    base = dict(index=0, job=0, work_dir=tmp_path, scene_x=0, scene_y=0,
+                panel_w=1080, panel_h=1920, font_path=str(tmp_path / "f.ttf"),
+                chalk="0xFFFFFF", signal_lime="0x00FF00", ink="0x101814")
+    default_caption = _draw_sg_overlay(
+        {"type": "caption", "text": "T", "start_seconds": 0.0, "end_seconds": 1.0},
+        "between(t,0.000,1.000)", **base)
+    hook_caption = _draw_sg_overlay(
+        {"type": "caption", "text": "T", "start_seconds": 0.0, "end_seconds": 1.0,
+         "role": "hook"},
+        "between(t,0.000,1.000)", **base)
+    # Same text/timing, different role preset -> different font size / color.
+    assert default_caption != hook_caption
+    assert any("fontsize=h*0.028" in f for f in default_caption)
+    assert any("fontsize=h*0.034" in f for f in hook_caption)
+    assert any("fontcolor=0xFFFFFF" in f for f in default_caption)
+    assert any("fontcolor=0x00FF00" in f for f in hook_caption)
+
+
+def test_draw_sg_overlay_unknown_type_returns_empty(tmp_path):
+    from apps.video_renderer import _draw_sg_overlay
+
+    assert _draw_sg_overlay(
+        {"type": "not_a_type", "text": "T", "start_seconds": 0.0, "end_seconds": 1.0},
+        "between(t,0.000,1.000)", index=0, job=0, work_dir=tmp_path,
+        scene_x=0, scene_y=0, panel_w=1080, panel_h=1920,
+        font_path=str(tmp_path / "f.ttf"), chalk="0xFFFFFF",
+        signal_lime="0x00FF00", ink="0x101814",
+    ) == []
+
+
+def test_sg_flag_off_legacy_does_not_read_graph_overlay(monkeypatch):
+    # Flag tắt -> _scene_graph_clip từ chối scene_graphs (None) và không đi
+    # vào đường dẫn vẽ overlay từ graph.
+    monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    from apps.video_renderer import _scene_graph_clip
+    assert _scene_graph_clip({"scene_graphs": [_ol_graph()]}, False, [(0.0, 9.0)]) is None
+
+
+# --- QA: overlay rendered criterion ----------------------------------------
+
+
+def test_qa_scene_overlay_bad_timing_fails():
+    from apps.measurement.render_qa import qa_scene
+
+    # Overlay kết thúc sau cửa sổ beat (0-9) -> schema từ chối, QA surfaced
+    # qua criterion "Overlay rendered" làm FAIL.
+    report = qa_scene(
+        _ol_graph(overlays=[{"type": "caption", "text": "muộn",
+                             "start_seconds": 20.0, "end_seconds": 25.0}]),
+        None)
+    assert _status(report, "Overlay rendered") == "FAIL"
+    assert report["verdict"] == "FAIL"
+    assert report["ready"] is False
+
+
+def test_qa_scene_overlay_declared_empty_text_not_pass():
+    from apps.measurement.render_qa import qa_scene
+
+    report = qa_scene(
+        _ol_graph(overlays=[{"type": "caption", "text": "",
+                             "start_seconds": 1.0, "end_seconds": 2.0}]),
+        None)
+    assert _status(report, "Overlay rendered") == "FAIL"
+    assert report["verdict"] == "FAIL"
+
+
+def test_qa_scene_overlay_valid_but_unconfirmed_needs_review():
+    # Overlay hợp lệ trong cửa sổ beat, nhưng still không thể xác nhận
+    # vẽ đúng khung -> NEEDS_REVIEW, KHÔNG PASS vì chỉ có trong input.
+    from apps.measurement.render_qa import qa_scene
+
+    report = qa_scene(_ol_graph(), None)
+    assert _status(report, "Overlay rendered") == "NEEDS_REVIEW"
+    assert report["verdict"] == "NEEDS_REVIEW"
+    assert report["ready"] is False
+
+
+def test_qa_scene_no_overlay_declared_passes_gate():
+    from apps.measurement.render_qa import qa_scene
+
+    # Không overlay nào được khai báo -> PASS (không có gì cần vẽ).
+    report = qa_scene(_hook_graph(), None)
+    assert _status(report, "Overlay rendered") == "PASS"
+
+
+def test_qa_clip_overlay_bad_timing_fails():
+    from apps.measurement.render_qa import qa_clip
+
+    graphs = [_ol_graph(overlays=[{"type": "caption", "text": "muộn",
+                                    "start_seconds": 20.0, "end_seconds": 25.0}])]
+    report = qa_clip(graphs)
+    statuses = {c["criterion"]: c["status"] for c in report["clip_checks"]}
+    assert statuses["Overlay rendered"] == "FAIL"
+    assert report["verdict"] == "FAIL"
+    assert report["ready"] is False
+
+
+def test_qa_clip_overlay_valid_needs_review():
+    from apps.measurement.render_qa import qa_clip
+
+    # Overlay clip-relative [2,4] nằm trong beat_duration = 9 (beat [9,18]):
+    # hợp lệ cấu trúc nhưng still không xác nhận in-frame paint -> NEEDS_REVIEW.
+    graphs = [_ol_graph(), _ol_graph(segment_id="beat-ol-2", start_seconds=9.0,
+                                     end_seconds=18.0,
+                                     overlays=[{"type": "lower_third", "text": "x",
+                                                "start_seconds": 2.0,
+                                                "end_seconds": 4.0}])]
+    report = qa_clip(graphs)
+    statuses = {c["criterion"]: c["status"] for c in report["clip_checks"]}
+    assert statuses["Overlay rendered"] == "NEEDS_REVIEW"
+    assert report["verdict"] == "NEEDS_REVIEW"
     assert report["ready"] is False

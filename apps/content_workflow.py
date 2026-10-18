@@ -46,6 +46,8 @@ VISUAL_MODES = {
     "discipline_card", "welcome_card",
 }
 
+LAYOUT_MODES: set[str] = set()
+
 
 @dataclass(frozen=True)
 class ScriptDraft:
@@ -234,18 +236,12 @@ def _clean_segment(item: Any) -> dict[str, Any] | None:
         duration = max(1, min(int(item.get("duration_seconds", 8)), 900))
     except (TypeError, ValueError):
         return None
-    mode = item.get("visual_mode", "tactical_explainer")
-    if mode not in VISUAL_MODES:
-        mode = "tactical_explainer"
     graphic_data = item.get("graphic_data", {})
     if not isinstance(graphic_data, dict):
         graphic_data = {}
     evidence_refs = item.get("evidence_refs", [])
     if not isinstance(evidence_refs, list):
         evidence_refs = []
-    timeline_events = item.get("timeline_events", [])
-    if not isinstance(timeline_events, list):
-        timeline_events = []
     beat_index = 0
     beat_match = re.match(r"(?i)^beat-(\d+)$", str(item.get("id", "beat-1")).strip())
     if beat_match:
@@ -255,14 +251,11 @@ def _clean_segment(item: Any) -> dict[str, Any] | None:
         "narration": _normalise(narration),
         "visual": _normalise(str(item.get("visual", "Host analysis"))),
         "evidence_refs": [_normalise(str(ref))[:500] for ref in evidence_refs[:8] if ref],
-        "visual_mode": mode,
         "beat_intent": normalize_beat_intent(
-            item.get("beat_intent"), mode=mode, index=beat_index,
-            graphic_data=graphic_data
+            item.get("beat_intent"), index=beat_index, graphic_data=graphic_data
         ),
         "graphic_data": graphic_data,
         "duration_seconds": duration,
-        "timeline_events": timeline_events,
     }
 
 
@@ -331,7 +324,14 @@ MAX_SPEECH_OVERRUN = 1.25
 
 
 def _outline_beat(topic: str, arc: list[Any], index: int, target_seconds: int) -> dict[str, Any]:
-    """Deterministic per-beat fallback; never invents facts the owner must verify."""
+    """Deterministic per-beat fallback; never invents facts the owner must verify.
+
+    visual_mode is a SYSTEM fallback (tactical_explainer), never an LLM
+    choice. The outline carries no tactical_diagram spec or reviewed
+    graphic_data, so the beat cannot be composed to a verified card without
+    owner review: the warning below is explicit so the planner never
+    silently treats an outline fallback as render-ready.
+    """
     goal = "establish_moment" if index == 0 else (
         "land_takeaway" if index >= len(arc) - 1 else "set_context")
     return {
@@ -361,6 +361,13 @@ def _outline_beat(topic: str, arc: list[Any], index: int, target_seconds: int) -
         "graphic_data": {},
         "duration_seconds": max(1, int(target_seconds) // max(1, len(arc))),
         "timeline_events": [],
+        "warnings": [
+            "FALLBACK: visual_mode tactical_explainer is a system fallback "
+            "(the model did not return a valid beat), not an LLM choice; no "
+            "tactical_diagram spec or reviewed graphic_data is present, so "
+            "composition is unverified and this beat requires owner review "
+            "before render.",
+        ],
     }
 
 
@@ -396,47 +403,16 @@ def _ollama_beat(
         "do not repeat them unless this beat adds a new fact of its own. "
         "Return only a JSON object with narration (Vietnamese voiceover, "
         f"between {speech_floor} and {speech_budget} characters so it fills "
-        f"{duration_hint}s aloud without padding), visual "        "(short shot description), evidence_refs (array of supplied evidence used), "
-        "visual_mode (tactical_explainer, statline_scorecard, source_card, "
-        "chart_comparison, chart_timeline, hook_card, player_card, "
-        "comparison_duel, stat_leader, player_poster, goal_card, "
-        "fixture_card, score_card, duel_columns, player_poster_side, "
-        "player_poster_top, fixture_list, quote_card, potm_card, "
-        "discipline_card, or welcome_card), graphic_data (values and source only "
+        f"{duration_hint}s aloud without padding), visual (short shot description), "
+        "evidence_refs (array of supplied evidence used), graphic_data (values and source only "
         "when explicitly present in supplied evidence, else {}), duration_seconds "
-        f"(integer {lo}-{hi}), and timeline_events (on-screen items with item_id, "
-        "item_type among caption, stat_card, tactical_diagram, media, lower_third, "
-        "text, start_offset_seconds, end_offset_seconds, enter, exit, transition_in, "
-        "effect, evidence_ref; offsets relative to this beat). "
+        f"(integer {lo}-{hi}), and beat_intent. "
         "Use a data visual only when its values and source are explicitly present "
-        "in supplied evidence. For statline_scorecard include graphic_data.metrics "
-        "(label, home, away). For charts include graphic_data with headline, source, "
+        "in supplied evidence. For charts include graphic_data with headline, source, "
         "date, values (label, value), and chart_type among bar, column, pie, donut, "
         "line. Use bar for ranked comparisons; column for a few discrete categories; "
-        "line only for ordered observations over match time or dates with visual_mode "
-        "chart_timeline. Use pie or donut ONLY for mutually exclusive parts of one "
+        "line only for ordered observations over match time or dates. Use pie or donut ONLY for mutually exclusive parts of one "
         "known whole with no more than four categories; otherwise choose bar or column. "
-        "For the opening beat use visual_mode hook_card with graphic_data.hook_text "
-        "restating the opening claim in 5-8 Vietnamese words, marking ONE key word "
-        "with *stars* for the magenta accent. For one decisive sourced "
-        "number use statline_scorecard with graphic_data.hero {label, value} plus source "
-        "and date. Vary visual modes across beats: never repeat one mode more than "
-        "twice in a short video, and give every beat with reviewed numbers a data "
-        "visual instead of another source card. For a player beat use visual_mode "
-        "player_card with graphic_data.player_name and graphic_data.stats (up to 3 "
-        "{label, value} with source and date); the portrait comes from the approved "
-        "library image attached to the segment, never a generated face. "
-        "For Sports Kit beats: comparison_duel needs graphic_data.metrics "
-        "(label, home, away) with source+date; stat_leader needs graphic_data.stats "
-        "(up to 4 label/value) with source+date; player_poster needs player_name "
-        "plus stats (up to 3); goal_card needs hook_text 3-8 words plus score; "
-        "fixture_card needs fixtures (up to 3 home/away/date); score_card needs "
-        "home/away/score with source+date. Kit generation: duel_columns needs "
-        "graphic_data.metrics (label, home, away) with source+date (winner auto "
-        "lime); stat_leader needs stats (up to 4); player_poster_side/top need "
-        "player_name, stats (up to 3), meta (up to 3 label/value); goal_card needs "
-        "hook_text plus score; fixture_list needs fixtures (up to 3); quote_card "
-        "needs claim; potm/discipline/welcome/score need player_name (+minute). "
         "Never estimate or invent missing values, units, order, dates, or sources. "
         "Also return beat_intent, the ONLY visual decision you own: an object with "
         "image_goal (establish_moment, show_evidence, compare_numbers, "
@@ -666,7 +642,7 @@ def create_script_draft(
         raise ValueError("Content type must be either short or long.")
     package = resolve_template(root, template_id, allow_draft=True)
     try:
-        VISUAL_MODES.update(
+        LAYOUT_MODES.update(
             str(item.get("id")) for item in package.graphic_templates.get("layouts", [])
             if isinstance(item, dict) and item.get("id"))
     except (AttributeError, TypeError):

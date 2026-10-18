@@ -650,8 +650,6 @@ def _review_asset_rights(
         ).fetchone()
         if row is None:
             raise ValueError("Asset was not found in the library.")
-        if row["rights_state"] == "verified":
-            return {"status": "ALREADY_VERIFIED", "asset_id": asset_id}
 
         metadata = json.loads(row["metadata_json"] or "{}")
         if not isinstance(metadata, dict):
@@ -663,6 +661,9 @@ def _review_asset_rights(
 
         if grant_fields:
             # ValueError propagates to the route handler -> HTTP 400.
+            # Applies EVEN when the asset is already verified: "verified" only
+            # means suitability-reviewed, never "usable for every upload", so
+            # an explicit grant must still be persisted to rights_scope_json.
             scope = build_rights_scope(**grant_fields)
             conn.execute(
                 """
@@ -678,6 +679,10 @@ def _review_asset_rights(
                     asset_id,
                 ),
             )
+        elif row["rights_state"] == "verified":
+            # No new grant and already verified: nothing to scope. Do not
+            # touch rights_scope_json; keep prior ALREADY_VERIFIED behavior.
+            return {"status": "ALREADY_VERIFIED", "asset_id": asset_id}
         else:
             # No grant fields: verified/active flip only. NULL rights_scope_json
             # means denied at usage time by is_usable_for.
@@ -1362,11 +1367,23 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     rights_reviewed = payload.get("rights_reviewed")
                     if not isinstance(rights_reviewed, bool):
                         raise ValueError("Rights review choice is required.")
+                    grant_fields = {
+                        key: payload[key]
+                        for key in _GRANT_FIELDS
+                        if key in payload
+                    } or None
+                    if grant_fields:
+                        # Validate the grant before persisting: an invalid grant
+                        # must fail loudly (ValueError -> HTTP 400) instead of
+                        # silently degrading to deny-default inside
+                        # save_commons_candidate.
+                        build_rights_scope(**grant_fields)
                     result = save_commons_candidate(
                         db_path.parent.parent,
                         str(payload.get("candidate_id", "")),
                         ResourceRequirement(**requirement_data),
                         rights_reviewed=rights_reviewed,
+                        grant_fields=grant_fields,
                         api_keys=_read_api_keys(db_path.parent.parent),
                     )
                     self._send_json(result, HTTPStatus.CREATED)

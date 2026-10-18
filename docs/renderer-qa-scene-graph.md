@@ -22,11 +22,17 @@ workstream nay dua tren `docs/build-audit-protocol.md` (gates),
 - **Cam tuyet doi trong SG mode**: chon lai mode/starter, chuyen mode theo
   timeline event, media forcing/drop, kinetic overlays (hook stagger, hero
   count-up — re-wrap text), ball/trail tu fallback spec, ending C-10 tu gan,
-  lower-third/caption ngoai graph.
+  lower-third/caption ngoai graph. Overlay duoc khai bao theo timebase
+  CLIP-RELATIVE (`start_seconds`/`end_seconds` bat dau tu dau beat, so sanh
+  voi `beat_duration = timing.end - timing.start`); renderer chuyen sang
+  absolute ve khung khi ap dung.
 - **Motion dong bang thuc thi verbatim** (vo \(hien co, khong phat minh them):
   `hook_punch_in`/`number_pop` -> punch zoom (numerals giu nguyen, khong
   re-layout); `slide_in_right_0_3s` -> slide-in 0.3s; `fade_0_3s` -> fade in/out;
   `chalk_line_wipe` -> slide-in 0.3s; `clean_cut` -> hard cut (tat slide).
+- Overlay contract chi nhan `type`, `text`, `start_seconds`, `end_seconds`,
+  va `role` tuy chon. Role preset hop le: `lower_third/name_tag` va
+  `caption/hook`; key style/layout bat ky khac bi validator tu choi.
 - Media rights (goi check cua workstream 1):
   `_scene_graph_media()` gom refs tu `roles.hero_image` /
   `roles.player_focus.portrait` (uu tien truoc) + `params.media_asset_id`;
@@ -49,6 +55,7 @@ Verdict `PASS|FAIL|NEEDS_REVIEW` kem evidence, do tren scene render THAT:
 | Visual density | text area <=40% | >40% | primitive |
 | Contrast (sampled) | sample pixel nen that, floors 4.5/3.0 | duoi floor | thieu bg layer |
 | Text actually paints | box khac nen | box pixel-identical nen | so sanh loi |
+| Overlay rendered | khong overlay khai bao hoac danh sach rong (khong gi can ve) | type sai, text trong, timing ngoai cua so beat / clip-relative | khai bao hop le nhung still khong the xac nhan ve — xac nhan ve dung cua so can MP4 |
 | Narration fit | ~words/2.6wps vua window | vuot >1.15x window | thieu narration / sat nut |
 | Media rights | approved + verified/active/file + scope allowed (+credit note) / monogram | pending / unverified / missing / scope denied (kem reasons) | khong registry / khong intent / co che chua biet |
 | Tactical vectors | — | — | primitive tactical (vectors tu fallback, verify bang mat) |
@@ -64,8 +71,11 @@ Clip render (`_render` SG mode) extend `quality_checks` hinh `render-report.json
 
 ## 3. Ket qua pytest
 
-- `tests/test_renderer_scenegraph.py` (moi, 20 tests): verbatim execution,
-  raise thay remap, pending/unverified/scope-denied, QA matrix, motion mapping.
+- `tests/test_renderer_scenegraph.py` (moi): verbatim execution, raise thay remap,
+  pending/unverified/scope-denied, QA matrix, motion mapping, bo them test overlay:
+  renderer doc overlay tu `sg_graphs[index]["overlays"]` (mock verify), QA tra
+  FAIL/NEEDS_REVIEW khi overlay thieu/sai timing, khong bao giu PASS chi vi co trong
+  input; flag tat -> legacy khong dot overlay.
 - Full suite: **366 passed** (365 + end-to-end), gom `test_scene_graph*.py`,
   `test_rights_scope.py`, `test_crest_store.py`, `test_renderer_motion.py`.
 - Verify don: 1 frame b-roll cleared (1080x1920) + QA clip ngan deu chay that,
@@ -82,10 +92,26 @@ Clip render (`_render` SG mode) extend `quality_checks` hinh `render-report.json
 - Readiness semantics: FAIL = chan / not ready; NEEDS_REVIEW = not ready
   (khong duoc bao ready); PASS = ready. Truong `ready` trong report
   (qa_scene/qa_clip + render-report.json `scene_graph_qa`) la
-  `(verdict == PASS)`.
+  `(verdict == PASS)`. Co NEEDS_REVIEW -> `ready` la False, khong bao
+  PASS vi chi biet asset/overlay co mat trong input.
 - Fail-closed flag: `ACE_SCENE_GRAPH_RENDER=1` + thieu `scene_graphs`
   (missing/empty) -> raise ValueError, khong fallback legacy. Legacy chi
   khi flag tat (mac dinh), byte-identical.
+- Overlay (caption/lower_third): thoi gian la CLIP-RELATIVE bat dau tu dau
+  beat (`start_seconds`/`end_seconds` so sanh voi `beat_duration =
+  timing.end - timing.start`, khong so thang truc tiep voi `timing.start`).
+  Renderer SG mode doc overlay CHI tu `sg_graphs[index]["overlays"]`,
+  chuyen sang absolute ve khung (`abs_start = beat.start + start_seconds`),
+  KHONG tu suy tao/lay tu `timeline_events`/`segment` va KHONG render
+  lower-third/caption ngoai graph. Overlay khai bao trong graph la duy nhat
+  (explicit): renderer khong gop/dedup voi timeline_events (timeline la thoi
+  gian tuyet doi, chi co trong legacy path khi flag tat). Tat ca truong
+  overlay (type/text/timing/role) duoc bao boi boi `provenance.graph_hash` —
+  tamper mot truong thi hash khong khop, `validate_scene_graph` chay reject
+  graph. Neu graph khai bao overlay nhung renderer khong the chuan bi lenh ve
+  tu graph -> QA khong PASS (fail-closed overlay); khai bao hop le nhung still
+  chua xac nhan ve dung khung -> NEEDS_REVIEW, khong bao PASS chi vi co trong
+  input.
 - `number_pop` thuc thi = punch zoom (giu nang luong pop, khong stagger tung so);
   `freeze_and_trace`/`pitch_grid` ngoai tactical chua co primitive -> NEEDS_REVIEW.
 - Tactical primitive vectors tu fallback storyboard (executor cua ws3) -> QA luon
@@ -94,12 +120,26 @@ Clip render (`_render` SG mode) extend `quality_checks` hinh `render-report.json
 - Stagger 0.18s / count_up_steps khong co line-timing dong bang -> khong chay
   (re-wrap text bi cam).
 - Overlay lower-third/caption ngoai graph -> SG mode khong render.
+- Overlay QA (still vs MP4): `qa_scene` (anh PNG) chi xac nhan overlay trong graph
+  co text/timing hop le va nam trong cua so beat; mot khung mot the xac nhan da ve
+  dung vi tri/thoi gian, nen overlay khai bao hop le -> NEEDS_REVIEW (chua ready),
+  khong bao giu PASS chi vi co trong input. Xac nhan ve dung cua so can MP4
+  (`qa_clip` tong hop, van can owner eyeball mo dong thuc te). Thieu/sai timing
+  -> FAIL.
+- Fail-closed overlay: neu graph khai bao overlay nhung renderer khong the chuan
+  bi lenh ve tu graph -> QA khong PASS; renderer khong tu suy tao/lay overlay tu
+  `timeline_events`/`segment` (chỉ legacy path khi flag tat).
 
 ## 5. Diem cho tich hop
 
 - **Ws3 (scene_graph/builder):** freeze overlays + beat roles (opening/ending) +
   media_caption + tactical specs that vao graph (hien primitive van thieu);
   `params.media_asset_id` legacy giu song song voi roles refs (renderer uu tien roles).
+- **Renderer (video_renderer):** duong path SG doc overlay CHI tu
+  `sg_graphs[index]["overlays"]`, chuan bi lenh ve drawtext/filter boi role preset
+  co dinh (type + role), KHONG doc lai `timeline_events`/segment va KHONG tu suy
+  toa/hinh overlay. Flag `ACE_SCENE_GRAPH_RENDER` tat -> legacy byte-identical,
+  khong xay dung overlay.
 - **Ws1 (rights):** planner goi `is_usable_for()` voi intent that truoc khi freeze
   (renderer chi assert lai); migration-4 boc `ensure_rights_scope_schema`
   (renderer/QA khong tu migrate); crest render path (`README.md` §5) chua co ->

@@ -29,7 +29,7 @@ from apps.asset_library.discovery import (
     search_candidates_tiered,
 )
 from apps.content_score import score_script
-from apps.content_workflow import TEMPLATE_IDS, VISUAL_MODES, regenerate_beat
+from apps.content_workflow import TEMPLATE_IDS, VISUAL_MODES, LAYOUT_MODES, regenerate_beat
 from apps.video_renderer import _ensure_voice_fits_script, render_full_run
 from apps.voice_tts import synthesize_voice_preview, voice_profile_status
 
@@ -404,10 +404,10 @@ def _apply_template_fix(root: Path, run: dict[str, Any], target: str, note: str)
     if segment is None:
         raise ValueError(f"Beat was not found in the draft: {target}.")
     wanted = note.strip().lower().replace(" ", "_")
-    matches = [mode for mode in VISUAL_MODES if mode.lower() == wanted]
+    matches = [mode for mode in (VISUAL_MODES | LAYOUT_MODES) if mode.lower() == wanted]
     if not matches:
         raise ValueError("Template fix note must name a visual mode "
-                         f"({', '.join(sorted(VISUAL_MODES))}).")
+                         f"({', '.join(sorted(VISUAL_MODES | LAYOUT_MODES))}).")
     segment["visual_mode"] = matches[0]
     _write_run(root, run)
     return {"section": "template", "target": target,
