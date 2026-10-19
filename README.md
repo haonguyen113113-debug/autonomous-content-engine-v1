@@ -16,11 +16,11 @@ and returns QA results for owner review. The owner publishes manually.
   keeps text inside authored template slots, and makes QA fail closed for
   unbound free-standing copy. This change set has not been verified by a new
   test run.
-- Latest recorded focused run: **103 passed, 1 failed**. The failing
+- Last recorded focused run before the latest merge: **103 passed, 1 failed**. The failing
   `test_scene_graph_short_render_smoke` assertion found identical frames at 3s
   and 8s within one beat. Treat same-beat motion as unresolved until the smoke
-  test passes on the current code.
-- Docker/Compose support has been removed from the working tree. The durable
+  test passes on the current code; no test run has been recorded after the merge.
+- Docker/Compose support has been removed from the repository. The durable
   queue remains and its worker runs locally with Python.
 
 ## How it works
@@ -44,11 +44,11 @@ Hermes: daily discovery → evidence-backed structured script
   (images + video), and optional keyed Pexels/Pixabay, with relevance +
   license + resolution ranking, provider interleaving, upload-date sorting,
   and entity identity screening (wrong-person photos are removed with
-  reasons). Nothing downloads without your explicit save action; rights
-  review is a separate, recorded step.
-- **Quality gates** block publishing: unresolved research markers, unapproved
-  scripts, unaudited voice, and voice/video duration mismatch all fail
-  loudly instead of shipping silently.
+  reasons). Qualifying assets may be saved automatically for workflow
+  smoothness; provenance and use-scoped rights checks remain required.
+- **Quality gates** block readiness for owner review when evidence, script
+  approval, voice audit, media rights, or voice/video duration checks fail.
+  The Engine does not publish to platforms.
 - **Provenance** is persisted: every run file records template version,
   generation mode per beat, asset licenses/sources, voice engine, render
   report, and cost.
@@ -63,7 +63,8 @@ python -m apps.web_ui.server --root .
 
 - Workflows: pick short (9:16, ~40s) or long (16:9, 8–20 min), draft, review,
   attach verified media, render preview, generate voice, audit, render full.
-- Asset library: describe a need → check inventory → search → save/verify.
+- Asset library: describe a need → check inventory → search → qualify and
+  record provenance/rights before use.
 - Runs & queue: live run statuses; Overview: asset/run analytics.
 - Full local setup (FFmpeg, TTS runtime, fonts; Ollama only for standalone drafting): [transferable-runtime.md](docs/transferable-runtime.md).
 - Engine contract and architecture: [PROJECT_SPEC.md](PROJECT_SPEC.md).
@@ -79,7 +80,7 @@ python -m apps.web_ui.server --root .
 - `apps/learning/` — advisory portfolio allocation + channel lifecycle (owner decides)
 - `apps/worker/` — local Python queue consumer
 - `apps/asset_library/` — registry, discovery, identity, ingest, QA layers
-- `apps/video_renderer.py` — FFmpeg composition (Ken Burns, fades, overlays, end-card)
+- `apps/video_renderer.py` — template-bound FFmpeg composition, motion and end cards
 - `apps/voice_tts.py` + `apps/tts_preview_worker.py` — local voice previews
 - `apps/web_ui/` — stdlib-only web UI (static `index.html`/`app.js`/`styles.css`)
 - `template_foundation/` — versioned Allen Knows Ball channel packages
@@ -96,7 +97,8 @@ python -m apps.web_ui.server --root .
 - Source evidence and provenance are first-class data
 - AI generation is separated from validation and publishing
 - Platform adapters remain replaceable
-- The system must decline publishing when quality or evidence thresholds fail
+- The Engine must not return an artifact as ready when quality or evidence
+  thresholds fail
 
 ## Initial channel focus
 
