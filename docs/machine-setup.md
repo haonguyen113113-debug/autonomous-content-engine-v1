@@ -9,7 +9,11 @@ runtimes, models, keys, and media. Nothing below is committed to Git
 - Python 3.10+ (`python --version`), Git, PowerShell.
 - `Copy-Item .env.example .env`, then fill keys below.
 
-## 2. Script models (LLM)
+## 2. Script models (optional standalone drafting)
+
+The target Hermes workflow supplies the structured script, so an LLM is not a
+required Engine runtime dependency for that path. Configure a provider below
+only when using the existing standalone/local drafting workflow.
 
 - Default cloud-first: Groq via OpenAI-compatible endpoint.
   `.env`: `LLM_PROVIDER=openai_compatible`,
@@ -66,11 +70,12 @@ runtimes, models, keys, and media. Nothing below is committed to Git
   `runtime/assets/library/` are per-machine. Copy them deliberately when
   migrating; re-verify voice reference and payouts on the new machine.
 
-## 10. Docker worker (optional, not the daily path)
+## 10. Local queue worker
 
-- `compose.yaml` + `docker/worker.Dockerfile` run the queue worker only
-  (stdlib-only image, no GPU/FFmpeg inside — render/voice stay local).
-- Needs Docker Desktop (not installed by default) and the project `.env`:
-  `docker compose up --build -d worker`.
-- Day-to-day dev runs everything directly with `python` (sections 2–8);
-  use Docker when the worker must live on a server/NAS instead of this PC.
+- The queue worker runs directly on the same machine as the Engine and reads
+  jobs from `runtime/queue/`. Start it in a separate terminal with
+  `python -m apps.worker.main` from the repository root.
+- Keep the worker running while queued jobs are being processed. Stop it with
+  Ctrl+C; unfinished claims are recovered when a worker starts again.
+- No container runtime is required. Voice generation and rendering continue
+  to use the local machine's configured tools and media.

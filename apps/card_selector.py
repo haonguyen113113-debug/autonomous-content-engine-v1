@@ -62,7 +62,7 @@ _INTENT_MODE_HINT_BONUS = 2.0
 # Short starters live in apps/studio_templates/*.short.json, long ones in
 # *.long.json. Starter is only suggested when its aspect matches the content.
 STARTERS_SHORT = {
-    "hook_card": "C-03", "quote_card": "C-05",
+    "hook_card": "C-11", "quote_card": "C-05",
     "statline_scorecard": "C-07", "comparison_duel": "C-07", "duel_columns": "C-07",
     "stat_leader": "C-06", "chart_comparison": "C-06",
     "player_poster_side": "C-04", "player_poster_top": "C-04",
@@ -141,15 +141,21 @@ def _present(data: dict[str, Any], key: str) -> bool:
     return True
 
 
-def _derive_hook_text(narration: str) -> tuple[str, str | None]:
-    """First ≤8 words. Second value is a tightening warning, if any."""
-    words = narration.split()
+def _normalize_hook_text(hook_text: str) -> tuple[str, str | None]:
+    """Normalize (strip) and cap hook_text at 8 words from graphic_data.
+
+    Never derives hook_text from narration: if graphic_data lacks hook_text,
+    the slot stays empty (fail-closed, no fabricated claim).
+    Second value is a tightening warning, if any.
+    """
+    text = hook_text.strip()
+    words = text.split()
     if len(words) > 8:
         return (" ".join(words[:8]),
-                "hook_text derived at the 8-word cap mid-sentence; tighten to a clean 5–8 word claim")
+                "hook_text capped at 8 words from graphic_data; tighten to a clean 5–8 word claim")
     if len(words) < 5:
-        return " ".join(words), "hook_text shorter than the 5-word minimum; expand to 5–8 words"
-    return " ".join(words), None
+        return text, "hook_text shorter than the 5-word minimum; expand to 5–8 words"
+    return text, None
 
 
 def _derive_claim(narration: str, limit: int = 220) -> str:
@@ -228,13 +234,13 @@ def _coverage(mode: str, data: dict[str, Any], narration: str) -> tuple[float, l
     derived: list[str] = []
     derive_warnings: list[str] = []
     for key in required:
-        if _present(filled, key):
-            continue
-        if key == "hook_text" and key in DERIVABLE_SLOTS and narration.strip():
-            filled[key], note = _derive_hook_text(narration)
+        if key == "hook_text" and key in data and data[key].strip():
+            filled[key], note = _normalize_hook_text(data[key])
             derived.append(key)
             if note:
                 derive_warnings.append(note)
+        elif _present(filled, key):
+            continue
         elif key == "claim" and narration.strip():
             filled[key] = _derive_claim(narration)
             derived.append(key)
@@ -254,7 +260,13 @@ def _score_candidate(mode: str, segment: dict[str, Any], data: dict[str, Any],
     coverage, derived, _, _ = _coverage(mode, data, narration)
     score += 30.0 * coverage
     if derived:
-        reasons.append(f"derived {','.join(derived)} from narration")
+        parts = []
+        for d in derived:
+            if d == "hook_text":
+                parts.append("hook_text normalized/capped from graphic_data")
+            else:
+                parts.append(f"{d} derived from narration")
+        reasons.append("; ".join(parts))
     required = REQUIRED_SLOTS.get(mode, [])
     missing = [k for k in required if not _present(data, k) and k not in derived]
     if missing and mode != "tactical_explainer":

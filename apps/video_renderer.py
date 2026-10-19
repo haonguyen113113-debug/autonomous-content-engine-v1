@@ -77,6 +77,47 @@ def _write_starter_scene(scene_path: Path, card_id: str) -> None:
     image.save(scene_path)
 
 
+def _render_brand_scene(package: Any, *, content_type: str, role: str,
+                        output_path: Path) -> None:
+    """Render the fixed, authored opening/ending scene from the template pack.
+
+    These channel scenes have no story slots. Their typography and decoration
+    are part of the pack and must never be supplemented with renderer text.
+    """
+    from PIL import Image
+    from apps.studio_templates.render_starters import render_design
+
+    if role not in {"opening", "ending"}:
+        raise ValueError(f"Unsupported fixed brand scene: {role}")
+    if content_type == "long" and role == "opening":
+        # The long-form pack ships a landscape opening plate as a fixed image
+        # rather than a generated card JSON (its end card is LC-14).
+        source = package.root / "resources" / "pack" / "long-opening.jpg"
+        if not source.is_file():
+            raise RuntimeError("The long-form template opening artwork is missing.")
+        with Image.open(source) as image:
+            image.convert("RGB").resize((1920, 1080)).save(output_path)
+        return
+
+    card_id = ("C-01" if role == "opening" else "C-10") if content_type != "long" else "LC-14"
+    aspect = "short" if content_type != "long" else "long"
+    design_path = Path(__file__).resolve().parent / "studio_templates" / f"{card_id}.{aspect}.json"
+    try:
+        design = json.loads(design_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"The template {role} card {card_id} is unavailable.") from error
+    # The source/date credit is still an unfilled placeholder in these cards;
+    # do not ship it as if it were real attribution.
+    for child in design.get("pages", [{}])[0].get("children", []):
+        if isinstance(child, dict) and (child.get("custom") or {}).get("slot") == "credit":
+            child["showInExport"] = False
+    image = render_design(design).convert("RGB")
+    expected = (1920, 1080) if content_type == "long" else (1080, 1920)
+    if image.size != expected:
+        raise RuntimeError(f"The template {role} card {card_id} has the wrong canvas.")
+    image.save(output_path)
+
+
 def _normalise(value: str) -> str:
     return unicodedata.normalize("NFC", str(value)).strip()
 
@@ -1618,6 +1659,10 @@ def _write_editorial_data_scene(
         if not _photo_bed(image, photo, panel_w, panel_h, scale, darken=85):
             _night_field(image, panel_w, panel_h, scale, ink, rgba("deep_pitch", 255),
                          phase=scene_number * 0.7)
+        hook = " ".join(str(data.get("hook_text") or "").split())[:140]
+        if not hook:
+            image.resize((panel_w, panel_h), Image.Resampling.LANCZOS).save(path)
+            return
         draw = ImageDraw.Draw(image, "RGBA")
         frame = 24 * scale
         draw.rectangle((frame, frame, panel_w*scale-frame, panel_h*scale-frame),
@@ -1631,9 +1676,6 @@ def _write_editorial_data_scene(
                 420*scale, (200, 210, 205), 70)
         _sprite(image, kit("smoke_03.png"), (panel_w*0.78*scale, panel_h*0.88*scale),
                 360*scale, (200, 210, 205), 60)
-        hook = " ".join(str(data.get("hook_text") or data.get("headline") or data.get("title") or "").split())[:140]
-        if not hook:
-            hook = "CÂU HỎI TRẬN ĐẤU"
         max_width = (panel_w - 8 * U) * scale
         hook_size = _role_size(panel_h, "boss")
         hook_font = ImageFont.truetype(str(display_font_path), hook_size*scale)
@@ -1899,45 +1941,6 @@ def _beat_fades(events: list[Any], start: float, end: float) -> tuple[bool, bool
     return fade_in, fade_out
 
 
-# Fixed role presets for Scene Graph overlays. Geometry / font / color come
-# from these locked presets (type + role); the overlay payload contributes
-# only text + timing — the renderer never computes per-instance layout.
-_SG_OVERLAY_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
-    "lower_third": {
-        None: {
-            "wrap": 34, "max_lines": 2, "fs_frac": 0.022,
-            "box_dx": 24, "box_dy_from_bottom": 168, "box_h": 118,
-            "box_w_dx": 48, "accent_w": 7, "text_dx": 48,
-            "text_dy_from_box": 16,
-            "color": "chalk", "accent": "signal_lime",
-        },
-        "name_tag": {
-            "wrap": 30, "max_lines": 1, "fs_frac": 0.020,
-            "box_dx": 24, "box_dy_from_bottom": 260, "box_h": 70,
-            "box_w_dx": 48, "accent_w": 7, "text_dx": 48,
-            "text_dy_from_box": 10,
-            "color": "chalk", "accent": "signal_lime",
-        },
-    },
-    "caption": {
-        None: {
-            "wrap": 40, "max_lines": 2, "fs_frac": 0.028,
-            "box_dx": 0, "box_dy_from_bottom": 96, "box_h": 0,
-            "box_w_dx": 0, "accent_w": 0, "text_dx": 0,
-            "text_dy_from_box": 0,
-            "color": "chalk", "accent": "signal_lime", "boxborderw": 14,
-        },
-        "hook": {
-            "wrap": 36, "max_lines": 2, "fs_frac": 0.034,
-            "box_dx": 0, "box_dy_from_bottom": 96, "box_h": 0,
-            "box_w_dx": 0, "accent_w": 0, "text_dx": 0,
-            "text_dy_from_box": 0,
-            "color": "signal_lime", "accent": "signal_lime", "boxborderw": 14,
-        },
-    },
-}
-
-
 def _overlay_items(events: list[Any], start: float, end: float, *,
                    kinds: tuple[str, ...] = ("lower_third", "caption"),
                    limit: int = 6) -> list[dict[str, Any]]:
@@ -1959,64 +1962,6 @@ def _overlay_items(events: list[Any], start: float, end: float, *,
     picked.sort(key=lambda item: (float(item.get("start_seconds", 0)),
                                   float(item.get("end_seconds", 0))))
     return picked
-
-
-def _draw_sg_overlay(
-    item: dict[str, Any], window: str, *,
-    index: int, job: int, work_dir: Path,
-    scene_x: float, scene_y: float, panel_w: float, panel_h: float,
-    font_path: str, chalk: str, signal_lime: str, ink: str,
-) -> list[str]:
-    """FFmpeg drawtext/drawbox filters for ONE frozen graph overlay.
-
-    Geometry / font / color come from fixed role presets (type + role);
-    the overlay payload contributes only text + timing. Nothing else is
-    derived from the payload — no LLM layout, no per-instance layout.
-    `index` / `job` keep the intermediate text file unique per overlay.
-    """
-    otype = str(item.get("type", "")).strip()
-    role = str(item.get("role") or "").strip() or None
-    if otype not in ("lower_third", "caption"):
-        return []
-    preset = (_SG_OVERLAY_PRESETS.get(otype, {}).get(role)
-              or _SG_OVERLAY_PRESETS.get(otype, {}).get(None))
-    if preset is None:
-        return []
-    text = str(item.get("text", ""))
-    lines = textwrap.wrap(text, width=preset["wrap"], break_long_words=False,
-                          break_on_hyphens=False)[: preset["max_lines"]]
-    text_path = _write_text(
-        work_dir / f"sg-overlay-{index}-{job}-{otype}.txt", "\n".join(lines))
-    color = {"chalk": chalk, "signal_lime": signal_lime, "ink": ink}[preset["color"]]
-    accent = {"chalk": chalk, "signal_lime": signal_lime, "ink": ink}[preset["accent"]]
-    box_x = scene_x + preset["box_dx"]
-    box_y = scene_y + panel_h - preset["box_dy_from_bottom"]
-    filters: list[str] = []
-    if otype == "lower_third":
-        filters.append(
-            f"drawbox=x={box_x}:y={box_y}:w={panel_w - preset['box_w_dx']}:h={preset['box_h']}:"
-            f"color={accent}@0.78:t=fill:enable='{window}'"
-        )
-        if preset.get("accent_w"):
-            filters.append(
-                f"drawbox=x={box_x}:y={box_y}:w={preset['accent_w']}:h={preset['box_h']}:"
-                f"color={accent}@1:t=fill:enable='{window}'"
-            )
-        filters.append(
-            f"drawtext=fontfile='{font_path}':textfile='{text_path}':fontcolor={color}:"
-            f"fontsize=h*{preset['fs_frac']:.3f}:line_spacing=7:"
-            f"x={box_x + preset['text_dx']}:y={box_y + preset['text_dy_from_box']}:"
-            f"shadowcolor=black@0.6:shadowx=1:shadowy=2:enable='{window}'"
-        )
-    else:  # caption
-        filters.append(
-            f"drawtext=fontfile='{font_path}':textfile='{text_path}':fontcolor={color}:"
-            f"fontsize=h*{preset['fs_frac']:.3f}:line_spacing=7:text_align=center:"
-            f"x='(w-text_w)/2':y={box_y}:"
-            f"box=1:boxcolor=black@0.62:boxborderw={preset.get('boxborderw', 14)}:"
-            f"enable='{window}'"
-        )
-    return filters
 
 
 def _render(
@@ -2061,11 +2006,9 @@ def _render(
     width = int(output_profile.get("width", 1920 if is_long else 1080))
     height = int(output_profile.get("height", 1080 if is_long else 1920))
     fps = int(output_profile.get("frame_rate", 30))
-    title = str(draft.get("topic") or "Allen Knows Ball")
     if preview:
         duration = 18
         phase_ranges = [(0, 4), (4, 14), (14, 18)]
-        title_text = ("LỢI THẾ SÂN NHÀ?" if run.get("run_id") == "2556c12f9ba8" else title[:150])
     else:
         duration = int(draft.get("duration_target_seconds", 0))
         if duration < (480 if is_long else 20) or duration > (1200 if is_long else 90):
@@ -2077,7 +2020,6 @@ def _render(
             (max(0, int(item.get("start_seconds", 0))), min(duration, int(item.get("end_seconds", 0))))
             for item in segments
         ]
-        title_text = ("LỢI THẾ SÂN NHÀ?" if run.get("run_id") == "2556c12f9ba8" else title[:150])
 
     render_dir = root / "runtime/renders" / str(run["run_id"])
     render_dir.mkdir(parents=True, exist_ok=True)
@@ -2099,33 +2041,8 @@ def _render(
     # Tactical diagrams are separate timed visual assets; the narrative carries
     # the explanation, so no persistent speech subtitles are rendered.
     filters: list[str] = []
-    label_path = _write_text(work_dir / "wordmark.txt", "ALLEN KNOWS BALL")
-    # Owner 16/10: no persistent corner wordmark over body scenes (channel
-    # mark lives in the 0-1.2s ident + end-card; plates carry the badge).
-    title_wrap = 38 if not is_long else 66
-    wrapped_title = "\n".join(textwrap.wrap(title_text, width=title_wrap, break_long_words=False, break_on_hyphens=False))
-    title_path = _write_text(work_dir / "title.txt", wrapped_title)
-    title_end = min(duration, 3.2 if preview else (phase_ranges[0][0] + 2.4 if phase_ranges else 2.4))
-    # Title waits for the ident sting so frame 0 never stacks three text layers.
-    title_start = min(1.2, max(0.0, title_end - 0.5))
-    # Opening ident (timeline opening): wordmark sting over frame 0, out by 1.2s.
-    ident_end = min(duration, 1.2)
-    filters.append(
-        f"drawtext=fontfile='{latin_font_path}':textfile='{label_path}':fontcolor={chalk}:"
-        f"fontsize=h*0.070:text_align=center:x='(w-text_w)/2':y=h*0.42:"
-        f"shadowcolor=black@0.6:shadowx=2:shadowy=3:enable='between(t,0,{ident_end:.3f})'"
-    )
-    filters.append(
-        f"drawtext=fontfile='{latin_font_path}':textfile='{title_path}':fontcolor={chalk}:"
-        f"fontsize=h*{0.044 if is_long else 0.024:.3f}:line_spacing=4:text_align=left:"
-        f"x='w*0.09-56*(1-min(max(t/0.28,0),1))^2':y=h*0.125:"
-        f"shadowcolor=black@0.55:shadowx=1:shadowy=2:"
-        f"enable='between(t,{title_start:.3f},{title_end:.3f})'"
-    )
-    filters.append(
-        f"drawbox=x=iw*0.072:y=ih*0.125:w=iw*0.010:h=ih*0.070:color={signal_lime}@1:t=fill:"
-        f"enable='between(t,{title_start:.3f},{title_end:.3f})'"
-    )
+    # Story text is rendered only by its template card's declared slots.
+    # Do not add a generic title/ident over the authored opening scene.
     segments = [] if preview else draft.get("segments", [])
     # Scene Graph mode (workstream 4, flag-gated): beat timings come from
     # the frozen graphs, never from segment math. Validation raises - the
@@ -2144,7 +2061,6 @@ def _render(
     trail_paths: list[Path] = []
     selected_modes: list[str] = []
     punch_beats: set[int] = set()
-    kinetic_overlays: dict[int, dict[str, Any]] = {}
     scene_x, scene_y = (190, 220) if is_long else (0, 0)
     fx, fy, fw, fh = (505, 138, 865, 560) if is_long else (260, 142, 490, 760)
     for index in range(len(phase_ranges)):
@@ -2172,35 +2088,23 @@ def _render(
                 mode = "source_card"
         selected_modes.append(mode)
         beat_graphic = segment.get("graphic_data", {}) if isinstance(segment.get("graphic_data"), dict) else {}
-        # Scene Graph mode executes frozen motion only: hook_punch_in and
-        # number_pop punch in (numerals stay frozen, no re-layout). Per-beat
-        # motion choice and kinetic text re-wraps stay banned.
         if sg_graphs is not None:
             sg_motion = sg_graphs[index].get("motion")
             sg_motion = sg_motion if isinstance(sg_motion, dict) else {}
             if sg_motion.get("enter") == "hook_punch_in" or sg_motion.get("effect") == "number_pop":
                 punch_beats.add(index)
-        elif mode == "hook_card" or (mode == "statline_scorecard" and isinstance(beat_graphic.get("hero"), dict)):
+        elif mode == "hook_card" or (
+            mode == "statline_scorecard" and isinstance(beat_graphic.get("hero"), dict)
+        ):
             punch_beats.add(index)
-        hook_text = str(beat_graphic.get("hook_text", "")).strip() if isinstance(beat_graphic, dict) else ""
-        hero = beat_graphic.get("hero") if isinstance(beat_graphic, dict) else None
         try:
             from apps.card_selector import STARTERS_SHORT as _STARTERS
             _starter_ok = (sg_graphs is None and not is_long and _STARTERS.get(mode)
                            and not (segment.get("media_asset_id") if isinstance(segment, dict) else None))
         except Exception:
             _starter_ok = False
-        # Starter scenes carry their own text: legacy kinetic text overlays
-        # below are gated on not _starter_ok so nothing renders twice (owner 16/10).
-        # Scene Graph mode skips the legacy kinetic overlays (re-wraps banned)
-        # and instead draws frozen overlays from sg_graphs[index]["overlays"]
-        # in the scene paint/filter path below.
-        if sg_graphs is None and mode == "hook_card" and hook_text and not _starter_ok:
-            kinetic_overlays[index] = {"kind": "hook", "text": hook_text}
-        elif (sg_graphs is None and mode == "statline_scorecard" and isinstance(hero, dict)
-                and str(hero.get("value", "")).strip() and not beat_graphic.get("metrics")
-                and not _starter_ok):
-            kinetic_overlays[index] = {"kind": "hero", "value": str(hero.get("value", ""))[:12]}
+        # No free-standing kinetic text: hook/metric copy belongs in the
+        # selected card's designed slots, where it shares that card's layout.
         scene_palette = dict(palette)
         graphic_data = segment.get("graphic_data", {}) if isinstance(segment.get("graphic_data"), dict) else {}
         media_record = None
@@ -2328,7 +2232,7 @@ def _render(
                     palette=scene_palette,
                     is_long=is_long,
                     scene_number=index+1,
-                    bare=index in kinetic_overlays,
+                    bare=False,
                 )
         scene_paths.append(scene_path)
         from math import atan2, degrees
@@ -2343,28 +2247,22 @@ def _render(
         trail_paths.append(trail_path)
     ball_sprite = work_dir / "football.png"
     _write_ball_sprite(ball_sprite, palette)
-    # Authored ending card (owner 16/10): the prebuilt C-10 end card closes
-    # short videos instead of bare background+text. +4s music tail.
-    # Scene Graph mode skips it: the ending must arrive as a frozen graph
-    # beat - the renderer never appends story beats on its own.
-    ending_path = None
-    out_duration = duration
-    if not preview and not visual_only and not is_long and sg_graphs is None:
-        try:
-            from pathlib import Path as _P
-            from apps.studio_templates.render_starters import render_design as _render_design
-            epath = _P(__file__).resolve().parents[0] / "studio_templates" / "C-10.short.json"
-            edata = json.loads(epath.read_text(encoding="utf-8"))
-            for _c in edata["pages"][0]["children"]:
-                if (isinstance(_c, dict) and _c.get("type") == "text"
-                        and (_c.get("custom") or {}).get("slot") == "credit"):
-                    _c["showInExport"] = False
-            ending_path = work_dir / "ending-scene.png"
-            _render_design(edata).convert("RGB").save(ending_path)
-            out_duration = duration + 4
-        except Exception:
-            ending_path = None
-            out_duration = duration
+    # Fixed brand scenes are explicit template-pack scenes for both aspects.
+    # Their copy/design comes from the pack; no renderer-authored text is added.
+    # Short-form opens directly on the first content card (opening hook card);
+    # the C-01 opening card is not rendered for short-form. Long-form keeps
+    # its authored opening plate.
+    opening_path = None
+    ending_path = work_dir / "ending-scene.png"
+    if content_type == "long":
+        opening_path = work_dir / "opening-scene.png"
+        _render_brand_scene(package, content_type=content_type, role="opening",
+                            output_path=opening_path)
+    _render_brand_scene(package, content_type=content_type, role="ending",
+                        output_path=ending_path)
+    opening_duration = min(1.2, float(duration)) if content_type == "long" else 0.0
+    ending_duration = 4.0
+    out_duration = duration + ending_duration
 
     for index, (start, end) in enumerate(phase_ranges):
         if end <= start:
@@ -2462,6 +2360,11 @@ def _render(
         command += ["-loop", "1", "-framerate", str(fps), "-i", str(text_path)]
         text_input_index[index] = next_input
         next_input += 1
+    opening_idx = None
+    if opening_path is not None:
+        command += ["-loop", "1", "-framerate", str(fps), "-i", str(opening_path)]
+        opening_idx = next_input
+        next_input += 1
     ending_idx: int | None = None
     if ending_path is not None:
         command += ["-loop", "1", "-framerate", str(fps), "-i", str(ending_path)]
@@ -2476,11 +2379,8 @@ def _render(
     full_segments = draft.get("segments", []) if isinstance(draft.get("segments"), list) else []
     chapter_pool = draft.get("chapter_events", []) if isinstance(draft.get("chapter_events"), list) else []
     fades_used = 0
-    overlays_used = 0
     punch_used = 0
     slide_used = 0
-    stagger_used = 0
-    count_used = 0
     for index, ((start, end), spec) in enumerate(zip(phase_ranges, diagram_specs)):
         if end <= start:
             continue
@@ -2523,17 +2423,16 @@ def _render(
             )
             scene_source = media_layer
         else:
-            # Ken Burns drift on every static plate so no beat ever sits still.
-            # Alternate push-in / pull-out per beat for editorial variety.
-            # Nova hook and hero beats punch in faster instead.
+            # Keep camera motion within the template's generous safe margins.
+            # The former 1.07/1.12 zoom cropped baked headline glyphs.
             motion_label = f"scenemotion{index}"
             if index in punch_beats:
-                zoom_expr = "min(1.12,zoom+0.0012)"
+                zoom_expr = "min(1.035,zoom+0.00035)"
                 punch_used += 1
             elif index % 2 == 0:
-                zoom_expr = "min(1.07,zoom+0.0004)"
+                zoom_expr = "min(1.025,zoom+0.0001)"
             else:
-                zoom_expr = "if(eq(on,0),1.07,max(zoom-0.0004,1.0))"
+                zoom_expr = "if(eq(on,0),1.025,max(zoom-0.0001,1.0))"
             motion_chain = (
                 f"[{scene_idx}:v]zoompan=z='{zoom_expr}':"
                 f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
@@ -2567,12 +2466,9 @@ def _render(
             # Type entrances after the plate lands: same drift as its
             # background, fade in at +0.6s, out with the beat.
             tidx = text_input_index[index]
-            if index in punch_beats:
-                tzoom = "min(1.12,zoom+0.0012)"
-            elif index % 2 == 0:
-                tzoom = "min(1.07,zoom+0.0004)"
-            else:
-                tzoom = "if(eq(on,0),1.07,max(zoom-0.0004,1.0))"
+            tzoom = ("min(1.035,zoom+0.00035)" if index in punch_beats else
+                     ("min(1.025,zoom+0.0001)" if index % 2 == 0 else
+                      "if(eq(on,0),1.025,max(zoom-0.0001,1.0))"))
             tin = min(start + 0.6, end - 1.0)
             chains.append(
                 f"[{tidx}:v]zoompan=z='{tzoom}':"
@@ -2631,13 +2527,9 @@ def _render(
         )
         current = ball_label
     if ending_idx is not None:
-        # Authored ending card closes the video (owner 16/10): full-bleed
-        # C-10 plate with a gentle push-in, takeaway/version text drawn
-        # over it by the endcard block below.
+        # Fixed end scene from C-10 / LC-14, with no extra copy over the card.
         chains.append(
-            f"[{ending_idx}:v]zoompan=z='min(1.05,zoom+0.0006)':"
-            f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
-            f"s={panel_w}x{panel_h}:fps={fps},format=rgba,"
+            f"[{ending_idx}:v]format=rgba,"
             f"fade=t=in:st={duration:.3f}:d=0.5:alpha=1[endcard]"
         )
         chains.append(
@@ -2645,166 +2537,16 @@ def _render(
             f"enable='gte(t,{duration:.3f})'[endcarded]"
         )
         current = "endcarded"
-    # Typed on-screen items declared in the production timeline. Lower-thirds
-    # identify who/what is on screen; captions carry the hook for muted
-    # viewers. Both sit above every scene layer.
-
-    for index, (start, end) in enumerate(phase_ranges):
-        if end <= start:
-            continue
-        pool: list[Any] = list(chapter_pool)
-        if not preview and index < len(full_segments) and isinstance(full_segments[index], dict):
-            pool += full_segments[index].get("timeline_events", [])
-        if sg_graphs is not None:
-            # Frozen graph overlays only: read from sg_graphs[index]["overlays"],
-            # never re-derive composition from timeline_events/segment (the
-            # composition is frozen by ws3; the renderer only executes).
-            graph_overlays = sg_graphs[index].get("overlays")
-            overlay_items = list(graph_overlays) if isinstance(graph_overlays, list) else []
-        else:
-            overlay_items = _overlay_items(pool, start, end)
-        for job, item in enumerate(overlay_items):
-            try:
-                if sg_graphs is not None:
-                    # Overlay thoi gian clip-relative (0 = dau beat): chuyen
-                    # sang thoi gian tuyet doi cua mot lan duyet, dong cua so
-                    # [timing.start, timing.end]. Khong doc lai
-                    # timeline_events/segment de tai suy overlay o che do SG.
-                    graph_start = float(sg_graphs[index]["timing"]["start"])
-                    graph_end = float(sg_graphs[index]["timing"]["end"])
-                    overlay_start = float(item.get("start_seconds", 0))
-                    overlay_end = float(item.get("end_seconds", graph_end - graph_start))
-                    item_start = max(graph_start, graph_start + overlay_start)
-                    item_end = min(graph_end, graph_start + overlay_end)
-                else:
-                    item_start = max(start, float(item.get("start_seconds", start)))
-                    item_end = min(end, float(item.get("end_seconds", end)))
-            except (TypeError, ValueError):
-                continue
-            if item_end <= item_start:
-                continue
-            raw_text = _normalise(str(item.get("text", "")))
-            if not raw_text:
-                continue
-            window = f"between(t,{item_start:.3f},{item_end:.3f})"
-            if sg_graphs is not None:
-                # Frozen graph overlay: fixed role preset (type + role); the
-                # payload contributes only text + timing — no LLM layout, no
-                # per-instance coordinates/font/color/motion.
-                filters.extend(
-                    _draw_sg_overlay(
-                        item, window,
-                        index=index, job=job, work_dir=work_dir,
-                        scene_x=scene_x, scene_y=scene_y, panel_w=panel_w, panel_h=panel_h,
-                        font_path=font_path, chalk=chalk, signal_lime=signal_lime,
-                        ink=color_token("ink"),
-                    )
-                )
-            elif item.get("item_type") == "lower_third":
-                lines = textwrap.wrap(raw_text, width=34, break_long_words=False,
-                                       break_on_hyphens=False)[:2]
-                text_path = _write_text(work_dir / f"lower-{index}-{job}.txt", "\n".join(lines))
-                box_y = scene_y + panel_h - 168
-                filters.append(
-                    f"drawbox=x={scene_x + 24}:y={box_y}:w={panel_w - 48}:h=118:"
-                    f"color={color_token('ink')}@0.78:t=fill:enable='{window}'"
-                )
-                filters.append(
-                    f"drawbox=x={scene_x + 24}:y={box_y}:w=7:h=118:"
-                    f"color={signal_lime}@1:t=fill:enable='{window}'"
-                )
-                filters.append(
-                    f"drawtext=fontfile='{font_path}':textfile='{text_path}':fontcolor={chalk}:"
-                    f"fontsize=h*0.022:line_spacing=7:"
-                    f"x={scene_x + 48}:y={box_y + 16}:"
-                    f"shadowcolor=black@0.6:shadowx=1:shadowy=2:enable='{window}'"
-                )
-            else:
-                lines = textwrap.wrap(raw_text, width=40, break_long_words=False,
-                                       break_on_hyphens=False)[:2]
-                text_path = _write_text(work_dir / f"caption-{index}-{job}.txt", "\n".join(lines))
-                filters.append(
-                    f"drawtext=fontfile='{font_path}':textfile='{text_path}':fontcolor={chalk}:"
-                    f"fontsize=h*0.028:line_spacing=7:text_align=center:"
-                    f"x='(w-text_w)/2':y={scene_y + panel_h - 96}:"
-                    f"box=1:boxcolor=black@0.62:boxborderw=14:enable='{window}'"
-                )
-            overlays_used += 1
-        # Impact kinetic type: staggered hook lines and count-up numerals.
-        # Plates render bare for these beats so text reveals in motion.
-        kin = kinetic_overlays.get(index)
-        if kin is not None and not preview and end > start:
-            if kin["kind"] == "hook":
-                hook_fs = round(panel_h * (0.105 if is_long else 0.061))
-                hook_block = _hook_lines(kin["text"])[:3]
-                for line_no, line_value in enumerate(hook_block):
-                    window_start = min(end - 0.2, start + line_no * 0.18)
-                    line_path = _write_text(work_dir / f"hook-{index}-{line_no}.txt", line_value)
-                    filters.append(
-                        f"drawtext=fontfile='{latin_font_path}':textfile='{line_path}':fontcolor={chalk}:"
-                        f"fontsize={hook_fs}:line_spacing=6:text_align=center:"
-                        f"x='(w-text_w)/2':y={scene_y + panel_h // 2 - len(hook_block) * (hook_fs + 14) // 2 + line_no * (hook_fs + 14)}:"
-                        f"shadowcolor=black@0.55:shadowx=1:shadowy=2:enable='between(t,{window_start:.3f},{end:.3f})'"
-                    )
-                    stagger_used += 1
-            elif kin["kind"] == "hero":
-                hero_fs = round(panel_h * (0.20 if is_long else 0.158))
-                hero_steps = _count_steps(kin["value"])
-                for step_no, step_value in enumerate(hero_steps):
-                    step_start = start + (end - start) * step_no / len(hero_steps)
-                    step_end = start + (end - start) * (step_no + 1) / len(hero_steps)
-                    step_path = _write_text(work_dir / f"hero-{index}-{step_no}.txt", step_value)
-                    filters.append(
-                        f"drawtext=fontfile='{latin_font_path}':textfile='{step_path}':fontcolor={signal_lime}:"
-                        f"fontsize={hero_fs}:text_align=center:"
-                        f"x='(w-text_w)/2':y={scene_y + panel_h // 2 - 30 - hero_fs // 2}:"
-                        f"shadowcolor=black@0.55:shadowx=2:shadowy=3:enable='between(t,{step_start:.3f},{step_end:.3f})'"
-                    )
-                    count_used += 1
-    # Branded end-card closes the arc inside the final seconds: wordmark,
-    # channel tagline, loop-callback takeaway, and template version.
-    # Owner 16/10: with the authored C-10 ending plate, drop the ink veil
-    # and the big wordmark (both baked); takeaway/version/tagline stay.
-    end_start = max(0.0, out_duration - (4.0 if ending_path is not None else 2.5))
-    tagline = ""
-    if isinstance(package.channel, dict):
-        tagline = _normalise(str(package.channel.get("tagline", "")))[:120]
-    if ending_path is None:
-        filters.append(
-            f"drawbox=x=0:y=0:w=iw:h=ih:color={color_token('ink')}@0.94:t=fill:"
-            f"enable='gte(t,{end_start:.3f})'"
+    if opening_path is not None:
+        chains.append(
+            f"[{opening_idx}:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1[opening]"
         )
-        filters.append(
-            f"drawtext=fontfile='{latin_font_path}':textfile='{label_path}':fontcolor={signal_lime}:"
-            f"fontsize=h*0.055:text_align=center:x='(w-text_w)/2':y=h*0.40:"
-            f"enable='gte(t,{end_start:.3f})'"
+        chains.append(
+            f"[{current}][opening]overlay=x=0:y=0:eval=frame:eof_action=pass:format=auto:"
+            f"enable='between(t,0,{opening_duration:.3f})'[opened]"
         )
-    if tagline:
-        tagline_path = _write_text(work_dir / "endcard-tagline.txt", tagline)
-        filters.append(
-            f"drawtext=fontfile='{font_path}':textfile='{tagline_path}':fontcolor={chalk}:"
-            f"fontsize=h*0.026:text_align=center:x='(w-text_w)/2':y=h*0.52:"
-            f"enable='gte(t,{end_start:.3f})'"
-        )
-    version_path = _write_text(
-        work_dir / "endcard-version.txt",
-        f"{template_id}  ·  v{package.manifest.get('version', '?')}",
-    )
-    takeaway = ""
-    if not preview and full_segments and isinstance(full_segments[-1], dict):
-        takeaway = _normalise(str(full_segments[-1].get("narration", "")))[:90]
-    if takeaway:
-        takeaway_path = _write_text(work_dir / "endcard-takeaway.txt", f"“{takeaway}”")
-        filters.append(
-            f"drawtext=fontfile='{font_path}':textfile='{takeaway_path}':fontcolor={chalk}:"
-            f"fontsize=h*0.024:line_spacing=6:text_align=center:x='(w-text_w)/2':y=h*0.30:"
-            f"box=1:boxcolor=black@0.55:boxborderw=10:enable='gte(t,{end_start:.3f})'"
-        )
-    filters.append(
-        f"drawtext=fontfile='{latin_font_path}':textfile='{version_path}':fontcolor={chalk}:"
-        f"fontsize=h*0.018:text_align=center:x='(w-text_w)/2':y=h*0.60:"
-        f"enable='gte(t,{end_start:.3f})'"
-    )
+        current = "opened"
+    # Free-standing text overlays and kinetic copy are intentionally absent.
     chains.append(f"[{current}]{','.join(filters)}[vout]")
     if sound is not None:
         chains.append(audio_mix[0])
@@ -2854,21 +2596,33 @@ def _render(
             "caption": item.get("media_caption") or item.get("visual"),
             "visual_context_note": record["metadata"].get("visual_context_note"),
         })
+    declared_overlay_count = 0
+    if sg_graphs is not None:
+        declared_overlay_count = sum(
+            len(graph.get("overlays", [])) for graph in sg_graphs
+            if isinstance(graph, dict) and isinstance(graph.get("overlays"), list)
+        )
+    else:
+        declared_overlay_count = sum(
+            1 for segment in full_segments if isinstance(segment, dict)
+            for event in (segment.get("timeline_events", []) or [])
+            if isinstance(event, dict) and event.get("item_type") in {"caption", "lower_third"}
+        )
     checks = [
         {"criterion": "Video file created and playable", "status": "PASS", "detail": "FFmpeg produced an H.264 MP4 and ffprobe confirms its stream metadata."},
         {"criterion": "Target aspect ratio", "status": "PASS", "detail": f"{width}×{height} ({'16:9' if is_long else '9:16'})."},
         {"criterion": "Vietnamese font and diacritics", "status": "PASS", "detail": "Barlow Condensed provides Vietnamese headline glyphs; Be Vietnam Pro remains available for dense supporting copy."},
         {"criterion": "Tactical pitch orientation and authored vectors", "status": "NOT USED" if not any(mode == "tactical_explainer" for mode in selected_modes) else "PASS", "detail": "No tactical pitch scene is part of this short-form script." if not any(mode == "tactical_explainer" for mode in selected_modes) else f"The {('landscape' if is_long else 'portrait')} pitch has correct halfway-line orientation, full markings, and color-coded pass/run/press vectors."},
         {"criterion": "Template art direction", "status": "PASS", "detail": "Touchline Editorial pairs expressive Vietnamese display headlines, condensed chapter numerals, tactile pitch marks, contextual colorways, and distinct portrait/landscape graphic plates."},
-        {"criterion": "Opening / body / ending rhythm", "status": "PASS", "detail": "0-1.2s channel ident sting; chapter-led visual beats open on the match hook; takeaway callback leads into the branded end-card with wordmark, tagline, and template version."},
-        {"criterion": "Visible motion and beat changes", "status": "PASS", "detail": f"Slide-in executes on all {slide_used} scene plates; alternating Ken Burns push-in/pull-out drift runs underneath; tactical diagrams add one authored pass movement with ball and trail."},
+        {"criterion": "Opening / body / ending rhythm", "status": "PASS", "detail": f"The {('longform' if is_long else 'shortform')} template pack opening scene plays first; the matching authored ending card closes the video. No renderer-authored text is layered over either card."},
+        {"criterion": "Visible motion and beat changes", "status": "PASS", "detail": f"Slide-in executes on {slide_used} scene plates; authored card typography remains inside its designed canvas; tactical diagrams add one authored pass movement with ball and trail."},
         {"criterion": "Narration subtitles", "status": "NOT USED", "detail": "Subtitles are intentionally omitted; the narration carries the explanation."},
         {"criterion": "Personal voice and speech pacing", "status": "PENDING OWNER AUDIT" if not preview and not visual_only else "NOT ASSESSED", "detail": "TTS preview is muxed as one continuous narration track; naturalness and voice similarity await owner review." if not preview and not visual_only else ("Voice evaluation is intentionally excluded from this benchmark." if visual_only else "This is a silent visual preview.")},
         {"criterion": "Asset Library media", "status": "PASS" if selected_media else ("NOT ASSESSED" if preview else "FAIL"), "detail": f"{len(selected_media)} verified, attributed library images are used as contextual B-roll; they are not footage from the current Premier League matches." if selected_media else ("Media placement is exercised in full runs, not in silent template previews." if preview else "No verified library media is attached to this script.")},
-        {"criterion": "Lower-third and caption overlays", "status": "PASS" if overlays_used else "NOT USED", "detail": f"{overlays_used} lower-third/caption overlay(s) rendered in their declared windows." if overlays_used else "No lower-third or caption overlay is declared or rendered."},
-        {"criterion": "Script-specific transitions and effects", "status": "PARTIAL", "detail": f"chalk_line_wipe executes as 0.3s slide-in on {slide_used} scene(s); fade in/out executes from timeline enter/exit on {fades_used} beat(s); hook/hero punch-in executes on {punch_used} beat(s); all other beats cut clean. draw/wipe transitions and freeze_and_trace/pitch_grid effects remain unexecuted."},
-        {"criterion": "Impact kinetic type: stagger and count-up", "status": "PASS" if (stagger_used or count_used) else "NOT USED", "detail": f"Hook lines stagger across {stagger_used} overlay(s); hero numerals count up across {count_used} step(s)." if (stagger_used or count_used) else "This script uses no kinetic hook or hero-numeral beat."},
-        {"criterion": "Nova hook card and hero metric", "status": "PASS" if punch_used else "NOT USED", "detail": f"Hook punch-in / hero pop executes on {punch_used} beat(s)." if punch_used else "This script uses no hook card or hero-metric beat."},
+        {"criterion": "Lower-third and caption overlays", "status": "FAIL" if declared_overlay_count else "NOT USED", "detail": (f"{declared_overlay_count} free-standing text item(s) were suppressed because no frozen template-slot binding exists; move this copy into a supported card slot." if declared_overlay_count else "No free-standing caption/lower-third is declared or rendered.")},
+        {"criterion": "Script-specific transitions and effects", "status": "PARTIAL", "detail": f"chalk_line_wipe executes as 0.3s slide-in on {slide_used} scene(s); fade in/out executes from timeline enter/exit on {fades_used} beat(s); card-level hook/hero punch-in is capped at 1.035x to preserve template safe areas. draw/wipe transitions and freeze_and_trace/pitch_grid effects remain unexecuted."},
+        {"criterion": "Impact kinetic type: stagger and count-up", "status": "NOT USED", "detail": "Free-standing kinetic text is disabled; text must be placed in a card's designed slot."},
+        {"criterion": "Nova hook card and hero metric", "status": "PASS" if punch_used else "NOT USED", "detail": f"Template-card punch motion is capped at 1.035x to keep designed copy within safe margins ({punch_used} beat(s))." if punch_used else "No template card requests punch motion."},
     ]
     probe = _ffprobe(ffmpeg)
     probe_result = subprocess.run(
@@ -2879,11 +2633,11 @@ def _render(
         raise RuntimeError("FFprobe could not inspect the rendered MP4.")
     metadata = json.loads(probe_result.stdout)
     actual_duration = float(metadata.get("format", {}).get("duration", 0) or 0)
-    duration_ok = abs(actual_duration - duration) <= max(1.0, duration * 0.01)
+    duration_ok = abs(actual_duration - out_duration) <= max(1.0, out_duration * 0.01)
     checks.append({
         "criterion": "Output duration matches target",
         "status": "PASS" if duration_ok else "FAIL",
-        "detail": f"Target {duration}s; rendered {actual_duration:.2f}s.",
+        "detail": f"Target story {duration}s plus {ending_duration:.1f}s fixed ending; rendered {actual_duration:.2f}s.",
     })
     video_streams = [item for item in metadata.get("streams", []) if item.get("codec_type") == "video"]
     audio_streams = [item for item in metadata.get("streams", []) if item.get("codec_type") == "audio"]

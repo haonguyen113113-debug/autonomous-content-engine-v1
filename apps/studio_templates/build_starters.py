@@ -508,6 +508,7 @@ SHORT = {
                         ("SÚT TRÚNG ĐÍCH", "120", "98", "home")], "Nguồn + ngày"]),
     "C-09": ("source", ["NGUỒN", "Nguồn + ngày"]),
     "C-10": ("end", []),
+    "C-11": ("statement", ["TUYÊN BỐ", "Câu then chốt mở đầu", ""]),
     "U-02": ("chip", ["NGUYỄN VĂN A", "Tiền đạo • #19"]),
     "U-01": ("chip", ["CHƯƠNG 2", "Diễn biến chính"]),
     "U-04": ("chip", ["08.2026", "Vòng 12 • Cập nhật"]),

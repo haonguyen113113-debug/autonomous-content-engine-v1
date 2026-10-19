@@ -280,12 +280,8 @@ def check_media_rights(
 def _overlay_rendered_check(graph: dict[str, Any]) -> dict[str, Any]:
     """Overlay rendered check on the RAW graph (lenient, never raises).
 
-    Overlays are declared in ``graph["overlays"]`` (frozen by ws3, covered
-    by graph_hash). Each overlay must carry a valid type / text / timing
-    and lie inside the beat window. A single rendered still cannot confirm
-    in-frame paint or timing, so a declared + structurally valid overlay is
-    NEEDS_REVIEW (confirm on the rendered MP4), never a blind PASS on mere
-    presence in the input. No overlay declared -> PASS (nothing to render).
+    Free-standing text overlays have no template-slot binding and are not
+    rendered. A graph that declares one therefore fails this production gate.
     """
     if not isinstance(graph, dict):
         return _check("Overlay rendered", NEEDS_REVIEW,
@@ -300,54 +296,11 @@ def _overlay_rendered_check(graph: dict[str, Any]) -> dict[str, Any]:
     if not overlays:
         return _check("Overlay rendered", PASS,
                       "Overlay list is empty — nothing to render.")
-    timing = graph.get("timing")
-    t_start = t_end = None
-    if isinstance(timing, dict):
-        try:
-            t_start = float(timing.get("start"))
-            t_end = float(timing.get("end"))
-        except (TypeError, ValueError):
-            t_start = t_end = None
-    duration = (t_end - t_start) if (t_start is not None and t_end is not None) else None
-    problems: list[str] = []
-    for index, item in enumerate(overlays):
-        prefix = f"overlays[{index}]"
-        if not isinstance(item, dict):
-            problems.append(f"{prefix} is not an object")
-            continue
-        otype = item.get("type")
-        if otype not in ("lower_third", "caption"):
-            problems.append(f"{prefix} type={otype!r} is not lower_third/caption")
-            continue
-        text = item.get("text")
-        if not isinstance(text, str) or not text.strip():
-            problems.append(f"{prefix} missing non-empty text")
-            continue
-        try:
-            start = float(item.get("start_seconds"))
-            end = float(item.get("end_seconds"))
-        except (TypeError, ValueError):
-            problems.append(f"{prefix} timing is not numeric")
-            continue
-        if not end > start:
-            problems.append(f"{prefix} end_seconds <= start_seconds")
-            continue
-        if duration is not None and start > duration:
-            problems.append(f"{prefix} starts after the beat window "
-                            f"({start} > {duration})")
-            continue
-        if duration is not None and end > duration:
-            problems.append(f"{prefix} ends after the beat window "
-                            f"({end} > {duration})")
-            continue
-    if problems:
-        return _check("Overlay rendered", FAIL, "; ".join(problems))
-    return _check("Overlay rendered", NEEDS_REVIEW,
-                  f"{len(overlays)} overlay(s) declared with valid text/timing "
-                  "inside the beat window; a still cannot confirm in-frame "
-                  "paint — verify on the rendered MP4.")
-
-
+    return _check(
+        "Overlay rendered", FAIL,
+        "Free-standing text overlays are not rendered: no frozen template-slot binding exists. "
+        "Move the copy into a supported card slot before rendering.",
+    )
 def qa_scene(
     graph: dict[str, Any],
     image: Any | None = None,
@@ -795,8 +748,8 @@ def qa_clip(
     if any(st == FAIL for st in scene_overlay):
         checks.append(_check(
             "Overlay rendered", FAIL,
-            "One or more scenes declare invalid overlay text/timing "
-            "(outside the beat window or malformed)."))
+            "One or more scenes declare free-standing overlays without a "
+            "frozen template-slot binding; renderer suppresses them."))
     elif any(st == NEEDS_REVIEW for st in scene_overlay):
         checks.append(_check(
             "Overlay rendered", NEEDS_REVIEW,

@@ -2,6 +2,27 @@
 
 ## 1. Objective
 
+### v1 build boundary (current direction, 2026-10-19)
+
+For the Allen Knows Ball v1 build, Hermes is the outer content coordinator:
+it discovers timely stories, evaluates relevance, gathers evidence, writes a
+structured script, submits it, monitors production, and reports the result.
+The Autonomous Content Engine is the video production system: it validates
+the structured handoff, applies asset rights/qualification gates, plans visuals
+deterministically, runs voice and rendering, and returns QA evidence. The
+owner reviews and publishes the result.
+
+Research and script generation are not required to run inside the Engine's
+target Hermes path. The existing local drafting features may remain during
+migration. The Engine must not publish automatically as part of this boundary.
+See [docs/hermes-engine-integration.md](docs/hermes-engine-integration.md)
+for the proposed contract, job lifecycle, and rollout gates. The API and
+versioned payload schema are not implemented yet.
+
+The broader autonomous value-creation vision below remains a long-term product
+vision; it does not mean the current Engine build must absorb Hermes's research
+and editorial responsibilities.
+
 Create a portable autonomous value-creation and distribution engine that can operate continuously with minimal human intervention and can evolve from a single content experiment into a broader autonomous business system.
 
 The engine should:

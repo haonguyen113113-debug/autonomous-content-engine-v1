@@ -38,15 +38,18 @@ def _seg(narration, mode=None, data=None, id="beat-1", beat_intent=None, visual=
 def test_intent_tiebreak_flips_to_hinted_mode():
     # "ban thang" triggers goal_card signal; "ti so" triggers score_card signal.
     # graphic_data fully covers both (score_card: home/away/score; goal_card:
-    # hook_text derived from narration). Base scores tie at 70; intent
+    # hook_text present in graphic_data). Hook text is normalized from
+    # graphic_data, never derived from narration. Base scores tie at 70; intent
     # show_evidence hints goal_card but not score_card, so goal_card wins the
     # tie-break (index 1 so the beat-0 hook rule does not apply).
     seg0 = _seg("mo dau", mode="hook_card", data={"hook_text": "X"}, id="beat-0")
     with_intent = _seg("ban thang ti so", mode=None,
-                       data={"home": "A", "away": "B", "score": "1-0"},
+                       data={"home": "A", "away": "B", "score": "1-0",
+                             "hook_text": "Ti so tran dau"},
                        id="beat-1", beat_intent=FULL_INTENT)
     without_intent = _seg("ban thang ti so", mode=None,
-                          data={"home": "A", "away": "B", "score": "1-0"},
+                          data={"home": "A", "away": "B", "score": "1-0",
+                                "hook_text": "Ti so tran dau"},
                           id="beat-1")
     out_with = select_cards([seg0, with_intent])
     out_without = select_cards([seg0, without_intent])

@@ -466,7 +466,102 @@ def test_qa_clip_structure_roles():
                 if c["criterion"] == "Video structure") == "PASS"
 
 
-# --- render_qa: readiness field --------------------------------------------
+# --- renderer: Scene Graph opening/ending brand scenes -----------------------
+
+
+def _resolve_template_package():
+    import template_foundation
+    from pathlib import Path
+    repo_root = Path(__file__).resolve().parent.parent
+    return template_foundation.resolve_template(
+        repo_root, "allen-knows-ball.shortform-analyst", allow_draft=True
+    )
+
+
+@pytest.mark.parametrize("content_type,role,card_id", [
+    ("short", "opening", "C-01"),   # legacy path still renders C-01 directly
+    ("short", "ending", "C-10"),
+    ("long", "opening", "LC-14"),
+    ("long", "ending", "LC-14"),
+])
+def test_render_brand_scene_renders(tmp_path, content_type, role, card_id):
+    from apps.video_renderer import _render_brand_scene
+    package = _resolve_template_package()
+    out = tmp_path / f"{content_type}_{role}.png"
+    _render_brand_scene(package, content_type=content_type, role=role,
+                        output_path=out)
+    assert out.is_file() and out.stat().st_size > 0
+
+
+def test_short_form_render_full_run_skips_opening(monkeypatch, tmp_path):
+    """Short-form full render must NOT render the C-01 opening scene.
+
+    Mocks _render_brand_scene to record which roles are rendered, then runs
+    the real _render path (with heavy drawing primitives mocked out) for a
+    short-form run. Asserts opening is never rendered while ending still is.
+    """
+    import apps.video_renderer as renderer
+    import template_foundation
+    from pathlib import Path
+
+    run = _make_run(tmp_path, "aaaaaaaaaaaa")
+    run["draft"]["duration_target_seconds"] = 20
+    run["voice_preview"] = {"path": "preview.wav"}
+    (tmp_path / "runtime" / "runs" / f"{run['run_id']}.json").write_text(
+        json.dumps(run, ensure_ascii=False), encoding="utf-8"
+    )
+    # Create a silent WAV voice preview so _render's voice check passes.
+    import wave
+    voice_dir = tmp_path / "runtime" / "voice"
+    voice_dir.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(voice_dir / "preview.wav"), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(44100)
+        w.writeframes(b"\x00\x00" * 44100)
+
+    calls = []
+    def fake_brand_scene(package, *, content_type, role, output_path):
+        calls.append((role, content_type))
+        # Write a valid placeholder PNG so downstream ffmpeg input exists.
+        from PIL import Image
+        Image.new("RGB", (1080, 1920), (0, 0, 0)).save(output_path)
+
+    monkeypatch.setattr(renderer, "_render_brand_scene", fake_brand_scene)
+    monkeypatch.setattr(renderer, "_ensure_voice_fits_script", lambda root, run: None)
+    import apps.card_selector as card_selector_mod
+    monkeypatch.setattr(card_selector_mod, "apply_card_plan", lambda root, run: None)
+
+    repo_root = Path(__file__).resolve().parent.parent
+    monkeypatch.setattr(renderer, "resolve_template",
+        lambda root, template_id, version=None, *, allow_draft=False:
+            template_foundation.resolve_template(repo_root, template_id,
+                                                 version=version,
+                                                 allow_draft=allow_draft))
+
+    monkeypatch.setattr(renderer, "_ffmpeg", lambda root: "ffmpeg")
+    monkeypatch.setattr(renderer, "_write_backdrop", lambda *a, **k: None)
+    monkeypatch.setattr(renderer, "_write_scene_graph_beat",
+                        lambda *a, **k: None)
+    monkeypatch.setattr(renderer, "_write_text", lambda *a, **k: str(a[0]))
+    monkeypatch.setattr(renderer, "_write_editorial_data_scene",
+                        lambda *a, **k: None)
+
+    class _FakeResult:
+        returncode = 0
+        stdout = '{"format": {"duration": "20.0", "size": "1000"}, "streams": [{"codec_type": "video", "codec_name": "h264", "width": 1080, "height": 1920}]}'
+
+    monkeypatch.setattr(renderer.subprocess, "run",
+                        lambda *a, **k: _FakeResult())
+
+    renderer.render_full_run(tmp_path, "aaaaaaaaaaaa")
+
+    # Short-form: no opening scene should be rendered.
+    opening_calls = [c for c in calls if c[0] == "opening"]
+    assert not opening_calls, f"short-form should not render opening: {calls}"
+    # Ending should still be rendered.
+    ending_calls = [c for c in calls if c[0] == "ending"]
+    assert ending_calls, "short-form should still render ending"
 
 
 def test_readiness_verdict_false_for_fail_and_needs_review():
@@ -893,7 +988,7 @@ def test_sg_overlay_clip_relative_on_nonzero_beat_not_rejected(monkeypatch):
     abs_start = 9.0 + 2.0 = 11.0, abs_end = 9.0 + 5.0 = 14.0
     (window between(t,11.000,14.000)). Test nay KHONG render video dai: chi
     validate graph va goi _scene_graph_clip de xac nhan khong bi tu choi.
-    Co the them mock _draw_sg_overlay de bat window tiep tuc sau khi co _render."""
+    Renderer must suppress any unbound free-standing text."""
     from apps.video_renderer import _scene_graph_clip
     from apps.scene_graph.builder import build_scene_graph
     from apps.scene_graph.schema import validate_scene_graph
@@ -928,58 +1023,6 @@ def test_sg_overlay_clip_relative_on_nonzero_beat_not_rejected(monkeypatch):
         {"type": "caption", "text": "Xin chao Viet Nam",
          "start_seconds": 2.0, "end_seconds": 5.0}
     ]
-
-
-def test_draw_sg_overlay_emits_drawtext_from_graph_text_and_timing(tmp_path):
-    from apps.video_renderer import _draw_sg_overlay
-
-    item = {"type": "caption", "text": "Xin chào Việt Nam",
-            "start_seconds": 1.0, "end_seconds": 4.0}
-    filters = _draw_sg_overlay(
-        item, "between(t,1.000,4.000)", index=0, job=0, work_dir=tmp_path,
-        scene_x=0, scene_y=0, panel_w=1080, panel_h=1920,
-        font_path=str(tmp_path / "f.ttf"), chalk="0xFFFFFF",
-        signal_lime="0x00FF00", ink="0x101814",
-    )
-    assert any("drawtext" in f and "textfile=" in f for f in filters)
-    assert any("between(t,1.000,4.000)" in f for f in filters)
-    # The overlay text is frozen into the text file (not re-derived).
-    text_file = tmp_path / "sg-overlay-0-0-caption.txt"
-    assert text_file.is_file()
-    assert text_file.read_text(encoding="utf-8") == "Xin chào Việt Nam"
-
-
-def test_draw_sg_overlay_role_preset_changes_render(tmp_path):
-    from apps.video_renderer import _draw_sg_overlay
-
-    base = dict(index=0, job=0, work_dir=tmp_path, scene_x=0, scene_y=0,
-                panel_w=1080, panel_h=1920, font_path=str(tmp_path / "f.ttf"),
-                chalk="0xFFFFFF", signal_lime="0x00FF00", ink="0x101814")
-    default_caption = _draw_sg_overlay(
-        {"type": "caption", "text": "T", "start_seconds": 0.0, "end_seconds": 1.0},
-        "between(t,0.000,1.000)", **base)
-    hook_caption = _draw_sg_overlay(
-        {"type": "caption", "text": "T", "start_seconds": 0.0, "end_seconds": 1.0,
-         "role": "hook"},
-        "between(t,0.000,1.000)", **base)
-    # Same text/timing, different role preset -> different font size / color.
-    assert default_caption != hook_caption
-    assert any("fontsize=h*0.028" in f for f in default_caption)
-    assert any("fontsize=h*0.034" in f for f in hook_caption)
-    assert any("fontcolor=0xFFFFFF" in f for f in default_caption)
-    assert any("fontcolor=0x00FF00" in f for f in hook_caption)
-
-
-def test_draw_sg_overlay_unknown_type_returns_empty(tmp_path):
-    from apps.video_renderer import _draw_sg_overlay
-
-    assert _draw_sg_overlay(
-        {"type": "not_a_type", "text": "T", "start_seconds": 0.0, "end_seconds": 1.0},
-        "between(t,0.000,1.000)", index=0, job=0, work_dir=tmp_path,
-        scene_x=0, scene_y=0, panel_w=1080, panel_h=1920,
-        font_path=str(tmp_path / "f.ttf"), chalk="0xFFFFFF",
-        signal_lime="0x00FF00", ink="0x101814",
-    ) == []
 
 
 def test_sg_flag_off_legacy_does_not_read_graph_overlay(monkeypatch):
@@ -1018,14 +1061,13 @@ def test_qa_scene_overlay_declared_empty_text_not_pass():
     assert report["verdict"] == "FAIL"
 
 
-def test_qa_scene_overlay_valid_but_unconfirmed_needs_review():
-    # Overlay hợp lệ trong cửa sổ beat, nhưng still không thể xác nhận
-    # vẽ đúng khung -> NEEDS_REVIEW, KHÔNG PASS vì chỉ có trong input.
+def test_qa_scene_overlay_without_template_slot_fails():
+    # Overlay có text/timing hợp lệ vẫn không được render nếu chưa bind vào slot.
     from apps.measurement.render_qa import qa_scene
 
     report = qa_scene(_ol_graph(), None)
-    assert _status(report, "Overlay rendered") == "NEEDS_REVIEW"
-    assert report["verdict"] == "NEEDS_REVIEW"
+    assert _status(report, "Overlay rendered") == "FAIL"
+    assert report["verdict"] == "FAIL"
     assert report["ready"] is False
 
 
@@ -1049,11 +1091,11 @@ def test_qa_clip_overlay_bad_timing_fails():
     assert report["ready"] is False
 
 
-def test_qa_clip_overlay_valid_needs_review():
+def test_qa_clip_overlay_without_template_slot_fails():
     from apps.measurement.render_qa import qa_clip
 
-    # Overlay clip-relative [2,4] nằm trong beat_duration = 9 (beat [9,18]):
-    # hợp lệ cấu trúc nhưng still không xác nhận in-frame paint -> NEEDS_REVIEW.
+    # Overlay clip-relative [2,4] nằm trong beat_duration = 9, nhưng chưa có
+    # frozen template-slot binding nên phải fail closed.
     graphs = [_ol_graph(), _ol_graph(segment_id="beat-ol-2", start_seconds=9.0,
                                      end_seconds=18.0,
                                      overlays=[{"type": "lower_third", "text": "x",
@@ -1061,6 +1103,6 @@ def test_qa_clip_overlay_valid_needs_review():
                                                 "end_seconds": 4.0}])]
     report = qa_clip(graphs)
     statuses = {c["criterion"]: c["status"] for c in report["clip_checks"]}
-    assert statuses["Overlay rendered"] == "NEEDS_REVIEW"
-    assert report["verdict"] == "NEEDS_REVIEW"
+    assert statuses["Overlay rendered"] == "FAIL"
+    assert report["verdict"] == "FAIL"
     assert report["ready"] is False

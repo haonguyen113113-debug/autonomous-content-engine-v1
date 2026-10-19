@@ -37,6 +37,9 @@ CARDS = [
     dict(id="C-10", aspect="short", family="core", status="built",
          purpose="End card: channel mark (no tagline until TBD)",
          slots=[], renderer=("frame", None)),
+    dict(id="C-11", aspect="short", family="core", status="built",
+         purpose="Opening hook card: caption/hook đã duyệt dẫn vào nội dung",
+         slots=["hook_text"], renderer=("generic", "hook_card")),
     # ---- Sprint 1 short: Utility ----
     dict(id="U-02", aspect="short", family="utility", status="built",
          purpose="Lower third: person name + role",

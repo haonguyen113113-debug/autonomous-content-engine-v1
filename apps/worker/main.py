@@ -2,7 +2,7 @@
 import time
 from pathlib import Path
 
-try:  # package context: python -m apps.worker.main (incl. Docker image)
+try:  # package context: python -m apps.worker.main
     from apps.worker.job import Job
     from apps.worker.runner import process_job
     from apps.worker.queue_store import claim_job, finish_job, recover_stale_claims

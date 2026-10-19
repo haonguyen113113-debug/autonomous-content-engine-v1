@@ -108,6 +108,24 @@
   "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
  },
  {
+  "name": "C-11",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 32812,
+  "badTop": [
+   "#6B1345",
+   "#6A1445",
+   "#6E1447",
+   "#6B1144",
+   "#6C1446"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
   "name": "U-02",
   "aspect": "short",
   "size": [
