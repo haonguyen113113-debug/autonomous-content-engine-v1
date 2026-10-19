@@ -12,7 +12,7 @@ and returns QA results for owner review. The owner publishes manually.
   foundations, voice/render stages, Scene Graph execution, and QA reporting.
 - The target Hermes integration is architecture only: its versioned input
   schema and authenticated production-job API have not been implemented.
-- Current uncommitted template/renderer work adds the C-11 short opening hook,
+- The latest template/renderer work adds the C-11 short opening hook,
   keeps text inside authored template slots, and makes QA fail closed for
   unbound free-standing copy. This change set has not been verified by a new
   test run.

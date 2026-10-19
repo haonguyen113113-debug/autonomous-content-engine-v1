@@ -1,0 +1,45 @@
+{
+ "$schema": "https://opencode.ai/config.json",
+ "agents": {
+  "ace-coordinator": {
+   "description": "ACE coordinator: plans, splits work, reviews worker outputs. Does not edit implementation files directly.",
+   "mode": "primary",
+   "model": "opencode/nemotron-3.5-super-vl-free",
+   "temperature": 0.2
+  },
+  "ace-implementer": {
+   "description": "ACE implementer: writes code and tests inside its assigned worktree and files only.",
+   "mode": "subagent",
+   "model": "opencode/nemotron-3.5-super-vl-free",
+   "temperature": 0.2
+  },
+  "ace-reviewer": {
+   "description": "ACE reviewer: read-only audit of diffs, contracts, and QA evidence.",
+   "mode": "subagent",
+   "model": "opencode/nemotron-3.5-super-vl-free",
+   "temperature": 0.1
+  }
+ },
+ "default_agent": "ace-coordinator",
+ "instructions": [
+  "AGENTS.md",
+  "docs/ENGINE_STATE.md",
+  "docs/audit-checkpoint-2026-10-08.md",
+  "docs/engine-gap-audit-2026-10-16.md"
+ ],
+ "model": "opencode/nemotron-3.5-super-vl-free",
+ "permission": {
+  "bash": {
+   "*": "allow",
+   "git *": "allow",
+   "python tools/ace_state.py *": "allow"
+  },
+  "edit": {
+   "*": "allow",
+   ".env": "deny",
+   ".env.*": "deny",
+   "runtime/renders/**": "allow",
+   "runtime/runs/**": "allow"
+  }
+ }
+}

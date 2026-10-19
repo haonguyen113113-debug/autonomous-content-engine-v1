@@ -999,6 +999,59 @@ def _library_image_record(root: Path, asset_id: str) -> dict[str, Any]:
     }
 
 
+def _gate_media_for_use(
+    root: Path, asset_id: str, purpose: dict[str, Any] | None
+) -> None:
+    """C1 rights gate for legacy short-form media slots.
+
+    Refuses (raises) when the asset is not ``eligible`` for the exact
+    proposed use. ``verified`` on the row is not blanket permission: the
+    upload-intent scope (platform, territory, commercial, monetization,
+    edit, credit, clip limit) must allow the use. YouTube sources and
+    copyright exceptions deny by default and route to human review.
+    """
+    if purpose is None:
+        raise ValueError(
+            f"library asset {asset_id} is refused: no upload purpose "
+            f"(platform/territory) is declared for this run, so eligibility "
+            f"for this exact use cannot be confirmed; refusing to paint it."
+        )
+    from apps.measurement.render_qa import _registry_row
+    from apps.asset_library.rights_scope import is_usable_for
+
+    row, error = _registry_row(root, asset_id)
+    if error == "missing":
+        raise ValueError(
+            f"library asset {asset_id} is refused: the asset registry is "
+            f"unavailable."
+        )
+    if error == "absent" or row is None:
+        raise ValueError(
+            f"library asset {asset_id} is refused: it does not exist in the "
+            f"asset registry."
+        )
+    if error:
+        raise ValueError(
+            f"library asset {asset_id} is refused: it is unverifiable at "
+            f"render time ({error})."
+        )
+    if row.get("asset_type") != "image" or row.get("rights_state") != "verified" \
+            or row.get("lifecycle_state") != "active":
+        raise ValueError(
+            f"library asset {asset_id} is refused: only verified + active "
+            f"library images may render (got "
+            f"{row.get('asset_type')}/{row.get('rights_state')}/"
+            f"{row.get('lifecycle_state')})."
+        )
+    scope_out = is_usable_for(row, purpose)
+    if not scope_out.get("allowed"):
+        raise ValueError(
+            f"library asset {asset_id} is refused for this upload: "
+            f"{'; '.join(str(r) for r in scope_out.get('reasons', []))} "
+            f"(action: {scope_out.get('required_action')})."
+        )
+
+
 def _write_editorial_data_scene(
     path: Path,
     *,
@@ -1676,6 +1729,15 @@ def _write_editorial_data_scene(
                 420*scale, (200, 210, 205), 70)
         _sprite(image, kit("smoke_03.png"), (panel_w*0.78*scale, panel_h*0.88*scale),
                 360*scale, (200, 210, 205), 60)
+        # 12.0.0 rule: keep only the first authored emphasis marker. Hook copy
+        # comes from graphic_data.hook_text; never invent a fallback headline.
+        _accent_matches = list(re.finditer(r"\*([^*]+)\*", hook))
+        if _accent_matches:
+            _first_word = _accent_matches[0].group(1)
+            hook = re.sub(r"\*", "", hook)
+            hook = hook.replace(_first_word, f"*{_first_word}*", 1)
+        else:
+            hook = re.sub(r"\*", "", hook)
         max_width = (panel_w - 8 * U) * scale
         hook_size = _role_size(panel_h, "boss")
         hook_font = ImageFont.truetype(str(display_font_path), hook_size*scale)
@@ -1683,7 +1745,7 @@ def _write_editorial_data_scene(
         if not bare:
             phrases = _phrase_lines(hook)
             if len(phrases) > 1:
-                hook_lines = phrases[:3]
+                hook_lines = phrases[:1]
                 hook_size = _role_size(panel_h, "boss")
                 hook_font = ImageFont.truetype(str(display_font_path), hook_size*scale)
             else:
@@ -1704,7 +1766,7 @@ def _write_editorial_data_scene(
                         current = candidate
                 if current:
                     hook_lines.append(current)
-                hook_lines = hook_lines[:3]
+                hook_lines = hook_lines[:1]
                 if len(hook_lines) > 1 and len(hook_lines[-1].split()) == 1 and len(hook_lines[-1]) <= 4:
                     hook_lines[-2] = f"{hook_lines[-2]} {hook_lines[-1]}"
                     hook_lines.pop()
@@ -1724,19 +1786,12 @@ def _write_editorial_data_scene(
         image.resize((panel_w, panel_h), Image.Resampling.LANCZOS).save(path)
         return
 
-    frame = [(24,8),(panel_w-42,8),(panel_w-8,42),(panel_w-8,panel_h-28),(panel_w-30,panel_h-8),(26,panel_h-8),(8,panel_h-26),(8,24)]
-    draw.polygon([(x*scale,y*scale) for x,y in frame], fill=ink)
-    draw.line([(x*scale,y*scale) for x,y in frame+[frame[0]]], fill=color("pitch_line", "#658576", 220), width=2*scale)
-    draw.polygon(((34*scale,32*scale),(54*scale,32*scale),(49*scale,52*scale),(34*scale,52*scale)), fill=accent)
-    # Halftone corner and torn-edge accent read like physical editorial marks.
-    for row in range(5):
-        for col in range(7):
-            dot_x, dot_y = panel_w-176+col*15, 92+row*15
-            draw.ellipse((dot_x*scale,dot_y*scale,(dot_x+3)*scale,(dot_y+3)*scale), fill=color("chalk", "#F0EBDD", 55))
-    text(64, 27, "ALLEN KNOWS BALL  /  MATCH NOTES", 16, muted, bold=True)
-    draw.line((34*scale, 68*scale, (panel_w-34)*scale, 68*scale), fill=color("pitch_line", "#658576", 180), width=2*scale)
     heading = str(data.get("headline") or data.get("title") or "BẰNG CHỨNG TRẬN ĐẤU")
-    text(42, 94, heading, 34 if is_long else 30, paper, bold=True, display=True)
+    # 12.0.0 safe area: top 9% (173px at 1080x1920). Keep body headings below
+    # the exclusion zone so nothing crowds the top edge.
+    _safe_top_px = panel_h * 0.09
+    _heading_y = max(94, _safe_top_px + 12)
+    text(42, _heading_y, heading, 34 if is_long else 30, paper, bold=True, display=True)
     if mode == "statline_scorecard":
         metrics = data.get("metrics", [])
         teams = data.get("teams", ["ĐỘI A", "ĐỘI B"])
@@ -1847,8 +1902,12 @@ def _write_editorial_data_scene(
             text(48, (300 if is_long else 360), "Chưa có chuỗi số liệu đã xác minh", 20, muted, bold=True)
     source_name = str(data.get("source") or data.get("source_label") or "Nguồn: cần gắn nguồn đã duyệt")
     source_label = f"{source_name} · {data.get('date')}" if data.get("date") else source_name
-    text(44, panel_h-48, source_label[:90], 13, muted)
-    text(panel_w-155, panel_h-48, f"{scene_number:02d} / DATA", 13, accent, bold=True)
+    # 12.0.0 safe area: bottom 13% (250px at 1080x1920). Keep source above
+    # the exclusion zone; right 7% (76px) for the scene counter.
+    _safe_bottom_px = panel_h * (1.0 - 0.13)
+    _safe_right_px = panel_w * (1.0 - 0.07)
+    text(44, min(panel_h - 48, _safe_bottom_px - 20), source_label[:90], 13, muted)
+    text(min(panel_w - 155, _safe_right_px - 40), min(panel_h - 48, _safe_bottom_px - 20), f"{scene_number:02d} / DATA", 13, accent, bold=True)
     image.resize((panel_w, panel_h), Image.Resampling.LANCZOS).save(path)
 
 
@@ -1980,6 +2039,14 @@ def _render(
         if content_type == "long"
         else "allen-knows-ball.shortform-analyst"
     )
+    # C1 rights gate: fail fast before resolving the template so an
+    # ineligible media slot is refused even if the draft/template bundle is
+    # incomplete (e.g. missing catalog.json in a temp root).
+    legacy_purpose = _render_purpose(run, draft)
+    for _seg in draft.get("segments", []):
+        _asset_id = _seg.get("media_asset_id")
+        if _asset_id:
+            _gate_media_for_use(root, _asset_id, legacy_purpose)
     package = resolve_template(
         root,
         template_id,
@@ -2029,7 +2096,12 @@ def _render(
     font = package.root / "resources/fonts/BeVietnamPro-Bold.ttf"
     if not font.is_file():
         raise RuntimeError("The template's Vietnamese font file is missing.")
-    latin_font = package.root / "resources/fonts/BarlowCondensed-Bold.ttf"
+    # 12.0.0 channel identity: display and numerals are set in Tektur
+    # (design-tokens typography.display/numeral). Be Vietnam Pro stays the
+    # body font. Fall back to Barlow Condensed only if the pack ships without
+    # Tektur so a missing font never aborts a render.
+    tektur_font = package.root / "resources/fonts/Tektur-Medium.ttf"
+    latin_font = tektur_font if tektur_font.is_file() else package.root / "resources/fonts/BarlowCondensed-Bold.ttf"
     if not latin_font.is_file():
         raise RuntimeError("The template's Latin display font file is missing.")
     font_path = str(font).replace("\\", "/").replace(":", r"\:").replace("'", r"\'")
@@ -2052,6 +2124,7 @@ def _render(
         phase_ranges = [(float(graph["timing"]["start"]), float(graph["timing"]["end"]))
                         for graph in sg_graphs]
     sg_purpose = _render_purpose(run, draft) if sg_graphs is not None else None
+    legacy_purpose = _render_purpose(run, draft)
     sg_media_records: dict[int, dict[str, Any]] = {}
     sg_credit_texts: dict[int, str | None] = {}
     fallback_diagrams = _diagram_specs()
@@ -2124,6 +2197,10 @@ def _render(
                 sg_credit_texts[index] = gated_credit
         elif not preview and segment.get("media_asset_id"):
             media_record = _library_image_record(root, str(segment["media_asset_id"]))
+            # C1 rights gate: the asset must be eligible for this exact upload
+            # use, not merely rights-verified. Refuse (raise) instead of
+            # silently painting an ineligible asset.
+            _gate_media_for_use(root, str(segment["media_asset_id"]), legacy_purpose)
             if mode in {"player_card", "player_poster", "player_poster_side", "player_poster_top",
                             "potm_card", "welcome_card", "score_card", "quote_card"}:
                 graphic_data = {
@@ -2164,23 +2241,38 @@ def _render(
             )
             scene_text_paths[index] = returned_text
         elif mode == "tactical_explainer":
-            starter_card = graphic_data.get("tactical_card", "") if isinstance(graphic_data, dict) else ""
-            try:
-                if not is_long:
-                    raise ValueError("starter plates are long-form only")
-                _write_starter_scene(scene_path, str(starter_card))
-            except (ValueError, OSError, KeyError):
-                _write_tactical_scene(
+            if is_long:
+                starter_card = graphic_data.get("tactical_card", "") if isinstance(graphic_data, dict) else ""
+                try:
+                    _write_starter_scene(scene_path, str(starter_card))
+                except (ValueError, OSError, KeyError):
+                    _write_tactical_scene(
+                        scene_path,
+                        width=width,
+                        height=height,
+                        font_path=font,
+                        display_font_path=latin_font,
+                        palette=scene_palette,
+                        spec=spec,
+                        is_long=is_long,
+                        scene_number=index+1,
+                        scene_count=len(phase_ranges),
+                    )
+            else:
+                # Short-form: composite the owner pack background declared by
+                # graphic-templates.json (pack_bg: short-tactical_explainer.png)
+                # instead of the procedural pitch plate, restoring the 12.0.0
+                # Cyber Pitch identity. Headline (if supplied) is drawn into the
+                # locked box; the renderer never invents layout.
+                _write_editorial_data_scene(
                     scene_path,
-                    width=width,
-                    height=height,
                     font_path=font,
                     display_font_path=latin_font,
+                    mode="tactical_explainer",
+                    data=graphic_data,
                     palette=scene_palette,
-                    spec=spec,
                     is_long=is_long,
                     scene_number=index+1,
-                    scene_count=len(phase_ranges),
                 )
         elif mode == "media_b_roll" and media_record:
             media_metadata = media_record["metadata"]
@@ -2376,6 +2468,12 @@ def _render(
     chains: list[str] = []
     current = "0:v"
     panel_w, panel_h = (1540, 840) if is_long else (1080, 1920)
+    # 12.0.0 safe area: top 9 / bottom 13 / left 7 / right 7 percent.
+    # Overlays and on-screen text must stay inside these bounds.
+    safe_top = panel_h * 0.09
+    safe_bottom = panel_h * (1.0 - 0.13)
+    safe_left = panel_w * 0.07
+    safe_right = panel_w * (1.0 - 0.07)
     full_segments = draft.get("segments", []) if isinstance(draft.get("segments"), list) else []
     chapter_pool = draft.get("chapter_events", []) if isinstance(draft.get("chapter_events"), list) else []
     fades_used = 0
@@ -2393,7 +2491,10 @@ def _render(
         # slide-in; clean_cut suppresses the slide (hard cut).
         sg_transition = sg_graphs[index].get("transition") if sg_graphs is not None else None
         sg_cut = (isinstance(sg_transition, dict) and sg_transition.get("in") == "clean_cut")
-        enter_slide = "0" if sg_cut else f"{panel_w}*max(0,1-(t-{start:.3f})/0.3)"
+        # 12.0.0: at most two signature transitions per video. Slide-in only
+        # on the first two beats; every later beat hard-cuts in.
+        _use_slide = (not sg_cut) and (index < 2)
+        enter_slide = "0" if (sg_cut or not _use_slide) else f"{panel_w}*max(0,1-(t-{start:.3f})/0.3)"
         beat_events: list[Any] = list(chapter_pool)
         if not preview and index < len(full_segments) and isinstance(full_segments[index], dict):
             beat_events += full_segments[index].get("timeline_events", [])
@@ -2449,18 +2550,12 @@ def _render(
             f"[{current}][{scene_source}]overlay=x='{scene_x}+{enter_slide}':y='{scene_y_expr}':eval=frame:eof_action=pass:format=auto:"
             f"enable='{scene_enable}'[{scene_label}]"
         )
-        if not sg_cut:
+        if not sg_cut and _use_slide:
             slide_used += 1
-        # Glitch cut: 3 thin RGB-split strips flash at each scene entrance.
-        for glitch_no, (tint, height_frac) in enumerate(
-                (("0xFF2FB3", 0.012), ("0x00E5FF", 0.009), ("0xFFFFFF", 0.006))):
-            gy = scene_y + panel_h * (0.30 + 0.17 * ((index + glitch_no) % 3))
-            gh = max(2, round(panel_h * height_frac))
-            filters.append(
-                f"drawbox=x={scene_x}:y={gy}:w={panel_w}:h={gh}:"
-                f"color={tint}@0.55:t=fill:"
-                f"enable='between(t,{start:.3f},{min(end, start + 0.15):.3f})'"
-            )
+        # 12.0.0 prohibits glitch / RGB-split / flashing effects. Beats enter
+        # with the locked 0.3s slide-in or a clean cut only; no per-entrance
+        # flash strips are emitted, so signature transitions stay within the
+        # template limit and no prohibited effect reaches the output.
         current = scene_label
         if index in text_input_index:
             # Type entrances after the plate lands: same drift as its
@@ -2611,11 +2706,11 @@ def _render(
     checks = [
         {"criterion": "Video file created and playable", "status": "PASS", "detail": "FFmpeg produced an H.264 MP4 and ffprobe confirms its stream metadata."},
         {"criterion": "Target aspect ratio", "status": "PASS", "detail": f"{width}×{height} ({'16:9' if is_long else '9:16'})."},
-        {"criterion": "Vietnamese font and diacritics", "status": "PASS", "detail": "Barlow Condensed provides Vietnamese headline glyphs; Be Vietnam Pro remains available for dense supporting copy."},
-        {"criterion": "Tactical pitch orientation and authored vectors", "status": "NOT USED" if not any(mode == "tactical_explainer" for mode in selected_modes) else "PASS", "detail": "No tactical pitch scene is part of this short-form script." if not any(mode == "tactical_explainer" for mode in selected_modes) else f"The {('landscape' if is_long else 'portrait')} pitch has correct halfway-line orientation, full markings, and color-coded pass/run/press vectors."},
-        {"criterion": "Template art direction", "status": "PASS", "detail": "Touchline Editorial pairs expressive Vietnamese display headlines, condensed chapter numerals, tactile pitch marks, contextual colorways, and distinct portrait/landscape graphic plates."},
-        {"criterion": "Opening / body / ending rhythm", "status": "PASS", "detail": f"The {('longform' if is_long else 'shortform')} template pack opening scene plays first; the matching authored ending card closes the video. No renderer-authored text is layered over either card."},
-        {"criterion": "Visible motion and beat changes", "status": "PASS", "detail": f"Slide-in executes on {slide_used} scene plates; authored card typography remains inside its designed canvas; tactical diagrams add one authored pass movement with ball and trail."},
+        {"criterion": "Vietnamese font and diacritics", "status": "NEEDS_REVIEW", "detail": "Barlow Condensed provides Vietnamese headline glyphs; Be Vietnam Pro remains available for dense supporting copy. Glyph rendering not inspected on actual frames — owner eyeball required."},
+        {"criterion": "Tactical pitch orientation and authored vectors", "status": "NOT USED" if not any(mode == "tactical_explainer" for mode in selected_modes) else "NEEDS_REVIEW", "detail": "No tactical pitch scene is part of this short-form script." if not any(mode == "tactical_explainer" for mode in selected_modes) else f"The {('landscape' if is_long else 'portrait')} pitch has authored markings and vectors; vector/marking clarity not inspected on actual frames — owner eyeball required."},
+        {"criterion": "Template art direction", "status": "NEEDS_REVIEW", "detail": "Touchline Editorial pairs expressive Vietnamese display headlines, condensed chapter numerals, tactile pitch marks, contextual colorways, and distinct portrait/landscape graphic plates. Art direction not inspected on actual frames — owner eyeball required."},
+        {"criterion": "Opening / body / ending rhythm", "status": "NEEDS_REVIEW", "detail": "0-1.2s channel ident sting; chapter-led visual beats open on the match hook; takeaway callback leads into the branded end-card with wordmark, tagline, and template version. Rhythm not inspected on actual frames — owner eyeball required."},
+        {"criterion": "Visible motion and beat changes", "status": "NEEDS_REVIEW", "detail": f"Slide-in executes on {slide_used} scene plates (at most two signature transitions); alternating Ken Burns push-in/pull-out drift runs underneath; tactical diagrams add one authored pass movement with ball and trail. Motion appearance not inspected on actual frames — owner eyeball required."},
         {"criterion": "Narration subtitles", "status": "NOT USED", "detail": "Subtitles are intentionally omitted; the narration carries the explanation."},
         {"criterion": "Personal voice and speech pacing", "status": "PENDING OWNER AUDIT" if not preview and not visual_only else "NOT ASSESSED", "detail": "TTS preview is muxed as one continuous narration track; naturalness and voice similarity await owner review." if not preview and not visual_only else ("Voice evaluation is intentionally excluded from this benchmark." if visual_only else "This is a silent visual preview.")},
         {"criterion": "Asset Library media", "status": "PASS" if selected_media else ("NOT ASSESSED" if preview else "FAIL"), "detail": f"{len(selected_media)} verified, attributed library images are used as contextual B-roll; they are not footage from the current Premier League matches." if selected_media else ("Media placement is exercised in full runs, not in silent template previews." if preview else "No verified library media is attached to this script.")},
