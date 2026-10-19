@@ -1,5 +1,33 @@
 # Engine state and next-session handoff
 
+## Coordinator update — 2026-10-19
+
+### Verified repository state
+
+- Branch: `main`.
+- Code integration commit: `ae6932b` (`merge: integrate latest main coordinator and rights work`), which merges the remote coordinator/R2 rights work from `origin/main` commit `50cf709` with local commit `1054aad` (`feat: align engine with hermes production workflow`).
+- README now separates implemented local production workflow from the Hermes target architecture and records the last known smoke-test failure.
+- Docker artifacts (`compose.yaml`, `docker/worker.Dockerfile`, `.dockerignore`) are removed. The persisted local queue worker remains runnable as `python -m apps.worker.main`.
+- `docs/hermes-engine-integration.md` records the target boundary: Hermes discovers, evaluates, researches, scripts, submits, monitors, and reports; ACE validates the handoff, checks media, applies deterministic template/Scene Graph composition, voices/renders, and returns QA. The owner reviews and publishes.
+- The authenticated production API and versioned Hermes payload schema are not implemented.
+- Latest prior focused test record (2026-10-18, before this merge): **103 passed, 1 failed**, with identical frames at 3s and 8s in the same beat. No tests were run during the 2026-10-19 merge/documentation work; this motion failure remains unverified and open.
+- No final video was visually reviewed in this workstream. Do not claim aesthetic or motion QA.
+
+### Changes integrated in this workstream
+
+- Added short-form C-11 opening hook card using `graphic_data.hook_text`; hook text is no longer fabricated from narration.
+- Removed renderer-authored free-standing copy and its overlay paint path. Text outside authored template slots is suppressed; QA reports declared unbound text as `FAIL`.
+- Kept the remote branch's render-time rights gate, safe-area adjustments, and conservative visual QA statuses while resolving the renderer conflict. Do not reintroduce free-standing caption/overlay rendering without a frozen template-slot contract.
+- Integrated the remote coordinator files and R2 rights-gate work from `50cf709`.
+
+### Next concrete work
+
+1. Rerun the focused Scene Graph/render/rights tests on the merged `main`; first resolve the known same-beat motion assertion without weakening the test.
+2. Freeze the Hermes-to-Engine JSON Schema and authenticated submit/status API against `docs/hermes-engine-integration.md`.
+3. Exercise one fixture job through the durable local queue, asset gates, render, and truthful QA. Keep owner review/publishing manual.
+
+This update describes code at `ae6932b`; it is committed as a separate handoff update. Earlier snapshots below are historical and should not override this section.
+
 Last verified: **2026-10-18**. This is a compact handoff, not a full history.
 Re-check Git and worktrees before acting because another OpenCode session may
 have progressed since this snapshot.
