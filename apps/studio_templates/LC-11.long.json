@@ -1,0 +1,214 @@
+{
+ "schemaVersion": 4,
+ "width": 1920,
+ "height": 1080,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-1",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1920,
+     "height": 1080,
+     "src": "/template-foundation/resources/pack/long-player_poster_side.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "deco-240",
+     "type": "figure",
+     "subType": "circle",
+     "x": 200,
+     "y": 290,
+     "width": 300,
+     "height": 300,
+     "fill": "#0D1424",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "stroke": "#00E5FF",
+     "strokeWidth": 5
+    },
+    {
+     "id": "val-241",
+     "type": "text",
+     "x": 880,
+     "y": 280,
+     "width": 880,
+     "height": 110,
+     "text": "NGUYỄN TIẾN LINH",
+     "fontSize": 84,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "name"
+     }
+    },
+    {
+     "id": "val-242",
+     "type": "text",
+     "x": 880,
+     "y": 410,
+     "width": 880,
+     "height": 70,
+     "text": "Tiền đạo • Đội tuyển",
+     "fontSize": 44,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8296BE",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "role"
+     }
+    },
+    {
+     "id": "deco-243",
+     "type": "figure",
+     "subType": "rect",
+     "x": 880,
+     "y": 500,
+     "width": 220,
+     "height": 10,
+     "fill": "#FF3D81",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-244",
+     "type": "text",
+     "x": 880,
+     "y": 580,
+     "width": 440,
+     "height": 60,
+     "text": "Bàn thắng",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8296BE",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "l-0"
+     }
+    },
+    {
+     "id": "val-245",
+     "type": "text",
+     "x": 1380,
+     "y": 570,
+     "width": 380,
+     "height": 80,
+     "text": "19",
+     "fontSize": 64,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "v-0"
+     }
+    },
+    {
+     "id": "val-246",
+     "type": "text",
+     "x": 880,
+     "y": 700,
+     "width": 440,
+     "height": 60,
+     "text": "Kiến tạo",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8296BE",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "l-1"
+     }
+    },
+    {
+     "id": "val-247",
+     "type": "text",
+     "x": 1380,
+     "y": 690,
+     "width": 380,
+     "height": 80,
+     "text": "7",
+     "fontSize": 64,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "v-1"
+     }
+    },
+    {
+     "id": "val-248",
+     "type": "text",
+     "x": 134,
+     "y": 990,
+     "width": 1652,
+     "height": 40,
+     "text": "NGUỒN + NGÀY CẬP NHẬT",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

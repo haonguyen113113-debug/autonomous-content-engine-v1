@@ -1,0 +1,139 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-45",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1080,
+     "height": 1920,
+     "src": "/template-foundation/resources/pack/short-hook_card.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "deco-4",
+     "type": "figure",
+     "subType": "rect",
+     "x": 76,
+     "y": 1300,
+     "width": 14,
+     "height": 260,
+     "fill": "#FF3D81",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-5",
+     "type": "text",
+     "x": 130,
+     "y": 1340,
+     "width": 820,
+     "height": 120,
+     "text": "CHƯƠNG 2",
+     "fontSize": 84,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "chip-main"
+     }
+    },
+    {
+     "id": "val-6",
+     "type": "text",
+     "x": 130,
+     "y": 1460,
+     "width": 820,
+     "height": 60,
+     "text": "Diễn biến chính",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8296BE",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "chip-sub"
+     }
+    },
+    {
+     "id": "deco-7",
+     "type": "figure",
+     "subType": "rect",
+     "x": 76,
+     "y": 1220,
+     "width": 420,
+     "height": 8,
+     "fill": "#00E5FF",
+     "opacity": 0.8,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "scrim-credit",
+     "type": "figure",
+     "subType": "rect",
+     "x": 59,
+     "y": 1808,
+     "width": 962,
+     "height": 64,
+     "fill": "#060913",
+     "opacity": 0.45,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-8",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "Nguồn + ngày",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

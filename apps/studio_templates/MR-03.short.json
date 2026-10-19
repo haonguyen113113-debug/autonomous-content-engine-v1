@@ -1,0 +1,273 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-1",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1080,
+     "height": 1920,
+     "src": "/template-foundation/resources/pack/short-score_card.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "scrim-context",
+     "type": "figure",
+     "subType": "rect",
+     "x": 110,
+     "y": 165,
+     "width": 860,
+     "height": 80,
+     "fill": "#060913",
+     "opacity": 0.45,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-context",
+     "type": "text",
+     "x": 130,
+     "y": 175,
+     "width": 820,
+     "height": 60,
+     "text": "Hết hiệp 1 • Sân Hàng Đẫy",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fill": "#FFB03A",
+     "align": "center",
+     "fontWeight": "normal",
+     "custom": {
+      "slot": "context"
+     },
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-home",
+     "type": "text",
+     "x": 140,
+     "y": 355,
+     "width": 800,
+     "height": 110,
+     "text": "HÀ NỘI",
+     "fontSize": 100,
+     "fontFamily": "Be Vietnam Pro",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "fontWeight": "bold",
+     "custom": {
+      "slot": "home"
+     },
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "ring-crest-winner",
+     "type": "figure",
+     "subType": "circle",
+     "x": 256,
+     "y": 605,
+     "width": 190,
+     "height": 190,
+     "fill": "#060913",
+     "opacity": 0.35,
+     "stroke": "#F2F6FF",
+     "strokeWidth": 6,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-crest-winner",
+     "type": "text",
+     "x": 256,
+     "y": 653,
+     "width": 190,
+     "height": 95,
+     "text": "HN",
+     "fontSize": 79,
+     "fontFamily": "Tektur",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "fontWeight": "bold",
+     "custom": {
+      "slot": "crest-winner"
+     },
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-score",
+     "type": "text",
+     "x": 534,
+     "y": 578,
+     "width": 250,
+     "height": 360,
+     "text": "1",
+     "fontSize": 380,
+     "fontFamily": "Tektur",
+     "fill": "#F2F6FF",
+     "align": "right",
+     "fontWeight": "bold",
+     "custom": {
+      "slot": "score"
+     },
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "deco-bar1",
+     "type": "figure",
+     "subType": "rect",
+     "x": 435,
+     "y": 954,
+     "width": 105,
+     "height": 12,
+     "fill": "#00E5FF",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "deco-bar2",
+     "type": "figure",
+     "subType": "rect",
+     "x": 540,
+     "y": 954,
+     "width": 105,
+     "height": 12,
+     "fill": "#FF3D81",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-score-away",
+     "type": "text",
+     "x": 534,
+     "y": 1129,
+     "width": 250,
+     "height": 200,
+     "text": "0",
+     "fontSize": 260,
+     "fontFamily": "Tektur",
+     "fill": "#8296BE",
+     "align": "right",
+     "fontWeight": "bold",
+     "custom": {
+      "slot": "score-away"
+     },
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "ring-crest-loser",
+     "type": "figure",
+     "subType": "circle",
+     "x": 256,
+     "y": 1125,
+     "width": 190,
+     "height": 190,
+     "fill": "#060913",
+     "opacity": 0.35,
+     "stroke": "#8296BE",
+     "strokeWidth": 6,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-crest-loser",
+     "type": "text",
+     "x": 256,
+     "y": 1173,
+     "width": 190,
+     "height": 95,
+     "text": "NĐ",
+     "fontSize": 79,
+     "fontFamily": "Tektur",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "fontWeight": "bold",
+     "custom": {
+      "slot": "crest-loser"
+     },
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-away",
+     "type": "text",
+     "x": 140,
+     "y": 1470,
+     "width": 800,
+     "height": 70,
+     "text": "NAM ĐỊNH",
+     "fontSize": 72,
+     "fontFamily": "Be Vietnam Pro",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "fontWeight": "bold",
+     "custom": {
+      "slot": "away"
+     },
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-credit",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "VPF • 12/10/2026",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fill": "#FFB03A",
+     "align": "center",
+     "fontWeight": "normal",
+     "custom": {
+      "slot": "credit"
+     },
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

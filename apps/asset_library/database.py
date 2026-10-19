@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import sqlite3
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def utc_now() -> str:
@@ -74,6 +74,12 @@ def _migration_3(conn: sqlite3.Connection) -> None:
     ensure_resolution_schema(conn)
 
 
+def _migration_4(conn: sqlite3.Connection) -> None:
+    from .rights_scope import ensure_rights_scope_schema
+
+    ensure_rights_scope_schema(conn)
+
+
 def initialize_database(conn: sqlite3.Connection) -> None:
     conn.row_factory = sqlite3.Row
     _ensure_migration_table(conn)
@@ -83,6 +89,7 @@ def initialize_database(conn: sqlite3.Connection) -> None:
         1: _migration_1,
         2: _migration_2,
         3: _migration_3,
+        4: _migration_4,
     }
 
     for version in range(current + 1, SCHEMA_VERSION + 1):

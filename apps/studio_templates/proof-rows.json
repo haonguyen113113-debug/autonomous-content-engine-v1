@@ -1,0 +1,1604 @@
+[
+ {
+  "name": "C-03",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48932,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-04",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 51823,
+  "badTop": [
+   "#006D84",
+   "#016B83",
+   "#5EFEFC",
+   "#5BFEFB",
+   "#5DFDFB"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-06",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 15585,
+  "badTop": [
+   "#6F3618",
+   "#734128",
+   "#6D3419",
+   "#7C4530",
+   "#6D3D27"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-07",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 244034,
+  "badTop": [
+   "#024480",
+   "#02427F",
+   "#01538F",
+   "#025490",
+   "#0F3381"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-09",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 147684,
+  "badTop": [
+   "#270F87",
+   "#230F82",
+   "#431FBF",
+   "#260E86",
+   "#241083"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-10",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 453551,
+  "badTop": [
+   "#18287F",
+   "#1C308F",
+   "#162E88",
+   "#172C87",
+   "#162B84"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "U-02",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48440,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "U-03",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48453,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "U-05",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48422,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-01",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48684,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-02",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 103704,
+  "badTop": [
+   "#3E279B",
+   "#3B279A",
+   "#3E279C",
+   "#33208B",
+   "#3D269A"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-04",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 103689,
+  "badTop": [
+   "#3E279B",
+   "#3B279A",
+   "#3E279C",
+   "#33208B",
+   "#3D269A"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-06",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 320497,
+  "badTop": [
+   "#171B7F",
+   "#181C80",
+   "#191D81",
+   "#1A1D84",
+   "#191C83"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-10",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48932,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-12",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 147768,
+  "badTop": [
+   "#270F87",
+   "#230F82",
+   "#431FBF",
+   "#260E86",
+   "#241083"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-01",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48917,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-02",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48716,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-08",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 15584,
+  "badTop": [
+   "#6F3618",
+   "#734128",
+   "#6D3419",
+   "#7C4530",
+   "#6D3D27"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-13",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 117218,
+  "badTop": [
+   "#2B2C88",
+   "#282D88",
+   "#2A2B87",
+   "#A4067D",
+   "#2C2D89"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-14",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 247502,
+  "badTop": [
+   "#014582",
+   "#024480",
+   "#024683",
+   "#02427F",
+   "#01538F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-16",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48727,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-18",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48953,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-19",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48947,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-20",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 147684,
+  "badTop": [
+   "#270F87",
+   "#230F82",
+   "#431FBF",
+   "#260E86",
+   "#241083"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-03",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 103759,
+  "badTop": [
+   "#3E279B",
+   "#3B279A",
+   "#3E279C",
+   "#33208B",
+   "#3D269A"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-05",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 318046,
+  "badTop": [
+   "#171B7F",
+   "#181C80",
+   "#191D81",
+   "#962752",
+   "#1A1D84"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-07",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 15541,
+  "badTop": [
+   "#6F3618",
+   "#734128",
+   "#6D3419",
+   "#7C4530",
+   "#6D3D27"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-08",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 51823,
+  "badTop": [
+   "#006D84",
+   "#016B83",
+   "#5EFEFC",
+   "#5BFEFB",
+   "#5DFDFB"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-09",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 15541,
+  "badTop": [
+   "#6F3618",
+   "#734128",
+   "#6D3419",
+   "#7C4530",
+   "#6D3D27"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "MR-11",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 372824,
+  "badTop": [
+   "#2C1D9E",
+   "#2F1C9A",
+   "#2B1C9D",
+   "#1C198C",
+   "#301D9B"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-03",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 51823,
+  "badTop": [
+   "#006D84",
+   "#016B83",
+   "#5EFEFC",
+   "#5BFEFB",
+   "#5DFDFB"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-04",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 317907,
+  "badTop": [
+   "#171B7F",
+   "#181C80",
+   "#191D81",
+   "#1A1D84",
+   "#962752"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-05",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 319729,
+  "badTop": [
+   "#171B7F",
+   "#181C80",
+   "#1A1D84",
+   "#191D81",
+   "#191C83"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-06",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 15584,
+  "badTop": [
+   "#6F3618",
+   "#734128",
+   "#6D3419",
+   "#7C4530",
+   "#6D3D27"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-07",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 247339,
+  "badTop": [
+   "#014582",
+   "#024480",
+   "#024683",
+   "#02427F",
+   "#01538F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-09",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48941,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-10",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 247503,
+  "badTop": [
+   "#014582",
+   "#024480",
+   "#024683",
+   "#02427F",
+   "#01538F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-11",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 320634,
+  "badTop": [
+   "#171B7F",
+   "#181C80",
+   "#191D81",
+   "#1A1D84",
+   "#191C83"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-15",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 15541,
+  "badTop": [
+   "#6F3618",
+   "#734128",
+   "#6D3419",
+   "#7C4530",
+   "#6D3D27"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "BP-17",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 320285,
+  "badTop": [
+   "#171B7F",
+   "#181C80",
+   "#191D81",
+   "#1A1D84",
+   "#181C7F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-01",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 33217,
+  "badTop": [
+   "#6B1345",
+   "#6A1445",
+   "#6E1447",
+   "#6B1144",
+   "#6C1446"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-02",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48930,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-05",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 147684,
+  "badTop": [
+   "#270F87",
+   "#230F82",
+   "#431FBF",
+   "#260E86",
+   "#241083"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "C-08",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48709,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "U-01",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48462,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "U-04",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48417,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "U-06",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 48390,
+  "badTop": [
+   "#690A32",
+   "#690D34",
+   "#6A0932",
+   "#6A0B33",
+   "#6D0C35"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "U-07",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 392347,
+  "badTop": [
+   "#18287F",
+   "#1C308F",
+   "#162E88",
+   "#162B84",
+   "#172C87"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "U-08",
+  "aspect": "short",
+  "size": [
+   1080,
+   1920
+  ],
+  "bad": 147768,
+  "badTop": [
+   "#270F87",
+   "#230F82",
+   "#431FBF",
+   "#260E86",
+   "#241083"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-01",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 106521,
+  "badTop": [
+   "#038395",
+   "#014E86",
+   "#014A7F",
+   "#004D85",
+   "#024B80"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-02",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 33735,
+  "badTop": [
+   "#5D3282",
+   "#4E2F7F",
+   "#5E3383",
+   "#542F7F",
+   "#5C3181"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-03",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 2012,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#795A2E"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-05",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1953,
+  "badTop": [
+   "#684F2C",
+   "#86622F",
+   "#085E81",
+   "#075D80",
+   "#795A2E"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-06",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 2026,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#795A2E",
+   "#076082"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-11",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1706,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#86622F",
+   "#076082"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-12",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 5974,
+  "badTop": [
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#9A7132",
+   "#086183"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-14",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 4387,
+  "badTop": [
+   "#085E81",
+   "#075D80",
+   "#026082",
+   "#076082",
+   "#036686"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-16",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 18838,
+  "badTop": [
+   "#6A4242",
+   "#834F42",
+   "#6E4543",
+   "#714542",
+   "#8D5443"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-18",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 19335,
+  "badTop": [
+   "#431F7F",
+   "#462083",
+   "#94FFFF",
+   "#95FFFF",
+   "#512288"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-19",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 106501,
+  "badTop": [
+   "#038395",
+   "#014E86",
+   "#014A7F",
+   "#004D85",
+   "#024B80"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-04",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1795,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#86622F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-07",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1955,
+  "badTop": [
+   "#684F2C",
+   "#86622F",
+   "#085E81",
+   "#795A2E",
+   "#075D80"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-08",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1988,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#795A2E",
+   "#075D80",
+   "#86622F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-09",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1822,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#795A2E"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-10",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1770,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#795A2E"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-13",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1736,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#86622F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-15",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 4389,
+  "badTop": [
+   "#085E81",
+   "#075D80",
+   "#026082",
+   "#076082",
+   "#036686"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-17",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1960,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#86622F",
+   "#075D80",
+   "#076082"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-20",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1704,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#086183"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-21",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1730,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#86622F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-22",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1881,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#86622F",
+   "#075D80",
+   "#076082"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-23",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1778,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#86622F"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "TA-24",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 1748,
+  "badTop": [
+   "#684F2C",
+   "#085E81",
+   "#075D80",
+   "#076082",
+   "#795A2E"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-01",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 184872,
+  "badTop": [
+   "#038395",
+   "#014E86",
+   "#004D85",
+   "#014A7F",
+   "#024B80"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-02",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 184861,
+  "badTop": [
+   "#038395",
+   "#014E86",
+   "#004D85",
+   "#014A7F",
+   "#024B80"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-03",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 35590,
+  "badTop": [
+   "#005F7F",
+   "#006080",
+   "#016080",
+   "#006384",
+   "#006885"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-04",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 146778,
+  "badTop": [
+   "#084A87",
+   "#06447F",
+   "#064884",
+   "#074580",
+   "#064781"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-05",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 25765,
+  "badTop": [
+   "#6A4242",
+   "#794A42",
+   "#734641",
+   "#7B4A43",
+   "#704441"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-06",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 39796,
+  "badTop": [
+   "#016780",
+   "#00667F",
+   "#00778F",
+   "#00768E",
+   "#006A84"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-07",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 72393,
+  "badTop": [
+   "#832756",
+   "#832757",
+   "#842857",
+   "#822655",
+   "#832755"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-08",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 34573,
+  "badTop": [
+   "#005F7F",
+   "#006080",
+   "#016080",
+   "#006384",
+   "#006885"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-09",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 38553,
+  "badTop": [
+   "#962752",
+   "#6E1F41",
+   "#00778F",
+   "#016780",
+   "#00768E"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-10",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 128240,
+  "badTop": [
+   "#038395",
+   "#084A87",
+   "#06447F",
+   "#094B88",
+   "#074986"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-11",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 62308,
+  "badTop": [
+   "#0A4C80",
+   "#0D5084",
+   "#094B7F",
+   "#0B5185",
+   "#0B5184"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-12",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 184863,
+  "badTop": [
+   "#038395",
+   "#014E86",
+   "#004D85",
+   "#014A7F",
+   "#024B80"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-13",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 39708,
+  "badTop": [
+   "#016780",
+   "#00667F",
+   "#00778F",
+   "#00768E",
+   "#006A84"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-14",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 16739,
+  "badTop": [
+   "#0D6088",
+   "#0E6189",
+   "#0A5981",
+   "#0A5C83",
+   "#095880"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-15",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 126349,
+  "badTop": [
+   "#005D7F",
+   "#015E80",
+   "#025F81",
+   "#026181",
+   "#016386"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ },
+ {
+  "name": "LC-16",
+  "aspect": "long",
+  "size": [
+   1920,
+   1080
+  ],
+  "bad": 40273,
+  "badTop": [
+   "#016780",
+   "#00667F",
+   "#00778F",
+   "#00768E",
+   "#006A84"
+  ],
+  "visual": "todo",
+  "note": "PIL proof of Polotno starter; static gates pass; needs owner eyeball."
+ }
+]

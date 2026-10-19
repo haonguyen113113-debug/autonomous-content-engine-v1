@@ -1,0 +1,176 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-60",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1080,
+     "height": 1920,
+     "src": "/template-foundation/resources/pack/short-player_poster_side.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-8",
+     "type": "text",
+     "x": 60,
+     "y": 740,
+     "width": 380,
+     "height": 100,
+     "text": "KHUNG ẢNH\n(Thay theo video)",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#8296BE",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "profile-photo-note"
+     },
+     "showInExport": false
+    },
+    {
+     "id": "val-10",
+     "type": "text",
+     "x": 640,
+     "y": 660,
+     "width": 340,
+     "height": 180,
+     "text": "TÊN",
+     "fontSize": 64,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "profile-name"
+     }
+    },
+    {
+     "id": "val-12",
+     "type": "text",
+     "x": 640,
+     "y": 870,
+     "width": 340,
+     "height": 60,
+     "text": "#SỐ • VAI TRÒ",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "profile-tag"
+     }
+    },
+    {
+     "id": "scrim-profile-meta",
+     "type": "figure",
+     "subType": "rect",
+     "x": 624,
+     "y": 938,
+     "width": 372,
+     "height": 84,
+     "fill": "#060913",
+     "opacity": 0.45,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-13",
+     "type": "text",
+     "x": 640,
+     "y": 950,
+     "width": 340,
+     "height": 60,
+     "text": "THÔNG TIN",
+     "fontSize": 40,
+     "fontFamily": "Tektur",
+     "fontWeight": "normal",
+     "fill": "#8296BE",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "profile-meta"
+     }
+    },
+    {
+     "id": "val-14",
+     "type": "text",
+     "x": 640,
+     "y": 1030,
+     "width": 340,
+     "height": 200,
+     "text": "19",
+     "fontSize": 160,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "profile-stat"
+     }
+    },
+    {
+     "id": "val-15",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "Nguồn + ngày",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

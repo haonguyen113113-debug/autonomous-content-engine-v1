@@ -1,0 +1,65 @@
+{
+ "schemaVersion": 4,
+ "width": 1920,
+ "height": 1080,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-1",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1920,
+     "height": 1080,
+     "src": "/template-foundation/resources/pack/long-ending.png",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "deco-268",
+     "type": "figure",
+     "subType": "rect",
+     "x": 760,
+     "y": 620,
+     "width": 400,
+     "height": 10,
+     "fill": "#00E5FF",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-269",
+     "type": "text",
+     "x": 560,
+     "y": 700,
+     "width": 800,
+     "height": 110,
+     "text": "ALLEN KNOWS BALL",
+     "fontSize": 72,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "mark"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

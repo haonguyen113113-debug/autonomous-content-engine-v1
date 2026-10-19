@@ -4,13 +4,15 @@ This layer owns stable channel personality and authored presentation. It is sepa
 
 ## Current focus: Soccer / Vietnamese
 
-The first channel is **Allen Knows Ball**, `vi-VN`, category `soccer`, market `VN`. The name is idiomatic as a casual sports-slang brand; keep the spelling and title case. The Vietnamese tagline is **“Bóng đá, nhìn thêm một nhịp.”** The initial editorial scope follows the Soccer proving domain: Premier League, UEFA Champions League, LPBank V.League 1, and Vietnam men's national team.
+The first channel is **Allen Knows Ball**, `vi-VN`, category `soccer`, market `VN`. The name is idiomatic as a casual sports-slang brand; keep the spelling and title case. The Vietnamese tagline is TBD (no placeholder text may ship in any package, UI, or doc). The initial editorial scope follows the Soccer proving domain: Premier League, UEFA Champions League, LPBank V.League 1, and Vietnam men's national team.
 
 The `allen-knows-ball.shortform-analyst` package has three fixed story forms under one identity: a post-match moment read, a tactical explainer, and a player/role analysis. Its first output shape is portrait short-form video. Platform accounts and publishing integration are intentionally unspecified.
 
 ## Package status
 
 Short and long-form versions `0.1.0` through `0.4.0` remain available as **draft for owner audit**. Version `0.5.0` builds on the four colorways and evidence-specific graphics with expressive Vietnamese headline hierarchy, condensed display numerals, angular match annotations, tactile texture, and brief kinetic reveals. Numeric layouts use only reviewed evidence and retain visible source attribution. Version `0.5.0` is a draft preview, not production-resolvable. Released package directories are immutable; edits create a new version.
+
+Version `10.0.0` ("Sân Trắng") rebuilds the full pack — 12 Kit plates + hook + all 3 sprint starter sets — from the locked MR-02 san-trang prototype (`docs/design/mr02-prototype-lock.md`, brief `docs/template-v10-brief.md`): white-dominant split pitch, ink monumental numerals + orange bar, monogram crest slots, BigShoulders latin-only numerals, lite depth + non-data detailing. Drafts resolve `10.0.0` by default; `9.0.0` stays frozen and pinned per run.
 
 `registry.resolve_template(root, template_id)` resolves released packages only. `allow_draft=True` is reserved for preview and owner review. The web UI's Templates page shows the draft label and the visual preview.
 

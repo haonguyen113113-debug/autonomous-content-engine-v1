@@ -1,0 +1,168 @@
+{
+ "schemaVersion": 4,
+ "width": 1920,
+ "height": 1080,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-1",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1920,
+     "height": 1080,
+     "src": "/template-foundation/resources/pack/long-quote_card.png",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "deco-218",
+     "type": "figure",
+     "subType": "rect",
+     "x": 0,
+     "y": 180,
+     "width": 1920,
+     "height": 360,
+     "fill": "#FF3D81",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-219",
+     "type": "text",
+     "x": 140,
+     "y": 220,
+     "width": 900,
+     "height": 80,
+     "text": "Ngộ nhận",
+     "fontSize": 64,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#060913",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "myth-k"
+     }
+    },
+    {
+     "id": "val-220",
+     "type": "text",
+     "x": 140,
+     "y": 320,
+     "width": 1300,
+     "height": 180,
+     "text": "Tiền mua được mọi danh hiệu",
+     "fontSize": 52,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#060913",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "myth"
+     }
+    },
+    {
+     "id": "deco-221",
+     "type": "figure",
+     "subType": "rect",
+     "x": 0,
+     "y": 546,
+     "width": 1920,
+     "height": 6,
+     "fill": "#00E5FF",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-222",
+     "type": "text",
+     "x": 140,
+     "y": 600,
+     "width": 900,
+     "height": 80,
+     "text": "Sự thật",
+     "fontSize": 64,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "fact-k"
+     }
+    },
+    {
+     "id": "val-223",
+     "type": "text",
+     "x": 140,
+     "y": 700,
+     "width": 1300,
+     "height": 180,
+     "text": "Bằng chứng từ 5 mùa gần nhất",
+     "fontSize": 52,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "fact"
+     }
+    },
+    {
+     "id": "val-224",
+     "type": "text",
+     "x": 134,
+     "y": 990,
+     "width": 1652,
+     "height": 40,
+     "text": "NGUỒN + NGÀY CẬP NHẬT",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

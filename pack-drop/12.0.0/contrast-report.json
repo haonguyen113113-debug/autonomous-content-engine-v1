@@ -1,0 +1,713 @@
+{
+ "fails": [
+  {
+   "plate": "short-duel_columns.jpg",
+   "key": "source",
+   "contrast": 1.8,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "short-comparison_duel.jpg",
+   "key": "source",
+   "contrast": 1.8,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-stat_leader.jpg",
+   "key": "source",
+   "contrast": 2.55,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "short-player_poster_side.jpg",
+   "key": "stats.0.label",
+   "contrast": 3.82,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-player_poster_side.jpg",
+   "key": "stats.0.label",
+   "contrast": 4.37,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "short-fixture_card.jpg",
+   "key": "date",
+   "contrast": 1.59,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-fixture_card.jpg",
+   "key": "date",
+   "contrast": 1.79,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "short-source_card.jpg",
+   "key": "date",
+   "contrast": 4.41,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-source_card.png",
+   "key": "date",
+   "contrast": 4.1,
+   "need": 4.5,
+   "pass": false
+  }
+ ],
+ "checks": [
+  {
+   "plate": "short-hook_card.jpg",
+   "key": "hook_text",
+   "contrast": 19.04,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-hook_card.jpg",
+   "key": "hook_text",
+   "contrast": 17.2,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-goal_card.jpg",
+   "key": "hook_text",
+   "contrast": 9.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-goal_card.jpg",
+   "key": "score",
+   "contrast": 14.36,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-goal_card.jpg",
+   "key": "hook_text",
+   "contrast": 17.57,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-goal_card.jpg",
+   "key": "score",
+   "contrast": 16.55,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-duel_columns.jpg",
+   "key": "home",
+   "contrast": 16.52,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-duel_columns.jpg",
+   "key": "away",
+   "contrast": 17.41,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-duel_columns.jpg",
+   "key": "metrics.0.value.home",
+   "contrast": 14.96,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-duel_columns.jpg",
+   "key": "metrics.0.value.away",
+   "contrast": 16.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-duel_columns.jpg",
+   "key": "source",
+   "contrast": 1.8,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-duel_columns.jpg",
+   "key": "home",
+   "contrast": 14.44,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-duel_columns.jpg",
+   "key": "away",
+   "contrast": 15.14,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-duel_columns.jpg",
+   "key": "metrics.0.value.home",
+   "contrast": 11.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-duel_columns.jpg",
+   "key": "metrics.0.value.away",
+   "contrast": 14.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-duel_columns.jpg",
+   "key": "source",
+   "contrast": 4.66,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-comparison_duel.jpg",
+   "key": "home",
+   "contrast": 16.52,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-comparison_duel.jpg",
+   "key": "away",
+   "contrast": 17.41,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-comparison_duel.jpg",
+   "key": "metrics.0.value.home",
+   "contrast": 14.96,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-comparison_duel.jpg",
+   "key": "metrics.0.value.away",
+   "contrast": 16.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-comparison_duel.jpg",
+   "key": "source",
+   "contrast": 1.8,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-comparison_duel.jpg",
+   "key": "home",
+   "contrast": 14.44,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-comparison_duel.jpg",
+   "key": "away",
+   "contrast": 15.14,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-comparison_duel.jpg",
+   "key": "metrics.0.value.home",
+   "contrast": 11.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-comparison_duel.jpg",
+   "key": "metrics.0.value.away",
+   "contrast": 14.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-comparison_duel.jpg",
+   "key": "source",
+   "contrast": 4.66,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-statline_scorecard.jpg",
+   "key": "metrics.0.value.home",
+   "contrast": 14.96,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-statline_scorecard.jpg",
+   "key": "metrics.0.value.away",
+   "contrast": 16.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-statline_scorecard.jpg",
+   "key": "metrics.0.label",
+   "contrast": 12.35,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-statline_scorecard.jpg",
+   "key": "metrics.0.value.home",
+   "contrast": 11.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-statline_scorecard.jpg",
+   "key": "metrics.0.value.away",
+   "contrast": 14.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-statline_scorecard.jpg",
+   "key": "metrics.0.label",
+   "contrast": 10.08,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-stat_leader.jpg",
+   "key": "stats.0.value",
+   "contrast": 16.79,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-stat_leader.jpg",
+   "key": "stats.0.label",
+   "contrast": 17.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-stat_leader.jpg",
+   "key": "source",
+   "contrast": 6.11,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-stat_leader.jpg",
+   "key": "stats.0.value",
+   "contrast": 17.44,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-stat_leader.jpg",
+   "key": "stats.0.label",
+   "contrast": 16.57,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-stat_leader.jpg",
+   "key": "source",
+   "contrast": 2.55,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "short-chart_comparison.jpg",
+   "key": "values.0",
+   "contrast": 16.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-chart_comparison.jpg",
+   "key": "values.0",
+   "contrast": 17.44,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-player_poster_side.jpg",
+   "key": "player_name",
+   "contrast": 14.59,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-player_poster_side.jpg",
+   "key": "stats.0.value",
+   "contrast": 4.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-player_poster_side.jpg",
+   "key": "stats.0.label",
+   "contrast": 3.82,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-player_poster_side.jpg",
+   "key": "player_name",
+   "contrast": 15.13,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-player_poster_side.jpg",
+   "key": "stats.0.value",
+   "contrast": 7.4,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-player_poster_side.jpg",
+   "key": "stats.0.label",
+   "contrast": 4.37,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "short-player_poster_top.jpg",
+   "key": "player_name",
+   "contrast": 15.14,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-player_poster_top.jpg",
+   "key": "stats.0.value",
+   "contrast": 9.34,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-player_poster_top.jpg",
+   "key": "player_name",
+   "contrast": 16.96,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-player_poster_top.jpg",
+   "key": "stats.0.value",
+   "contrast": 9.59,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-player_poster.jpg",
+   "key": "player_name",
+   "contrast": 13.12,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-player_poster.jpg",
+   "key": "player_name",
+   "contrast": 14.64,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-player_card.jpg",
+   "key": "player_name",
+   "contrast": 13.12,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-player_card.jpg",
+   "key": "player_name",
+   "contrast": 14.64,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-potm_card.jpg",
+   "key": "player_name",
+   "contrast": 13.12,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-potm_card.jpg",
+   "key": "player_name",
+   "contrast": 14.64,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-fixture_card.jpg",
+   "key": "home",
+   "contrast": 14.37,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-fixture_card.jpg",
+   "key": "away",
+   "contrast": 11.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-fixture_card.jpg",
+   "key": "date",
+   "contrast": 1.59,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-fixture_card.jpg",
+   "key": "home",
+   "contrast": 5.6,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-fixture_card.jpg",
+   "key": "away",
+   "contrast": 8.17,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-fixture_card.jpg",
+   "key": "date",
+   "contrast": 1.79,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "short-fixture_list.jpg",
+   "key": "fixtures.0",
+   "contrast": 10.43,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-fixture_list.jpg",
+   "key": "source",
+   "contrast": 5.79,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-fixture_list.jpg",
+   "key": "fixtures.0",
+   "contrast": 7.18,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-fixture_list.jpg",
+   "key": "source",
+   "contrast": 6.0,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-score_card.jpg",
+   "key": "home",
+   "contrast": 8.31,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-score_card.jpg",
+   "key": "score",
+   "contrast": 14.22,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-score_card.jpg",
+   "key": "away",
+   "contrast": 12.78,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-score_card.jpg",
+   "key": "home",
+   "contrast": 17.68,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-score_card.jpg",
+   "key": "score",
+   "contrast": 16.76,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-score_card.jpg",
+   "key": "away",
+   "contrast": 15.33,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-quote_card.jpg",
+   "key": "claim",
+   "contrast": 16.29,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-quote_card.png",
+   "key": "claim",
+   "contrast": 17.22,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-source_card.jpg",
+   "key": "claim",
+   "contrast": 16.68,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-source_card.jpg",
+   "key": "source",
+   "contrast": 15.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-source_card.jpg",
+   "key": "date",
+   "contrast": 4.41,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "long-source_card.png",
+   "key": "claim",
+   "contrast": 17.72,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-source_card.png",
+   "key": "source",
+   "contrast": 15.76,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-source_card.png",
+   "key": "date",
+   "contrast": 4.1,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "plate": "short-discipline_card.jpg",
+   "key": "player_name",
+   "contrast": 15.34,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-discipline_card.png",
+   "key": "player_name",
+   "contrast": 13.36,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-chart_timeline.jpg",
+   "key": "values.0",
+   "contrast": 15.07,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-chart_timeline.png",
+   "key": "values.0",
+   "contrast": 12.54,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-welcome_card.jpg",
+   "key": "player_name",
+   "contrast": 15.39,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-welcome_card.jpg",
+   "key": "player_name",
+   "contrast": 17.11,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-tactical_explainer.png",
+   "key": "headline",
+   "contrast": 17.78,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-tactical_explainer.jpg",
+   "key": "headline",
+   "contrast": 17.88,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "short-opening.jpg",
+   "key": "headline",
+   "contrast": 16.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "long-opening.jpg",
+   "key": "headline",
+   "contrast": 9.95,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "plate": "short-ending.jpg",
+   "key": "headline",
+   "contrast": 5.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "plate": "long-ending.png",
+   "key": "headline",
+   "contrast": 16.43,
+   "need": 4.5,
+   "pass": true
+  }
+ ]
+}

@@ -1,0 +1,5 @@
+# Motion-design runtime (build-time only; pinned for reproducibility).
+# Install per machine: python -m venv runtime/motion-venv (optional but recommended)
+# then runtime/motion-venv/Scripts/python.exe -m pip install -r requirements-motion.txt
+# Manim pre-renders motion atoms; the engine serves/renders video without it.
+manim==0.22.0

@@ -23,6 +23,52 @@ engine; do not copy credentials or personal voice recordings into Git.
 The engine sends script prompts only to the configured local Ollama endpoint.
 Its bounded workflow generates script drafts and asset-need suggestions.
 
+## Optional cloud drafting
+
+When local inference is too weak or slow for script quality, point the same
+bounded workflow at any OpenAI-compatible endpoint by editing `.env` only —
+no code changes, and Ollama stays the default:
+
+```powershell
+LLM_PROVIDER=openai_compatible
+LLM_BASE_URL=https://openrouter.ai/api/v1
+LLM_MODEL=<a low-cost model id from your provider>
+LLM_API_KEY=<paste the provider key here>
+```
+
+Low-cost starting points: a mini-tier model on OpenAI, a cheap fast
+model through an OpenRouter/Groq/DeepSeek-compatible key, or Groq's fast
+free tier (`https://api.groq.com/openai/v1` with ids like
+`openai/gpt-oss-20b`, `qwen/qwen3.8-27b`, `openai/gpt-oss-120b` — re-check
+`console.groq.com/docs/models`, dead ids are skipped automatically).
+The engine sends
+the same small per-beat JSON prompts and records prompt/completion tokens
+plus estimated cost per segment and per run (see `llm_cost_usd` in the saved
+run file and under the draft notes in Workflows). `LLM_BUDGET_USD_PER_RUN`
+(default `0.25`) caps spend per draft; exhausted budgets degrade to the
+deterministic outline instead of spending more. The API key lives only in
+the machine-local `.env`, which is never committed to Git.
+
+## Model rotation
+
+`LLM_MODELS` holds a comma-separated fallback chain (first id is primary).
+When a model answers 429/402/quota or 5xx errors, the engine moves to the
+next id and cools the limited one down for `LLM_COOLDOWN_SECONDS` (default
+300), honoring the provider's `Retry-After` header when it asks for longer.
+Unknown model ids are skipped after their first 404, and a bad key
+(401) fails fast instead of burning the chain. Each segment records the
+model that actually produced it (`generation.usage.model`), and the draft
+lists every model used (`llm_models_used`, shown in Workflows when a draft
+rotates). Free-model rosters change often; re-check your provider's model
+list and prune dead ids (they are skipped automatically, but dead weight
+slows the first attempt of each call).
+
+On OpenRouter, free models share 20 requests/min and 50 requests/day
+(1000/day after a one-time $10+ credit purchase resets the tier). More ids
+in the chain spread per-minute and provider-side load; they do not multiply
+the daily cap. At ~7 calls per short draft, the free tier covers about
+7 drafts/day, or ~140/day after the one-time purchase.
+
 ## Optional local voice preview
 
 Python 3.10 or newer is recommended. From the repository root:
@@ -67,9 +113,15 @@ Install the renderer's Python dependency with `python -m pip install -r requirem
 It rasterizes Vietnamese-labeled tactical boards with pitch geometry, player markers,
 directional vectors, and an animated ball.
 
-The renderer validates the output container, target aspect ratio, Vietnamese
+The renderer (ace-ffmpeg-0.9.0) slides every scene plate in from the right,
+drifts Ken Burns underneath, executes fade in/out from timeline enter/exit,
+renders lower-third and caption items in their declared windows, staggers hook
+lines, counts hero numerals up from zero, and closes with a branded end-card
+carrying the channel wordmark, tagline, and template version. Draw/wipe transitions and
+the freeze/pitch_grid effects remain unexecuted and are reported as
+such. It validates the output container, target aspect ratio, Vietnamese
 font, palette, full-pitch tactical markings, authored pass/run/press vectors,
-and beat-by-beat ball motion. It does not yet place selected Asset Library
-football media or execute the complete declared transition/effect set. The
-JSON report identifies each such limit so a preview is not mistaken for a
+and beat-by-beat ball motion. Selected Asset Library
+football media is placed as contextual B-roll; the
+JSON report identifies each remaining limit so a preview is not mistaken for a
 production-ready video.

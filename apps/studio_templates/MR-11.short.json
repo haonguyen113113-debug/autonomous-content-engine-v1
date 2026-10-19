@@ -1,0 +1,182 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-55",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1080,
+     "height": 1920,
+     "src": "/template-foundation/resources/pack/short-fixture_card.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-4",
+     "type": "text",
+     "x": 76,
+     "y": 185,
+     "width": 928,
+     "height": 80,
+     "text": "Vòng 13 • V.League 1",
+     "fontSize": 64,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "bold",
+     "fill": "#8296BE",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "comp"
+     }
+    },
+    {
+     "id": "val-5",
+     "type": "text",
+     "x": 76,
+     "y": 1255,
+     "width": 340,
+     "height": 70,
+     "text": "HÀ NỘI",
+     "fontSize": 64,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "home"
+     }
+    },
+    {
+     "id": "val-8",
+     "type": "text",
+     "x": 632,
+     "y": 1265,
+     "width": 340,
+     "height": 70,
+     "text": "NAM ĐỊNH",
+     "fontSize": 64,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "away"
+     }
+    },
+    {
+     "id": "val-9",
+     "type": "text",
+     "x": 130,
+     "y": 1610,
+     "width": 820,
+     "height": 54,
+     "text": "Chủ nhật • 19g00 • Hàng Đẫy",
+     "fontSize": 44,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "date"
+     }
+    },
+    {
+     "id": "val-14",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "VPF • 12/10/2026",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    },
+    {
+     "id": "val-16",
+     "type": "text",
+     "x": 146,
+     "y": 967,
+     "width": 200,
+     "height": 100,
+     "text": "HN",
+     "fontSize": 72,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "crest-home"
+     }
+    },
+    {
+     "id": "val-18",
+     "type": "text",
+     "x": 757,
+     "y": 933,
+     "width": 200,
+     "height": 100,
+     "text": "NĐ",
+     "fontSize": 72,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "crest-away"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

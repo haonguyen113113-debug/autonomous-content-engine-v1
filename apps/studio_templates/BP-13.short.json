@@ -1,0 +1,138 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-54",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1080,
+     "height": 1920,
+     "src": "/template-foundation/resources/pack/short-myth.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-3",
+     "type": "text",
+     "x": 76,
+     "y": 460,
+     "width": 400,
+     "height": 70,
+     "text": "Ngộ nhận",
+     "fontSize": 44,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#060913",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "myth-k"
+     }
+    },
+    {
+     "id": "val-5",
+     "type": "text",
+     "x": 76,
+     "y": 550,
+     "width": 414,
+     "height": 300,
+     "text": "Điều mọi người\nvẫn tin",
+     "fontSize": 56,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#060913",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "myth"
+     }
+    },
+    {
+     "id": "val-6",
+     "type": "text",
+     "x": 580,
+     "y": 460,
+     "width": 400,
+     "height": 70,
+     "text": "Sự thật",
+     "fontSize": 72,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "fact-k"
+     }
+    },
+    {
+     "id": "val-8",
+     "type": "text",
+     "x": 580,
+     "y": 550,
+     "width": 414,
+     "height": 300,
+     "text": "Bằng chứng\nnói gì",
+     "fontSize": 56,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "fact"
+     }
+    },
+    {
+     "id": "val-9",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "Nguồn + ngày",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

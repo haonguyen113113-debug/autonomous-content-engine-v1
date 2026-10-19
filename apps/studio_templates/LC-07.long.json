@@ -1,0 +1,153 @@
+{
+ "schemaVersion": 4,
+ "width": 1920,
+ "height": 1080,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-1",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1920,
+     "height": 1080,
+     "src": "/template-foundation/resources/pack/long-stat_leader.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-206",
+     "type": "text",
+     "x": 134,
+     "y": 140,
+     "width": 1652,
+     "height": 50,
+     "text": "TIỀN BẠC",
+     "fontSize": 34,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#00E5FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "kicker"
+     }
+    },
+    {
+     "id": "val-207",
+     "type": "text",
+     "x": 140,
+     "y": 240,
+     "width": 1200,
+     "height": 220,
+     "text": "€85TR",
+     "fontSize": 190,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "amount"
+     }
+    },
+    {
+     "id": "deco-208",
+     "type": "figure",
+     "subType": "rect",
+     "x": 140,
+     "y": 500,
+     "width": 700,
+     "height": 60,
+     "fill": "#FF3D81",
+     "opacity": 0.5,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-209",
+     "type": "text",
+     "x": 140,
+     "y": 600,
+     "width": 1100,
+     "height": 120,
+     "text": "Thương vụ của mùa hè",
+     "fontSize": 48,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "line"
+     }
+    },
+    {
+     "id": "val-211",
+     "type": "text",
+     "x": 1270,
+     "y": 300,
+     "width": 470,
+     "height": 120,
+     "text": "Bên mua • Bên bán",
+     "fontSize": 40,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "note"
+     }
+    },
+    {
+     "id": "val-212",
+     "type": "text",
+     "x": 134,
+     "y": 990,
+     "width": 1652,
+     "height": 40,
+     "text": "NGUỒN + NGÀY CẬP NHẬT",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

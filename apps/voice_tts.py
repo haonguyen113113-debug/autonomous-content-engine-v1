@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import unicodedata
 import subprocess
@@ -75,6 +76,33 @@ def save_voice_reference(root: Path, filename: str, content_type: str, data: byt
     return voice_profile_status(root)
 
 
+def _clean_for_tts(text: str) -> str:
+    """Make narration safe for the local TTS stack on any OS locale.
+
+    A single stray byte (e.g. 0x81 inside a UTF-8 sequence decoded as
+    cp1252) once produced a lone surrogate that crashed the Rust text
+    normalizer, so belt (UTF-8 pipes) and suspenders (sanitize) both apply.
+    """
+    text = unicodedata.normalize("NFC", text)
+    text = re.sub(r"[\ud800-\udfff]", "", text)
+    return "".join(ch for ch in text if ch == "\n" or ch == "\t" or not unicodedata.category(ch).startswith("C"))
+
+
+def _local_value(root: Path, key: str) -> str | None:
+    """Read one machine-local setting from .env without touching os.environ."""
+    env_file = root / ".env"
+    if not env_file.exists():
+        return None
+    for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        if name.strip() == key:
+            return value.strip().strip("\"'")
+    return None
+
+
 def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     if not run_id.isalnum() or len(run_id) != 12:
         raise ValueError("Production run ID is invalid.")
@@ -90,18 +118,21 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     )
     if "[CẦN NGUỒN]" in text or "[KẾT LUẬN CỦA ALLEN]" in text:
         raise ValueError("Complete the research placeholders and edit the conclusion before TTS.")
-    text = unicodedata.normalize("NFC", text).strip()
+    text = _clean_for_tts(unicodedata.normalize("NFC", text).strip())
     if len(text) < 12 or len(text) > 24000:
         raise ValueError("The voice preview needs 12–24,000 characters of reviewed script.")
     profile_status = voice_profile_status(root)
-    if not profile_status["reference_ready"]:
-        raise ValueError("Import your local voice reference before generating TTS.")
+    preset_voice = (_local_value(root, "TTS_VOICE") or "").strip()
+    if not preset_voice and not profile_status["reference_ready"]:
+        raise ValueError("Import your local voice reference before generating TTS. "
+                         "Alternatively set TTS_VOICE to a built-in preset (e.g. Adam).")
     runtime_python = _runtime_python(root)
     if runtime_python is None:
         raise RuntimeError("VieNeu-TTS is not installed. Install the local vieneu runtime first.")
 
-    profile = json.loads((root / VOICE_DIR / "profile.json").read_text(encoding="utf-8"))
-    reference = root / VOICE_DIR / profile["reference_file"]
+    profile = json.loads((root / VOICE_DIR / "profile.json").read_text(encoding="utf-8")) \
+        if (root / VOICE_DIR / "profile.json").is_file() else {}
+    reference = root / VOICE_DIR / str(profile.get("reference_file", "allen-reference.wav"))
     output_dir = root / VOICE_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
     output_name = f"{run_id}-voice-preview.wav"
@@ -109,10 +140,18 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
     child_env = dict(os.environ)
     child_env["HF_HUB_DISABLE_TELEMETRY"] = "1"
     child_env["HF_HOME"] = str(root / "runtime/model-cache")
+    child_env["PYTHONUTF8"] = "1"
+    child_env["PYTHONIOENCODING"] = "utf-8"
+    for key in ("TTS_SILENCE_P", "TTS_VOICE", "TTS_TEMPERATURE", "TTS_CROSSFADE_P"):
+        value = _local_value(root, key)
+        if value is not None:
+            child_env[key] = value
     process = subprocess.run(
         [str(runtime_python), str(worker), str(reference), str(output_dir / output_name)],
         input=text,
         text=True,
+        encoding="utf-8",
+        errors="strict",
         capture_output=True,
         timeout=3600,
         cwd=root,
@@ -125,8 +164,11 @@ def synthesize_voice_preview(root: Path, run_id: str) -> dict[str, Any]:
         "path": output_name,
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "engine": profile_status["tts_model"],
+        "voice": preset_voice or "allen-reference",
         "local_only": True,
     }
     run["status"] = "WAITING_FOR_VOICE_AUDIT"
     run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return {"audio_url": f"/api/voice-preview/{output_name}", "engine": profile_status["tts_model"]}
+    return {"audio_url": f"/api/voice-preview/{output_name}",
+            "engine": profile_status["tts_model"],
+            "voice": preset_voice or "allen-reference"}

@@ -6,6 +6,11 @@ from typing import Any
 
 from .catalog import add_alias, add_relationship, upsert_entity
 from .entities import EntityRecord
+from .player_identity import (
+    add_name_history,
+    add_nationality,
+    upsert_person_profile,
+)
 from .registry import connect
 from .seed import seed_taxonomy
 
@@ -44,6 +49,37 @@ def record_source(conn, entity_id: str, manifest: dict[str, Any]) -> None:
     )
 
 
+def seed_player_identity(conn, item: dict[str, Any], manifest: dict[str, Any]) -> None:
+    """Populate name history, profile, and nationality for player records."""
+    source = manifest['source']
+    metadata = item.get('metadata', {})
+    add_name_history(
+        conn, item['entity_id'], item['canonical_name'],
+        name_type='display',
+        source_name=source['name'], source_url=source['url'],
+        dataset_version=manifest.get('dataset_version'),
+    )
+    for alias in item.get('aliases', []):
+        add_name_history(
+            conn, item['entity_id'], alias['alias'],
+            name_type='common' if alias.get('alias_type') == 'common' else 'short',
+            source_name=source['name'], source_url=source['url'],
+            dataset_version=manifest.get('dataset_version'),
+        )
+    upsert_person_profile(
+        conn, item['entity_id'],
+        birth_date=metadata.get('birth_date'),
+        birth_place=metadata.get('birth_place'),
+        metadata={key: metadata[key] for key in ('position', 'clubs', 'shirt_numbers') if key in metadata},
+    )
+    if item.get('country_code'):
+        add_nationality(
+            conn, item['entity_id'], item['country_code'],
+            source_name=source['name'], source_url=source['url'],
+            dataset_version=manifest.get('dataset_version'),
+        )
+
+
 def seed_entity_catalog(root: Path) -> dict[str, int]:
     root = root.resolve()
     db_path = root / 'runtime/engine.db'
@@ -56,6 +92,7 @@ def seed_entity_catalog(root: Path) -> dict[str, int]:
             data_root / 'competitions.json',
             data_root / 'clubs.json',
             data_root / 'national_teams.json',
+            data_root / 'players.json',
         ]
         relationship_manifest = data_root / 'relationships.json'
 
@@ -89,6 +126,8 @@ def seed_entity_catalog(root: Path) -> dict[str, int]:
                     aliases_added += 1
                 record_source(conn, item['entity_id'], manifest)
                 sources_recorded += 1
+                if item.get('entity_type') == 'player':
+                    seed_player_identity(conn, item, manifest)
 
         relationships_added = 0
         if relationship_manifest.exists():

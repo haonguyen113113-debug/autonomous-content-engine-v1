@@ -1,0 +1,14 @@
+{
+ "date": "2026-10-14",
+ "slots": {
+  "neutral-pad": {
+   "query": "delicate melancholic cinematic underscore",
+   "considered": 1,
+   "status": "INSTALLED",
+   "file": "neutral-pad.mp3",
+   "freesound_id": 868507,
+   "title": "delicate melancholic cinematic underscore, understated family conflict, gentle piano motif, soft cello, distant atmospheric textures, somber, introspective, quiet suspense",
+   "duration_s": 177.22
+  }
+ }
+}

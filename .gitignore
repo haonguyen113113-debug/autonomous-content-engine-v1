@@ -36,12 +36,17 @@ artifacts/
 renders/
 downloads/
 models/
+# Manim build intermediates (regenerable, contain absolute local paths)
+partial_movie_files/
 
 # Media
 *.mp4
 *.mov
 *.wav
 *.mp3
+# ...except the locked soundpack: curated beds travel with the repo
+!soundpacks/v1/tracks/*.mp3
+!soundpacks/v1/tracks/*.ogg
 
 # OS / editors
 .DS_Store

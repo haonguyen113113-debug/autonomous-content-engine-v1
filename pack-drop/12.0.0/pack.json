@@ -1,0 +1,837 @@
+{
+  "channel_id": "allen-knows-ball",
+  "template_id": "allen-knows-ball.shortform-analyst",
+  "version": "12.0.0",
+  "layouts": [
+    {
+      "id": "hook_card",
+      "title": "Frame 0 hook, 5 to 8 word claim, no logo bumper",
+      "boxes": [
+        {
+          "key": "hook_text",
+          "box": [
+            0.08,
+            0.22,
+            0.84,
+            0.3
+          ],
+          "font": "body",
+          "size": 104,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "goal_card",
+      "title": "Goal moment with minute hook and new score",
+      "boxes": [
+        {
+          "key": "hook_text",
+          "box": [
+            0.08,
+            0.12,
+            0.84,
+            0.16
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "score",
+          "box": [
+            0.1,
+            0.4,
+            0.8,
+            0.16
+          ],
+          "font": "display",
+          "size": 168,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "duel_columns",
+      "title": "Two way comparison with winner encoding",
+      "boxes": [
+        {
+          "key": "home",
+          "box": [
+            0.07,
+            0.3,
+            0.38,
+            0.08
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "away",
+          "box": [
+            0.55,
+            0.3,
+            0.38,
+            0.08
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.home",
+          "box": [
+            0.07,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.away",
+          "box": [
+            0.55,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 24,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "comparison_duel",
+      "title": "Comparison duel, same family as duel columns",
+      "boxes": [
+        {
+          "key": "home",
+          "box": [
+            0.07,
+            0.3,
+            0.38,
+            0.08
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "away",
+          "box": [
+            0.55,
+            0.3,
+            0.38,
+            0.08
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.home",
+          "box": [
+            0.07,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.away",
+          "box": [
+            0.55,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 24,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "statline_scorecard",
+      "title": "Statline duel numbers",
+      "boxes": [
+        {
+          "key": "metrics.0.value.home",
+          "box": [
+            0.07,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.value.away",
+          "box": [
+            0.55,
+            0.4,
+            0.38,
+            0.12
+          ],
+          "font": "display",
+          "size": 150,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "metrics.0.label",
+          "box": [
+            0.08,
+            0.56,
+            0.84,
+            0.05
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "stat_leader",
+      "title": "One hero number with label and provenance",
+      "boxes": [
+        {
+          "key": "stats.0.value",
+          "box": [
+            0.1,
+            0.34,
+            0.8,
+            0.18
+          ],
+          "font": "display",
+          "size": 190,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "stats.0.label",
+          "box": [
+            0.1,
+            0.55,
+            0.8,
+            0.06
+          ],
+          "font": "body",
+          "size": 54,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 30,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "chart_comparison",
+      "title": "Chart comparison values zone",
+      "boxes": [
+        {
+          "key": "values.0",
+          "box": [
+            0.1,
+            0.36,
+            0.8,
+            0.14
+          ],
+          "font": "display",
+          "size": 120,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "player_poster_side",
+      "title": "Player spotlight, portrait void left third",
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.4,
+            0.28,
+            0.52,
+            0.12
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "left"
+        },
+        {
+          "key": "stats.0.value",
+          "box": [
+            0.4,
+            0.44,
+            0.52,
+            0.1
+          ],
+          "font": "display",
+          "size": 72,
+          "color": "#FFB03A",
+          "align": "left"
+        },
+        {
+          "key": "stats.0.label",
+          "box": [
+            0.4,
+            0.56,
+            0.52,
+            0.06
+          ],
+          "font": "body",
+          "size": 28,
+          "color": "#8296BE",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "id": "player_poster_top",
+      "title": "Player spotlight, portrait top zone",
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.08,
+            0.12,
+            0.84,
+            0.1
+          ],
+          "font": "body",
+          "size": 80,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "stats.0.value",
+          "box": [
+            0.08,
+            0.26,
+            0.84,
+            0.1
+          ],
+          "font": "display",
+          "size": 64,
+          "color": "#FFB03A",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "player_poster",
+      "title": "Player name plate",
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.4,
+            0.3,
+            0.52,
+            0.14
+          ],
+          "font": "body",
+          "size": 96,
+          "color": "#F2F6FF",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "id": "player_card",
+      "title": "Player name plate",
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.4,
+            0.3,
+            0.52,
+            0.14
+          ],
+          "font": "body",
+          "size": 96,
+          "color": "#F2F6FF",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "id": "potm_card",
+      "title": "Player of the match name plate",
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.4,
+            0.3,
+            0.52,
+            0.14
+          ],
+          "font": "body",
+          "size": 96,
+          "color": "#F2F6FF",
+          "align": "left"
+        }
+      ]
+    },
+    {
+      "id": "fixture_card",
+      "title": "Versus fixture with team monogram slots",
+      "boxes": [
+        {
+          "key": "home",
+          "box": [
+            0.07,
+            0.32,
+            0.38,
+            0.1
+          ],
+          "font": "body",
+          "size": 84,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "away",
+          "box": [
+            0.55,
+            0.32,
+            0.38,
+            0.1
+          ],
+          "font": "body",
+          "size": 84,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "date",
+          "box": [
+            0.3,
+            0.56,
+            0.4,
+            0.05
+          ],
+          "font": "body",
+          "size": 30,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "fixture_list",
+      "title": "Fixture rows with provenance",
+      "boxes": [
+        {
+          "key": "fixtures.0",
+          "box": [
+            0.08,
+            0.34,
+            0.84,
+            0.1
+          ],
+          "font": "body",
+          "size": 60,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 30,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "score_card",
+      "title": "Final score with monumental numerals",
+      "boxes": [
+        {
+          "key": "home",
+          "box": [
+            0.08,
+            0.12,
+            0.84,
+            0.06
+          ],
+          "font": "body",
+          "size": 60,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "score",
+          "box": [
+            0.1,
+            0.34,
+            0.8,
+            0.18
+          ],
+          "font": "display",
+          "size": 210,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "away",
+          "box": [
+            0.08,
+            0.56,
+            0.84,
+            0.06
+          ],
+          "font": "body",
+          "size": 60,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "quote_card",
+      "title": "Pull quote, source carried at card stage",
+      "boxes": [
+        {
+          "key": "claim",
+          "box": [
+            0.12,
+            0.3,
+            0.76,
+            0.26
+          ],
+          "font": "body",
+          "size": 44,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "source_card",
+      "title": "Provenance slip with claim",
+      "boxes": [
+        {
+          "key": "claim",
+          "box": [
+            0.12,
+            0.28,
+            0.76,
+            0.18
+          ],
+          "font": "body",
+          "size": 40,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.12,
+            0.52,
+            0.76,
+            0.05
+          ],
+          "font": "body",
+          "size": 32,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "date",
+          "box": [
+            0.12,
+            0.6,
+            0.76,
+            0.05
+          ],
+          "font": "body",
+          "size": 28,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "discipline_card",
+      "title": "Incident subject name plate",
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.08,
+            0.38,
+            0.84,
+            0.12
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "chart_timeline",
+      "title": "Timeline values zone",
+      "boxes": [
+        {
+          "key": "values.0",
+          "box": [
+            0.08,
+            0.4,
+            0.84,
+            0.1
+          ],
+          "font": "body",
+          "size": 68,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "welcome_card",
+      "title": "Arrival subject name plate",
+      "boxes": [
+        {
+          "key": "player_name",
+          "box": [
+            0.08,
+            0.36,
+            0.84,
+            0.12
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "tactical_explainer",
+      "title": "Quiet pitch for card stage diagrams",
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.08,
+            0.1,
+            0.84,
+            0.06
+          ],
+          "font": "body",
+          "size": 56,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "opening",
+      "title": "Brand opener, channel badge hero",
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.1,
+            0.62,
+            0.8,
+            0.1
+          ],
+          "font": "body",
+          "size": 88,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "ending",
+      "title": "End card, channel badge hero, loop back line",
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.1,
+            0.64,
+            0.8,
+            0.1
+          ],
+          "font": "body",
+          "size": 68,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "takes",
+      "title": "Takeaways, three ascending points",
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.08,
+            0.12,
+            0.84,
+            0.08
+          ],
+          "font": "body",
+          "size": 68,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "support",
+          "box": [
+            0.08,
+            0.45,
+            0.84,
+            0.2
+          ],
+          "font": "body",
+          "size": 40,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "source",
+          "box": [
+            0.08,
+            0.8,
+            0.84,
+            0.04
+          ],
+          "font": "body",
+          "size": 26,
+          "color": "#8296BE",
+          "align": "center"
+        }
+      ]
+    },
+    {
+      "id": "myth",
+      "title": "Myth versus reality, charged versus calm",
+      "boxes": [
+        {
+          "key": "headline",
+          "box": [
+            0.08,
+            0.18,
+            0.84,
+            0.2
+          ],
+          "font": "display",
+          "size": 76,
+          "color": "#F2F6FF",
+          "align": "center"
+        },
+        {
+          "key": "support",
+          "box": [
+            0.08,
+            0.54,
+            0.84,
+            0.2
+          ],
+          "font": "body",
+          "size": 42,
+          "color": "#F2F6FF",
+          "align": "center"
+        }
+      ]
+    }
+  ],
+  "licenses": [
+    {
+      "what": "Background plates, cyber neon system",
+      "by": "Owner (Pippit AI export, corner marks inpainted)",
+      "terms": "Channel-owned; confirm plan commercial terms before publishing"
+    },
+    {
+      "what": "Channel badge baked on opening and ending only",
+      "by": "Owner; circular crop of AKB-Badge.png, watermark excluded, YouTube-circle frame",
+      "terms": "Channel identity; never a team crest"
+    },
+    {
+      "what": "Team crests on duel, score and fixture layouts",
+      "by": "Dynamic monogram or rights-cleared library crest at card stage",
+      "terms": "Never baked; real marks banned without clearance"
+    }
+  ]
+}

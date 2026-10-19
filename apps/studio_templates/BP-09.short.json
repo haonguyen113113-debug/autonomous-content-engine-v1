@@ -1,0 +1,131 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-70",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1080,
+     "height": 1920,
+     "src": "/template-foundation/resources/pack/short-hook_card.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-4",
+     "type": "text",
+     "x": 75,
+     "y": 330,
+     "width": 930,
+     "height": 60,
+     "text": "BẢN SẮC",
+     "fontSize": 34,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#00E5FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "kicker"
+     }
+    },
+    {
+     "id": "val-5",
+     "type": "text",
+     "x": 76,
+     "y": 480,
+     "width": 928,
+     "height": 480,
+     "text": "Giá trị cốt lõi",
+     "fontSize": 120,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "claim"
+     }
+    },
+    {
+     "id": "val-8",
+     "type": "text",
+     "x": 76,
+     "y": 1020,
+     "width": 928,
+     "height": 130,
+     "text": "Dòng phụ (sửa theo từng video)",
+     "fontSize": 44,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "support"
+     }
+    },
+    {
+     "id": "scrim-credit",
+     "type": "figure",
+     "subType": "rect",
+     "x": 59,
+     "y": 1808,
+     "width": 962,
+     "height": 64,
+     "fill": "#060913",
+     "opacity": 0.45,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-13",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "NGUỒN + NGÀY CẬP NHẬT",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

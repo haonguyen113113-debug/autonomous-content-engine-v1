@@ -1,0 +1,109 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-55",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1080,
+     "height": 1920,
+     "src": "/template-foundation/resources/pack/short-ending.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-3",
+     "type": "text",
+     "x": 76,
+     "y": 880,
+     "width": 928,
+     "height": 50,
+     "text": "KÊNH CHÍNH THỨC",
+     "fontSize": 34,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#00E5FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "kicker"
+     }
+    },
+    {
+     "id": "scrim-channel",
+     "type": "figure",
+     "subType": "rect",
+     "x": 60,
+     "y": 928,
+     "width": 960,
+     "height": 134,
+     "fill": "#060913",
+     "opacity": 0.45,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-8",
+     "type": "text",
+     "x": 76,
+     "y": 940,
+     "width": 928,
+     "height": 110,
+     "text": "ALLEN KNOWS BALL",
+     "fontSize": 84,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "channel"
+     }
+    },
+    {
+     "id": "val-10",
+     "type": "text",
+     "x": 75,
+     "y": 1820,
+     "width": 930,
+     "height": 40,
+     "text": "NGUỒN + NGÀY CẬP NHẬT",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

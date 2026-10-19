@@ -1,0 +1,335 @@
+"""MR-02 redesign proof, designed with frontend-design + canvas-design skills.
+
+Implements docs/design/mr02-plan.md ("San Chia Doi" split pitch) with PIL,
+reusing the locked palette, safe areas, and required data slots of the
+original score_card builder so the filter/renderer keep working unchanged.
+
+Run: python apps/studio_templates/redesign_mr02_skill.py
+Writes: docs/design/mr02-redesign-proof.png (1080x1920)
+        docs/design/mr02-compare.png (original + redesign side by side)
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+import random
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+FONTS = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "12.0.0" / "resources" / "fonts"
+SKILL_FONTS = ROOT / "skills" / "canvas-design" / "canvas-fonts"
+ORIGINAL = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "12.0.0" / "previews" / "short-mr-02-proof.png"
+OUT_DIR = ROOT / "docs" / "design"
+
+W, H = 1080, 1920
+INK = (22, 27, 44)
+CORAL = (224, 112, 95)
+PAPER = (244, 242, 236)
+SLATE = (90, 107, 140)
+MIST = (139, 150, 176)
+SPLIT_Y = 1120
+MARGIN = 76
+
+
+def font_brand(kind: str, size: int) -> ImageFont.FreeTypeFont:
+    name = {
+        "display": "BarlowCondensed-Bold.ttf",
+        "body": "BeVietnamPro-Regular.ttf",
+        "body-bold": "BeVietnamPro-Bold.ttf",
+    }[kind]
+    return ImageFont.truetype(str(FONTS / name), size)
+
+
+def font_numeral(size: int) -> ImageFont.FreeTypeFont:
+    """canvas-design skill: numerals are a visual element, not text.
+
+    BigShoulders (OFL, vendored with the skill) carries latin digits only;
+    all Vietnamese text stays in the brand faces per the brief, which wins.
+    """
+    return ImageFont.truetype(str(SKILL_FONTS / "BigShoulders-Bold.ttf"), size)
+
+
+DEFAULT_PALETTE = {
+    "base": INK, "winner_field": CORAL, "loser_field": INK,
+    "winner_type": INK, "draw_type": PAPER, "glow": PAPER,
+    "rule": PAPER, "circle": SLATE, "context_win": INK, "context_draw": PAPER,
+    "loser_numeral": SLATE, "loser_name": PAPER, "credit": MIST,
+    "winner_bar": None,
+    "haze": [(150, 90, PAPER, 14), (1330, 110, CORAL, 16)],
+    "detail_primary": INK, "detail_faint": MIST, "detail_line": SLATE,
+    "grain_lo": 86, "grain_hi": 180,
+}
+
+# theme-factory method: curated colorways as named palettes. White primary
+# per owner brief; supporting colors chosen for broadcast contrast.
+SAN_TRANG = {
+    "base": (255, 255, 255), "winner_field": (255, 255, 255), "loser_field": (240, 120, 98),
+    "winner_type": INK, "draw_type": INK, "glow": (240, 120, 98),
+    "rule": INK, "circle": SLATE, "context_win": SLATE, "context_draw": SLATE,
+    "loser_numeral": INK, "loser_name": INK, "credit": INK,
+    "winner_bar": (240, 120, 98),
+    "haze": None,
+    "detail_primary": INK, "detail_faint": INK, "detail_line": INK,
+    "grain_lo": 170, "grain_hi": 240,
+}
+
+CO_SANG = {
+    "base": INK, "winner_field": (31, 122, 77), "loser_field": INK,
+    "winner_type": PAPER, "draw_type": PAPER, "glow": PAPER,
+    "rule": PAPER, "circle": SLATE, "context_win": PAPER, "context_draw": PAPER,
+    "loser_numeral": SLATE, "loser_name": PAPER, "credit": MIST,
+    "winner_bar": CORAL,
+    "haze": [(150, 90, PAPER, 14), (1330, 110, CORAL, 16)],
+    "detail_primary": PAPER, "detail_faint": MIST,
+}
+
+COLORWAYS = {"san-trang": SAN_TRANG, "co-sang": CO_SANG}
+
+
+def parse_score(score: str) -> tuple[int, int]:
+    numbers = [int(n) for n in re.findall(r"\d+", score)]
+    if len(numbers) >= 2:
+        return numbers[0], numbers[1]
+    return 0, 0
+
+
+def initials(name: str) -> str:
+    """Team monogram from name initials (derived data, never invented).
+
+    Real crests are banned by the template selection rules, so the badge
+    slot ships a typographic monogram. A future library-image binding can
+    replace the monogram without moving the slot.
+    """
+    words = [w for w in re.findall(r"[A-Za-zÀ-ỹĐđ]+", name) if w]
+    return "".join(w[0].upper() for w in words[:2]) or "•"
+
+
+def badge(draw: ImageDraw.ImageDraw, cx: int, cy: int, diameter: int,
+          ring: tuple[int, int, int], ink_color: tuple[int, int, int],
+          text: str) -> None:
+    """Badge slot: ring + monogram, centered. Reserves the crest space."""
+    radius = diameter // 2
+    draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius],
+                 outline=ring, width=max(4, diameter // 28))
+    size = int(diameter * 0.42)
+    draw.text((cx, cy), text, font=font_brand("display", size),
+              fill=ink_color, anchor="mm")
+
+
+def render_redesign(home: str, away: str, score: str, comp: str, when: str,
+                    depth: bool | str = False, seed: int = 7,
+                    palette: dict | None = None) -> Image.Image:
+    """depth=False flat; depth=True full depth pass; depth='lite' restrained pass."""
+    pal = DEFAULT_PALETTE if palette is None else palette
+    home_goals, away_goals = parse_score(score)
+    if away_goals > home_goals:
+        top_name, top_goals, bottom_name, bottom_goals = away, away_goals, home, home_goals
+    else:
+        top_name, top_goals, bottom_name, bottom_goals = home, home_goals, away, away_goals
+    draw_win = home_goals != away_goals
+
+    img = Image.new("RGB", (W, H), pal["base"])
+    draw = ImageDraw.Draw(img)
+    if draw_win:
+        draw.rectangle([0, 0, W, SPLIT_Y], fill=pal["winner_field"])
+        draw.rectangle([0, SPLIT_Y, W, H], fill=pal["loser_field"])
+    # Halfway rule + faint center circle (pitch vernacular, not decoration).
+    draw.rectangle([0, SPLIT_Y - 3, W, SPLIT_Y + 3], fill=pal["rule"])
+    draw.ellipse([540 - 420, SPLIT_Y - 420, 540 + 420, SPLIT_Y + 420],
+                 outline=pal["circle"], width=3)
+    # Quiet context line: sentence case, no eyebrow chrome (skill restraint).
+    context = f"{comp} • {when}"
+    draw.text((MARGIN, 205), context, font=font_brand("body", 40),
+              fill=pal["context_win"] if draw_win else pal["context_draw"])
+    # Winner: monumental numeral.
+    winner_type = pal["winner_type"] if draw_win else pal["draw_type"]
+    draw.text((MARGIN, 300), top_name, font=font_brand("display", 130),
+              fill=winner_type)
+    if pal["winner_bar"] is not None:
+        draw.rectangle([MARGIN, 445, MARGIN + 220, 457], fill=pal["winner_bar"])
+    # Badge slots in the right void beside the score (monogram rings;
+    # real crests stay banned, future library images reuse these slots).
+    badge(draw, 800, 600, 280, winner_type, winner_type, initials(top_name))
+    if depth and draw_win:
+        # Hero glow (broadcast-depth move 2): blurred paper copy behind the
+        # numeral. Paper glow, never white bloom.
+        glow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        glow_draw = ImageDraw.Draw(glow_layer)
+        glow_draw.text((MARGIN - 8, 410), str(top_goals), font=font_numeral(560),
+                       fill=pal["glow"] + (110,))
+        img = Image.alpha_composite(
+            img.convert("RGBA"),
+            glow_layer.filter(ImageFilter.GaussianBlur(18))).convert("RGB")
+        draw = ImageDraw.Draw(img)
+    draw.text((MARGIN - 8, 400), str(top_goals), font=font_numeral(560),
+              fill=winner_type)
+    # Loser territory: dimmed numeral + name anchored together.
+    draw.text((MARGIN - 8, SPLIT_Y + 60), str(bottom_goals), font=font_numeral(280),
+              fill=pal["loser_numeral"])
+    badge(draw, 800, 1470, 220, pal["loser_name"],
+          pal["loser_name"], initials(bottom_name))
+    draw.text((MARGIN, SPLIT_Y + 360), bottom_name, font=font_brand("display", 84),
+              fill=pal["loser_name"])
+    draw.text((W // 2, 1820), "Nguồn + ngày", font=font_brand("body", 36),
+              fill=pal["credit"], anchor="ma")
+    if depth:
+        img = apply_depth_pass(img, seed=seed, lite=(depth == "lite"), palette=pal)
+    return img
+
+
+def apply_depth_pass(img: Image.Image, seed: int = 7, lite: bool = False,
+                     palette: dict | None = None) -> Image.Image:
+    """broadcast-depth moves 1, 3, 4 (glow already drawn by the caller).
+
+    lite=True (emil-design-eng restraint: remove accessories until it reads
+    clean): keep top-light + hero glow, halve the grain, drop haze bands.
+    Seeded, CPU-only, palette-safe: gradients and haze use locked colors at
+    low alpha; grain is monochrome and skips microcopy zones.
+    """
+    lite_sigma, lite_strength = (8, 60) if lite else (16, 100)
+    pal = DEFAULT_PALETTE if palette is None else palette
+    rgba = img.convert("RGBA")
+    # Move 1: top-light gradient + bottom shade, one light direction.
+    light = Image.new("L", (1, H))
+    light.putdata([max(0, 26 - int(26 * y / (H // 3))) if y < H // 3 else 0
+                   for y in range(H)])
+    white = Image.new("RGBA", (W, H), (255, 255, 255, 0))
+    white.putalpha(light.resize((W, H)))
+    rgba = Image.alpha_composite(rgba, white)
+    shade = Image.new("L", (1, H))
+    shade.putdata([int(40 * (y - H * 5 // 6) / (H // 6)) if y > H * 5 // 6 else 0
+                   for y in range(H)])
+    black = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    black.putalpha(shade.resize((W, H)))
+    rgba = Image.alpha_composite(rgba, black)
+    # Move 4: haze bands over dead zones only (never over the numeral).
+    # Lite restraint: haze bands are the first accessory removed. Palettes
+    # may drop haze entirely (e.g. white fields where it would not read).
+    haze = pal.get("haze")
+    if not lite and haze:
+        for y0, height, color, alpha in haze:
+            band = Image.new("RGBA", (W, height), color + (alpha,))
+            rgba.paste(band, (0, y0), band)
+    # Move 3: seeded monochrome grain, masked off microcopy strips.
+    # Tile small with random.Random(seed) for determinism (PIL effect_noise
+    # is unseeded), then upscale. Gray range is palette-aware: dark fields
+    # take deep grain, white fields take bright grain so the white is never
+    # dulled gray by the pass itself.
+    tile_w, tile_h = 270, 480
+    rng = random.Random(seed)
+    lo, hi = int(pal.get("grain_lo", 86)), int(pal.get("grain_hi", 180))
+    tile = Image.new("L", (tile_w, tile_h))
+    tile_px = tile.load()
+    for ty in range(tile_h):
+        for tx in range(tile_w):
+            tile_px[tx, ty] = min(hi, max(lo, int((lo + hi) // 2 + rng.gauss(0, lite_sigma))))
+    gray = tile.resize((W, H), Image.BILINEAR)
+    strength = Image.new("L", (W, H), lite_strength)  # ~39% grain strength
+    strength_draw = ImageDraw.Draw(strength)
+    strength_draw.rectangle([0, 195, W, 260], fill=0)    # context line
+    strength_draw.rectangle([0, 1790, W, H], fill=0)     # provenance line
+    grain_layer = Image.merge("RGB", (gray, gray, gray)).convert("RGBA")
+    grain_layer.putalpha(strength)
+    rgba = Image.alpha_composite(rgba, grain_layer)
+    return rgba.convert("RGB")
+
+
+try:
+    from apps.studio_templates.detailing import (
+        corner_marks,
+        hairline_rule,
+        perforation,
+        pinstripes,
+        tick_ruler,
+    )
+except ImportError:  # direct script run: python apps/studio_templates/redesign_mr02_skill.py
+    from detailing import (  # type: ignore[no-redef]
+        corner_marks,
+        hairline_rule,
+        perforation,
+        pinstripes,
+        tick_ruler,
+    )
+
+
+def apply_mr02_detailing(img: Image.Image, seed: int = 21,
+                         palette: dict | None = None) -> Image.Image:
+    """emil-design-eng detailing on the lite pass: unseen details compound.
+
+    Only non-data details (rule: details never carry data). The card's real
+    slots are all displayed already, so no micro-label is added — restraint
+    is the point.
+    """
+    pal = DEFAULT_PALETTE if palette is None else palette
+    primary = pal.get("detail_primary", INK)
+    faint = pal.get("detail_faint", MIST)
+    line = pal.get("detail_line", SLATE)
+    work = img.convert("RGB")
+    draw = ImageDraw.Draw(work)
+    # Technical framing of the winner field.
+    corner_marks(draw, (48, 160, 1032, 1072), primary)
+    # Notched trim under the loser name zone.
+    hairline_rule(draw, MARGIN, 620, 1700, line)
+    # Ticket perforation above provenance.
+    perforation(draw, MARGIN, W - MARGIN, 1748, faint)
+    # Texture rhythm on the loser edge + air in the right void.
+    tick_ruler(draw, 40, 1180, 1700, 52, line)
+    work = pinstripes(work, (640, 1200, 1004, 1700), line, 14, 34, seed)
+    return work
+
+
+def main() -> None:
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    # Same data slots as the locked MR-02 starter (build_starters.py).
+    new = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy")
+    new_path = OUT_DIR / "mr02-redesign-proof.png"
+    new.save(new_path)
+    deep = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy",
+                           depth=True, seed=7)
+    deep_path = OUT_DIR / "mr02-depth-proof.png"
+    deep.save(deep_path)
+    lite = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy",
+                           depth="lite", seed=7)
+    lite_path = OUT_DIR / "mr02-depth-lite-proof.png"
+    lite.save(lite_path)
+    detail = apply_mr02_detailing(lite)
+    detail_path = OUT_DIR / "mr02-detail-proof.png"
+    detail.save(detail_path)
+    cw_paths = []
+    for cw_id in ("san-trang", "co-sang"):
+        pal = COLORWAYS[cw_id]
+        cw = render_redesign("HÀ NỘI", "NAM ĐỊNH", "2 - 0", "V.League", "Tối nay • Hàng Đẫy",
+                             depth="lite", seed=7, palette=pal)
+        cw = apply_mr02_detailing(cw, palette=pal)
+        cw_path = OUT_DIR / f"mr02-{cw_id}-proof.png"
+        cw.save(cw_path)
+        cw_paths.append(cw_path)
+    original = Image.open(ORIGINAL).convert("RGB")
+    scale = 880 / H
+    side_w = int(W * scale)
+    panels = [original.resize((side_w, 880)), new.resize((side_w, 880)),
+              lite.resize((side_w, 880)), detail.resize((side_w, 880))]
+    titles = ["ORIGINAL MR-02", "REDESIGN (skills)", "REDESIGN + LITE", "REDESIGN + DETAIL"]
+    compare = Image.new("RGB", (side_w * 4 + 120, 960), (10, 12, 20))
+    header = ImageDraw.Draw(compare)
+    for i, (panel, title) in enumerate(zip(panels, titles)):
+        x = i * (side_w + 40)
+        compare.paste(panel, (x, 50))
+        header.text((x + 20, 12), title, fill=CORAL if i == 3 else PAPER)
+    compare.save(OUT_DIR / "mr02-compare.png")
+    cw_panels = [Image.open(p).convert("RGB").resize((side_w, 880)) for p in cw_paths]
+    cw_titles = ["SAN TRANG (white)", "CO SANG (morning pitch)"]
+    cw_compare = Image.new("RGB", (side_w * 2 + 40, 960), (10, 12, 20))
+    cw_header = ImageDraw.Draw(cw_compare)
+    for i, (panel, title) in enumerate(zip(cw_panels, cw_titles)):
+        x = i * (side_w + 40)
+        cw_compare.paste(panel, (x, 50))
+        cw_header.text((x + 20, 12), title, fill=PAPER)
+    cw_compare.save(OUT_DIR / "mr02-colorways-compare.png")
+    print(f"wrote {new_path}, {deep_path}, {lite_path}, {detail_path} + compare + colorways")
+
+
+if __name__ == "__main__":
+    main()

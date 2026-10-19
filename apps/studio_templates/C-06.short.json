@@ -1,0 +1,116 @@
+{
+ "schemaVersion": 4,
+ "width": 1080,
+ "height": 1920,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-70",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1080,
+     "height": 1920,
+     "src": "/template-foundation/resources/pack/short-stat_leader.jpg",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-4",
+     "type": "text",
+     "x": 130,
+     "y": 650,
+     "width": 874,
+     "height": 60,
+     "text": "CON SỐ",
+     "fontSize": 34,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#00E5FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "kicker"
+     }
+    },
+    {
+     "id": "val-5",
+     "type": "text",
+     "x": 130,
+     "y": 740,
+     "width": 874,
+     "height": 300,
+     "text": "19",
+     "fontSize": 120,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "claim"
+     }
+    },
+    {
+     "id": "val-8",
+     "type": "text",
+     "x": 130,
+     "y": 1100,
+     "width": 874,
+     "height": 130,
+     "text": "Dòng phụ (sửa theo từng video)",
+     "fontSize": 44,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "support"
+     }
+    },
+    {
+     "id": "val-13",
+     "type": "text",
+     "x": 130,
+     "y": 1820,
+     "width": 820.0,
+     "height": 40,
+     "text": "Nguồn + ngày",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

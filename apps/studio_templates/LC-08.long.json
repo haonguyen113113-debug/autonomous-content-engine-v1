@@ -1,0 +1,125 @@
+{
+ "schemaVersion": 4,
+ "width": 1920,
+ "height": 1080,
+ "fonts": [],
+ "pages": [
+  {
+   "id": "p1",
+   "background": "#060913",
+   "children": [
+    {
+     "id": "bed-1",
+     "type": "image",
+     "x": 0,
+     "y": 0,
+     "width": 1920,
+     "height": 1080,
+     "src": "/template-foundation/resources/pack/long-chart_timeline.png",
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-213",
+     "type": "text",
+     "x": 140,
+     "y": 220,
+     "width": 900,
+     "height": 260,
+     "text": "2018",
+     "fontSize": 240,
+     "fontFamily": "Tektur",
+     "fontWeight": "bold",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "year"
+     }
+    },
+    {
+     "id": "deco-214",
+     "type": "figure",
+     "subType": "rect",
+     "x": 140,
+     "y": 500,
+     "width": 220,
+     "height": 10,
+     "fill": "#FF3D81",
+     "opacity": 1.0,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-215",
+     "type": "text",
+     "x": 140,
+     "y": 560,
+     "width": 1100,
+     "height": 200,
+     "text": "Năm bóng đá Việt Nam đổi đời",
+     "fontSize": 56,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#F2F6FF",
+     "align": "left",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "meaning"
+     }
+    },
+    {
+     "id": "deco-216",
+     "type": "figure",
+     "subType": "circle",
+     "x": 1450,
+     "y": 350,
+     "width": 300,
+     "height": 300,
+     "fill": "#060913",
+     "stroke": "#8296BE",
+     "strokeWidth": 5,
+     "selectable": false,
+     "draggable": false,
+     "resizable": false,
+     "removable": false
+    },
+    {
+     "id": "val-217",
+     "type": "text",
+     "x": 134,
+     "y": 990,
+     "width": 1652,
+     "height": 40,
+     "text": "NGUỒN + NGÀY CẬP NHẬT",
+     "fontSize": 26,
+     "fontFamily": "Be Vietnam Pro",
+     "fontWeight": "normal",
+     "fill": "#FFB03A",
+     "align": "center",
+     "draggable": false,
+     "resizable": false,
+     "removable": false,
+     "styleEditable": false,
+     "contentEditable": true,
+     "custom": {
+      "slot": "credit"
+     }
+    }
+   ]
+  }
+ ],
+ "audios": []
+}

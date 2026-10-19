@@ -1,0 +1,4641 @@
+{
+ "checks": [
+  {
+   "card": "BP-01",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-01",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-01",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-01",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-02",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-02",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-02",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-02",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-03",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.2,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-03",
+   "slot": "profile-meta",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 1.76,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "BP-03",
+   "slot": "profile-name",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 13.0,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-03",
+   "slot": "profile-stat",
+   "size": 160,
+   "zone": "plate",
+   "contrast": 12.79,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-03",
+   "slot": "profile-tag",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 3.41,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-04",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 9.26,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-04",
+   "slot": "evt-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 12.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-04",
+   "slot": "evt-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 14.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-04",
+   "slot": "evt-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.3,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-04",
+   "slot": "min-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 18.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-04",
+   "slot": "min-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.22,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-04",
+   "slot": "min-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 14.35,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-04",
+   "slot": "title",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-05",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 9.26,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-05",
+   "slot": "evt-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 12.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-05",
+   "slot": "evt-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 14.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-05",
+   "slot": "evt-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.3,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-05",
+   "slot": "min-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 18.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-05",
+   "slot": "min-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.22,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-05",
+   "slot": "min-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 14.35,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-05",
+   "slot": "title",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-06",
+   "slot": "amount",
+   "size": 220,
+   "zone": "plate",
+   "contrast": 17.26,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-06",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.8,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-06",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-06",
+   "slot": "line",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-06",
+   "slot": "note",
+   "size": 38,
+   "zone": "plate",
+   "contrast": 17.42,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.22,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "crest-away",
+   "size": 46,
+   "zone": "plate",
+   "contrast": 17.79,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "crest-home",
+   "size": 46,
+   "zone": "plate",
+   "contrast": 17.19,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "label-0",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 5.91,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "label-1",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 3.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "m-0-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 16.76,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "m-0-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 9.92,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "m-1-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 6.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "m-1-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 6.61,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "team-away",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "team-home",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-07",
+   "slot": "title",
+   "size": 80,
+   "zone": "plate",
+   "contrast": 7.34,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-08",
+   "slot": "amount",
+   "size": 220,
+   "zone": "plate",
+   "contrast": 17.26,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-08",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.8,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-08",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-08",
+   "slot": "line",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-08",
+   "slot": "note",
+   "size": 38,
+   "zone": "plate",
+   "contrast": 17.42,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-09",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-09",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-09",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-09",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.22,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "crest-away",
+   "size": 46,
+   "zone": "plate",
+   "contrast": 17.79,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "crest-home",
+   "size": 46,
+   "zone": "plate",
+   "contrast": 17.19,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "label-0",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 5.91,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "label-1",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 3.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "m-0-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 10.83,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "m-0-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 15.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "m-1-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 9.48,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "m-1-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 6.61,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "team-away",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "team-home",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-10",
+   "slot": "title",
+   "size": 80,
+   "zone": "plate",
+   "contrast": 7.34,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-11",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 9.26,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-11",
+   "slot": "evt-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 12.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-11",
+   "slot": "evt-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 14.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-11",
+   "slot": "evt-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.3,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-11",
+   "slot": "min-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 18.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-11",
+   "slot": "min-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.22,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-11",
+   "slot": "min-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 14.35,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-11",
+   "slot": "title",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-13",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 8.87,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-13",
+   "slot": "fact",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 6.84,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-13",
+   "slot": "fact-k",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 14.32,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-13",
+   "slot": "myth",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 4.75,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-13",
+   "slot": "myth-k",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 4.16,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.22,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "crest-away",
+   "size": 46,
+   "zone": "plate",
+   "contrast": 17.79,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "crest-home",
+   "size": 46,
+   "zone": "plate",
+   "contrast": 17.19,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "label-0",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 5.91,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "label-1",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 3.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "m-0-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 10.83,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "m-0-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 15.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "m-1-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 9.48,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "m-1-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 6.61,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "team-away",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "team-home",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-14",
+   "slot": "title",
+   "size": 80,
+   "zone": "plate",
+   "contrast": 7.34,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-15",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.8,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-15",
+   "slot": "l-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-15",
+   "slot": "l-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 11.36,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-15",
+   "slot": "l-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.69,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-15",
+   "slot": "title",
+   "size": 60,
+   "zone": "plate",
+   "contrast": 17.55,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-15",
+   "slot": "v-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 15.24,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-15",
+   "slot": "v-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 16.88,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-15",
+   "slot": "v-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 16.38,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-16",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-16",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-16",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-16",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-17",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 9.26,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-17",
+   "slot": "evt-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 12.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-17",
+   "slot": "evt-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 14.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-17",
+   "slot": "evt-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.3,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-17",
+   "slot": "min-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 18.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-17",
+   "slot": "min-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.22,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-17",
+   "slot": "min-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 14.35,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-17",
+   "slot": "title",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-18",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-18",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-18",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-18",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-19",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "BP-19",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-19",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-19",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-20",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-20",
+   "slot": "src-body",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 17.55,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "BP-20",
+   "slot": "src-title",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-01",
+   "slot": "channel",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 18.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-01",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 8.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-01",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.43,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-02",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-02",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-02",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-02",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-03",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-03",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-03",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-03",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-04",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.2,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-04",
+   "slot": "spot-meta",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 1.76,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "C-04",
+   "slot": "spot-name",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 13.0,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-04",
+   "slot": "spot-stat",
+   "size": 160,
+   "zone": "plate",
+   "contrast": 12.79,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-04",
+   "slot": "spot-tag",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 3.41,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-05",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-05",
+   "slot": "src-body",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 17.55,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-05",
+   "slot": "src-title",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-06",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 16.84,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-06",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.8,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-06",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-06",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.84,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.22,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "crest-away",
+   "size": 46,
+   "zone": "plate",
+   "contrast": 17.79,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "crest-home",
+   "size": 46,
+   "zone": "plate",
+   "contrast": 17.19,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "label-0",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 6.09,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "label-1",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 7.52,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "label-2",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 5.11,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "m-0-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "m-0-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 15.17,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "m-1-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 14.23,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "m-1-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 11.2,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "m-2-away",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 7.66,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "m-2-home",
+   "size": 140,
+   "zone": "plate",
+   "contrast": 5.27,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "team-away",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "team-home",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-07",
+   "slot": "title",
+   "size": 80,
+   "zone": "plate",
+   "contrast": 7.34,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-08",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-08",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.45,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-08",
+   "slot": "n-0",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 18.94,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-08",
+   "slot": "n-1",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 19.11,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-08",
+   "slot": "n-2",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-08",
+   "slot": "t-0",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-08",
+   "slot": "t-1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.94,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-08",
+   "slot": "t-2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 19.0,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-09",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-09",
+   "slot": "src-body",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 17.55,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-09",
+   "slot": "src-title",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-10",
+   "slot": "channel",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 7.29,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "C-10",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 6.64,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "C-10",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 5.19,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-01",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-01",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-01",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-01",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-02",
+   "slot": "away",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 5.99,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-02",
+   "slot": "context",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 10.4,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-02",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 6.72,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-02",
+   "slot": "crest-loser",
+   "size": 79,
+   "zone": "plate",
+   "contrast": 15.45,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-02",
+   "slot": "crest-winner",
+   "size": 79,
+   "zone": "plate",
+   "contrast": 16.88,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-02",
+   "slot": "home",
+   "size": 100,
+   "zone": "plate",
+   "contrast": 9.2,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-02",
+   "slot": "score",
+   "size": 380,
+   "zone": "plate",
+   "contrast": 15.8,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-02",
+   "slot": "score-away",
+   "size": 260,
+   "zone": "plate",
+   "contrast": 4.76,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-03",
+   "slot": "away",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 5.99,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-03",
+   "slot": "context",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 10.4,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-03",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 6.72,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-03",
+   "slot": "crest-loser",
+   "size": 79,
+   "zone": "plate",
+   "contrast": 15.45,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-03",
+   "slot": "crest-winner",
+   "size": 79,
+   "zone": "plate",
+   "contrast": 16.88,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-03",
+   "slot": "home",
+   "size": 100,
+   "zone": "plate",
+   "contrast": 9.2,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-03",
+   "slot": "score",
+   "size": 380,
+   "zone": "plate",
+   "contrast": 15.8,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-03",
+   "slot": "score-away",
+   "size": 260,
+   "zone": "plate",
+   "contrast": 4.76,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-04",
+   "slot": "away",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 5.99,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-04",
+   "slot": "context",
+   "size": 38,
+   "zone": "plate",
+   "contrast": 10.4,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-04",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 6.72,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-04",
+   "slot": "crest-loser",
+   "size": 79,
+   "zone": "plate",
+   "contrast": 15.45,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-04",
+   "slot": "crest-winner",
+   "size": 79,
+   "zone": "plate",
+   "contrast": 16.88,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-04",
+   "slot": "home",
+   "size": 100,
+   "zone": "plate",
+   "contrast": 9.2,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-04",
+   "slot": "score",
+   "size": 380,
+   "zone": "plate",
+   "contrast": 15.8,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-04",
+   "slot": "score-away",
+   "size": 260,
+   "zone": "plate",
+   "contrast": 4.76,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-05",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 9.26,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-05",
+   "slot": "evt-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 12.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-05",
+   "slot": "evt-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 14.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-05",
+   "slot": "evt-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.3,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-05",
+   "slot": "min-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 18.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-05",
+   "slot": "min-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.22,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-05",
+   "slot": "min-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 14.35,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-05",
+   "slot": "title",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-06",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 9.26,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-06",
+   "slot": "evt-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 12.7,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-06",
+   "slot": "evt-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 14.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-06",
+   "slot": "evt-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.3,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-06",
+   "slot": "min-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 18.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-06",
+   "slot": "min-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.22,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-06",
+   "slot": "min-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 14.35,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-06",
+   "slot": "title",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-07",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.8,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-07",
+   "slot": "l-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-07",
+   "slot": "l-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 11.36,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-07",
+   "slot": "l-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.69,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-07",
+   "slot": "title",
+   "size": 60,
+   "zone": "plate",
+   "contrast": 17.55,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-07",
+   "slot": "v-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 15.39,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-07",
+   "slot": "v-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.03,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-07",
+   "slot": "v-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 15.39,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-08",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.2,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-08",
+   "slot": "potm-meta",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 1.76,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "MR-08",
+   "slot": "potm-name",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 13.0,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-08",
+   "slot": "potm-stat",
+   "size": 160,
+   "zone": "plate",
+   "contrast": 12.79,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-08",
+   "slot": "potm-tag",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 3.41,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-09",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.8,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-09",
+   "slot": "l-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-09",
+   "slot": "l-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 11.36,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-09",
+   "slot": "l-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.69,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-09",
+   "slot": "title",
+   "size": 60,
+   "zone": "plate",
+   "contrast": 17.55,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-09",
+   "slot": "v-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 15.86,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-09",
+   "slot": "v-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 16.42,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-09",
+   "slot": "v-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 13.88,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-10",
+   "slot": "claim",
+   "size": 120,
+   "zone": "plate",
+   "contrast": 19.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-10",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-10",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 13.51,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-10",
+   "slot": "support",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.82,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-12",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-12",
+   "slot": "src-body",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 17.55,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-12",
+   "slot": "src-title",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-01",
+   "slot": "chip-main",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 17.04,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "U-01",
+   "slot": "chip-sub",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-01",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-02",
+   "slot": "chip-main",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 17.04,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "U-02",
+   "slot": "chip-sub",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-02",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-03",
+   "slot": "chip-main",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 17.04,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "U-03",
+   "slot": "chip-sub",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-03",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-04",
+   "slot": "chip-main",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 17.04,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "U-04",
+   "slot": "chip-sub",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-04",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-05",
+   "slot": "chip-main",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 17.04,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "U-05",
+   "slot": "chip-sub",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-05",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-06",
+   "slot": "chip-main",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 17.04,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "U-06",
+   "slot": "chip-sub",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.35,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-06",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 3.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-07",
+   "slot": "sting",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "U-08",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.66,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-08",
+   "slot": "src-body",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 17.55,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "U-08",
+   "slot": "src-title",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 18.06,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-01",
+   "slot": "claim",
+   "size": 100,
+   "zone": "plate",
+   "contrast": 16.24,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-01",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 4.53,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-01",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.74,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-01",
+   "slot": "numeral",
+   "size": 200,
+   "zone": "plate",
+   "contrast": 16.66,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-01",
+   "slot": "sub",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 11.01,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-01",
+   "slot": "support",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 6.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-02",
+   "slot": "claim",
+   "size": 100,
+   "zone": "plate",
+   "contrast": 16.24,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-02",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 4.53,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-02",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.74,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-02",
+   "slot": "numeral",
+   "size": 200,
+   "zone": "plate",
+   "contrast": 16.66,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-02",
+   "slot": "sub",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 11.01,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-02",
+   "slot": "support",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 6.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.78,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "e-0",
+   "size": 36,
+   "zone": "plate",
+   "contrast": 17.29,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "e-1",
+   "size": 36,
+   "zone": "plate",
+   "contrast": 12.34,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "e-2",
+   "size": 36,
+   "zone": "plate",
+   "contrast": 9.77,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "e-3",
+   "size": 36,
+   "zone": "plate",
+   "contrast": 15.24,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "t-0",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.59,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "t-1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.62,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "t-2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.35,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "t-3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.25,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-03",
+   "slot": "title",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 18.27,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "a-0",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 14.08,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "a-1",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 3.29,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "card": "LC-04",
+   "slot": "away",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 16.99,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 4.79,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "crest-away",
+   "size": 54,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "crest-home",
+   "size": 63,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "h-0",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 16.02,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "h-1",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 5.19,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "home",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 16.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "l-0",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.64,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-04",
+   "slot": "l-1",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.47,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-05",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 6.22,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-05",
+   "slot": "kicker",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 18.18,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-05",
+   "slot": "l-0",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 17.86,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-05",
+   "slot": "l-1",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 17.17,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-05",
+   "slot": "l-2",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 15.67,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-05",
+   "slot": "v-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.0,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-05",
+   "slot": "v-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 15.6,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-05",
+   "slot": "v-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 7.2,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-06",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.92,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-06",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.74,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-06",
+   "slot": "quote",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 17.18,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-06",
+   "slot": "source",
+   "size": 36,
+   "zone": "plate",
+   "contrast": 4.77,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-06",
+   "slot": "speaker",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 9.08,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-07",
+   "slot": "amount",
+   "size": 190,
+   "zone": "plate",
+   "contrast": 17.76,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-07",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 6.22,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-07",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.59,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-07",
+   "slot": "line",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 15.4,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-07",
+   "slot": "note",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 18.01,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-08",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.78,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-08",
+   "slot": "meaning",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 12.65,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-08",
+   "slot": "year",
+   "size": 240,
+   "zone": "plate",
+   "contrast": 17.5,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-09",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.92,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-09",
+   "slot": "fact",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 6.66,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-09",
+   "slot": "fact-k",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 8.1,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-09",
+   "slot": "myth",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-09",
+   "slot": "myth-k",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-10",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 4.79,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-10",
+   "slot": "kicker",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 16.88,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-10",
+   "slot": "l-0",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 15.95,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-10",
+   "slot": "l-1",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 13.18,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-10",
+   "slot": "l-2",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 8.07,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-10",
+   "slot": "v-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 15.32,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-10",
+   "slot": "v-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 1.27,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "card": "LC-10",
+   "slot": "v-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 7.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-11",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.45,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-11",
+   "slot": "l-0",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 6.21,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-11",
+   "slot": "l-1",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 5.67,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-11",
+   "slot": "name",
+   "size": 84,
+   "zone": "plate",
+   "contrast": 14.92,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-11",
+   "slot": "role",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 5.64,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-11",
+   "slot": "v-0",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 7.33,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-11",
+   "slot": "v-1",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 9.29,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-12",
+   "slot": "claim",
+   "size": 100,
+   "zone": "plate",
+   "contrast": 16.24,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-12",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 4.53,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-12",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.74,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-12",
+   "slot": "numeral",
+   "size": 200,
+   "zone": "plate",
+   "contrast": 16.66,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-12",
+   "slot": "sub",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 11.01,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-12",
+   "slot": "support",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 6.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-13",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.92,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-13",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.74,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-13",
+   "slot": "quote",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 17.18,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-13",
+   "slot": "source",
+   "size": 36,
+   "zone": "plate",
+   "contrast": 4.77,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-13",
+   "slot": "speaker",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 9.08,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-14",
+   "slot": "mark",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 1.13,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "card": "LC-15",
+   "slot": "away",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 8.52,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-15",
+   "slot": "comp",
+   "size": 60,
+   "zone": "plate",
+   "contrast": 12.08,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-15",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 4.48,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-15",
+   "slot": "crest-away",
+   "size": 54,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-15",
+   "slot": "crest-home",
+   "size": 63,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-15",
+   "slot": "home",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 1.17,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "card": "LC-15",
+   "slot": "when",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 6.02,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-16",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.92,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-16",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.74,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-16",
+   "slot": "quote",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 17.18,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "LC-16",
+   "slot": "source",
+   "size": 36,
+   "zone": "plate",
+   "contrast": 4.77,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "LC-16",
+   "slot": "speaker",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 9.08,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-01",
+   "slot": "claim",
+   "size": 100,
+   "zone": "plate",
+   "contrast": 16.24,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-01",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 4.53,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-01",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.74,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-01",
+   "slot": "numeral",
+   "size": 200,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-01",
+   "slot": "sub",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-01",
+   "slot": "support",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 6.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-02",
+   "slot": "away",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 16.95,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-02",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 9.39,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-02",
+   "slot": "crest-loser",
+   "size": 50,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-02",
+   "slot": "crest-winner",
+   "size": 63,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-02",
+   "slot": "home",
+   "size": 92,
+   "zone": "plate",
+   "contrast": 17.31,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-02",
+   "slot": "kicker",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 6.45,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-02",
+   "slot": "meta",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-02",
+   "slot": "score",
+   "size": 190,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-03",
+   "slot": "o1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-03",
+   "slot": "p1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-03",
+   "slot": "p2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-03",
+   "slot": "p3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-03",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "d1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "d2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "d3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "d4",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "f1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "f2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "f3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "gk",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "m1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "m2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "m3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-04",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-05",
+   "slot": "p1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-05",
+   "slot": "p2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-05",
+   "slot": "p3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-05",
+   "slot": "p4",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-05",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-06",
+   "slot": "dline",
+   "size": 36,
+   "zone": "plate",
+   "contrast": 6.17,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-06",
+   "slot": "o1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-06",
+   "slot": "p1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-06",
+   "slot": "p2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-06",
+   "slot": "p3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-06",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-07",
+   "slot": "cb1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-07",
+   "slot": "cb2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-07",
+   "slot": "gk",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-07",
+   "slot": "m",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-07",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-08",
+   "slot": "o1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-08",
+   "slot": "p1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-08",
+   "slot": "p2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-08",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-09",
+   "slot": "o1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-09",
+   "slot": "p1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-09",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-10",
+   "slot": "fb",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-10",
+   "slot": "o1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-10",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-10",
+   "slot": "w",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-11",
+   "slot": "focus",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-11",
+   "slot": "p1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 6.42,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-11",
+   "slot": "p2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 6.42,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-11",
+   "slot": "stamp",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-11",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-12",
+   "slot": "c-0",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-12",
+   "slot": "c-1",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-12",
+   "slot": "c-2",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-12",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 2.3,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "TA-12",
+   "slot": "f-0",
+   "size": 80,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-12",
+   "slot": "f-1",
+   "size": 80,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-12",
+   "slot": "f-2",
+   "size": 80,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-12",
+   "slot": "kicker",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 17.59,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-13",
+   "slot": "a",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-13",
+   "slot": "d",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 5.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-13",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-14",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 2.3,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "TA-14",
+   "slot": "kicker",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 17.59,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-14",
+   "slot": "tag-0",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 6.17,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-14",
+   "slot": "tag-1",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 2.3,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "TA-15",
+   "slot": "kicker",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 17.59,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "s1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "s2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "s3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "t1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "t2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "t3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "tag-0",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 6.17,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-15",
+   "slot": "tag-1",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-16",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 6.22,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-16",
+   "slot": "kicker",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 18.18,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-16",
+   "slot": "l-0",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 17.86,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-16",
+   "slot": "l-1",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 17.17,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-16",
+   "slot": "l-2",
+   "size": 48,
+   "zone": "plate",
+   "contrast": 15.67,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-16",
+   "slot": "v-0",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 17.28,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-16",
+   "slot": "v-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 14.56,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-16",
+   "slot": "v-2",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-17",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-18",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.45,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-18",
+   "slot": "kicker",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 17.84,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-18",
+   "slot": "n-0",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 17.84,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-18",
+   "slot": "n-1",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 17.82,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-18",
+   "slot": "n-2",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 12.9,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-18",
+   "slot": "t-0",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 17.93,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-18",
+   "slot": "t-1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 14.33,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-18",
+   "slot": "t-2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 9.06,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-19",
+   "slot": "claim",
+   "size": 100,
+   "zone": "plate",
+   "contrast": 16.24,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-19",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 4.53,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-19",
+   "slot": "kicker",
+   "size": 34,
+   "zone": "plate",
+   "contrast": 12.74,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-19",
+   "slot": "numeral",
+   "size": 200,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-19",
+   "slot": "sub",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.98,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-19",
+   "slot": "support",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 6.38,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-20",
+   "slot": "r-10",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-20",
+   "slot": "r-7",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-20",
+   "slot": "r-9",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-20",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-21",
+   "slot": "r-1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-21",
+   "slot": "r-4",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-21",
+   "slot": "r-5",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-21",
+   "slot": "r-6",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-21",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-22",
+   "slot": "r-11",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-22",
+   "slot": "r-8",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-22",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-23",
+   "slot": "r-2",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-23",
+   "slot": "r-4",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-23",
+   "slot": "r-6",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-23",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "TA-24",
+   "slot": "r-1",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-24",
+   "slot": "r-3",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-24",
+   "slot": "r-4",
+   "size": 52,
+   "zone": "plate",
+   "contrast": 18.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "TA-24",
+   "slot": "tag",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 10.08,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-11",
+   "slot": "away",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 5.38,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-11",
+   "slot": "comp",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 6.39,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-11",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 10.12,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-11",
+   "slot": "crest-away",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 7.64,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-11",
+   "slot": "crest-home",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 10.37,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "card": "MR-11",
+   "slot": "date",
+   "size": 44,
+   "zone": "plate",
+   "contrast": 16.07,
+   "need": 3.0,
+   "pass": true
+  },
+  {
+   "card": "MR-11",
+   "slot": "home",
+   "size": 64,
+   "zone": "plate",
+   "contrast": 6.34,
+   "need": 4.5,
+   "pass": true
+  }
+ ],
+ "fails": [
+  {
+   "card": "BP-03",
+   "slot": "profile-meta",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 1.76,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "C-04",
+   "slot": "spot-meta",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 1.76,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "MR-08",
+   "slot": "potm-meta",
+   "size": 40,
+   "zone": "plate",
+   "contrast": 1.76,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "LC-04",
+   "slot": "a-1",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 3.29,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "card": "LC-10",
+   "slot": "v-1",
+   "size": 56,
+   "zone": "plate",
+   "contrast": 1.27,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "card": "LC-14",
+   "slot": "mark",
+   "size": 72,
+   "zone": "plate",
+   "contrast": 1.13,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "card": "LC-15",
+   "slot": "home",
+   "size": 96,
+   "zone": "plate",
+   "contrast": 1.17,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "card": "TA-12",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 2.3,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "TA-14",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 2.3,
+   "need": 3.0,
+   "pass": false
+  },
+  {
+   "card": "TA-15",
+   "slot": "credit",
+   "size": 26,
+   "zone": "plate",
+   "contrast": 2.3,
+   "need": 3.0,
+   "pass": false
+  }
+ ]
+}

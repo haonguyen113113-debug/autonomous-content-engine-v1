@@ -95,6 +95,26 @@ def ensure_asset_schema(conn: sqlite3.Connection) -> None:
 
     columns = _table_columns(conn, "assets")
 
+    # Full-column migration for databases created before the subject/
+    # lifecycle/metadata columns existed (else queries selecting them
+    # fail and the whole verified-inventory path silently returns []).
+    # Owner standing order 2026-10-16: verified live inventory counts as
+    # active unless explicitly retired.
+    _COLUMN_DEFAULTS = [
+        ("lifecycle_state", "TEXT", "'active'"),
+        ("market_code", "TEXT", "NULL"),
+        ("category_code", "TEXT", "NULL"),
+        ("subject_type", "TEXT", "NULL"),
+        ("subject_id", "TEXT", "NULL"),
+        ("competition_code", "TEXT", "NULL"),
+        ("purpose_code", "TEXT", "NULL"),
+        ("metadata_json", "TEXT", "'{}'"),
+    ]
+    for name, decl, default in _COLUMN_DEFAULTS:
+        if name not in columns:
+            conn.execute(f"ALTER TABLE assets ADD COLUMN {name} {decl} DEFAULT {default}")
+            columns.add(name)
+
     if "source_id" not in columns:
         conn.execute("ALTER TABLE assets ADD COLUMN source_id TEXT")
 

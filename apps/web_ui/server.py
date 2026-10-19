@@ -16,16 +16,31 @@ from typing import Any
 from urllib.parse import urlparse
 
 from apps.content_workflow import run_content_agent
+from apps.preproduction.summary import build_summary, review_summary
+from apps.worker.queue_store import MAX_BATCH as MAX_BATCH_JOBS
+from apps.worker.queue_store import enqueue_job, list_jobs, validate_draft_payload
 from apps.asset_library.asset_intelligence import ResourceRequirement
 from apps.asset_library.discovery import (
     DiscoveryError,
     save_commons_candidate,
-    search_image_candidates,
+    search_candidates_tiered,
 )
+from apps.asset_library.identity import apply_identity_filter
+from apps.asset_library.rights_scope import build_rights_scope
 from apps.asset_library.registry import connect
 from apps.asset_library.resource_workflow import evaluate_library_requirement
+from apps.distribution import ChannelDestination, default_registry, plan_distribution
+from apps.distribution.routing import read_plan
+from apps.distribution.service import publish_plan, stage_plan
+from apps.measurement import (
+    classify_lifecycle,
+    record_observation,
+    record_payout,
+    summarize_by_channel,
+    summarize_by_run,
+)
 from apps.voice_tts import save_voice_reference, synthesize_voice_preview, voice_profile_status
-from apps.video_renderer import render_full_run, render_template_preview, render_graphic_template_previews
+from apps.video_renderer import render_full_run, render_template_preview, render_graphic_template_previews, render_visual_only_run
 from template_foundation import resolve_template
 
 
@@ -34,8 +49,12 @@ STATIC_FILES = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+    "/studio": ("studio.html", "text/html; charset=utf-8"),
+    "/studio.js": ("studio.js", "text/javascript; charset=utf-8"),
 }
 MAX_REQUEST_BYTES = 64 * 1024
+STUDIO_EXPORT_MAX_BYTES = 15 * 1024 * 1024
+STUDIO_TEMPLATES_ROOT = Path(__file__).parents[1] / "studio_templates"
 TEMPLATE_ID = "allen-knows-ball.shortform-analyst"
 LONG_TEMPLATE_ID = "allen-knows-ball.longform-analyst"
 TEMPLATE_FILES = {
@@ -57,11 +76,33 @@ TEMPLATE_FILES = {
             "statline-preview", "chart-preview", "source-preview",
             "chart-bar-preview", "chart-column-preview", "chart-pie-preview",
             "chart-donut-preview", "chart-line-preview",
+            "hook-card-preview", "hero-preview",
+            "comparison-duel-preview", "stat-leader-preview",
+            "player-poster-preview", "goal-preview",
+            "fixture-preview", "score-preview",
+            "duel-columns-preview", "poster-side-preview",
+            "poster-top-preview", "fixture-list-preview",
+            "quote-preview", "potm-preview",
+            "discipline-preview", "welcome-preview",
+        )
+    },
+    **{
+        f"/template-foundation/previews/manim/{scene}.mp4": (
+            f"previews/manim/videos/sportskit/1920p30/{scene}.mp4", "video/mp4",
+        )
+        for scene in (
+            "HookCard", "ComparisonDuel", "StatLeader", "PlayerPoster",
+            "GoalCard", "FixtureCard", "ScoreCard",
+            "DuelColumns", "PosterSide", "GoalPunch",
+            "ScoreBug", "QuoteReveal", "WelcomeCard",
         )
     },
     "/template-foundation/resources/identity/akb-mark.svg": (
         "resources/identity/akb-mark.svg",
         "image/svg+xml",
+    ),
+    "/template-foundation/pack-audit.html": (
+        "pack-audit.html", "text/html; charset=utf-8",
     ),
     **{
         f"/template-foundation/resources/fonts/{name}": (
@@ -74,6 +115,8 @@ TEMPLATE_FILES = {
             "BeVietnamPro-Bold.ttf",
             "BarlowCondensed-SemiBold.ttf",
             "BarlowCondensed-Bold.ttf",
+            "BigShoulders-Bold.ttf",
+            "Tektur-Medium.ttf",
         )
     },
 }
@@ -141,6 +184,232 @@ def _approve_voice_preview(root: Path, payload: dict[str, Any]) -> dict[str, Any
     return {"status": "VOICE_PREVIEW_APPROVED", "run_id": run_id}
 
 
+def _attach_segment_media(root: Path, db_path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    segment_id = payload.get("segment_id")
+    if not isinstance(segment_id, str) or not segment_id.strip() or len(segment_id) > 80:
+        raise ValueError("A segment ID is required.")
+    segment_id = unicodedata.normalize("NFC", segment_id.strip())
+    asset_id = payload.get("asset_id")
+    if not isinstance(asset_id, str):
+        raise ValueError("An asset ID is required.")
+    asset_id = asset_id.strip()
+    caption = unicodedata.normalize("NFC", str(payload.get("media_caption", ""))).strip()[:500]
+
+    run_path = root / "runtime/runs" / f"{run_id}.json"
+    if not run_path.is_file():
+        raise ValueError("Production run was not found.")
+    run = json.loads(run_path.read_text(encoding="utf-8"))
+    segments = run.get("draft", {}).get("segments", [])
+    if not isinstance(segments, list):
+        raise ValueError("Production run has no script segments.")
+    segment = next((item for item in segments if isinstance(item, dict) and item.get("id") == segment_id), None)
+    if segment is None:
+        raise ValueError("Script segment was not found in this run.")
+
+    if not asset_id:
+        segment.pop("media_asset_id", None)
+        segment.pop("media_caption", None)
+        run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return {"status": "MEDIA_DETACHED", "run_id": run_id, "segment_id": segment_id}
+
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT asset_id, asset_type, rights_state, lifecycle_state, stored_path "
+            "FROM assets WHERE asset_id = ?",
+            (asset_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        raise ValueError("Asset was not found in the library.")
+    if row["asset_type"] != "image":
+        raise ValueError("Only verified image assets can be attached as segment media.")
+    if row["rights_state"] != "verified":
+        raise ValueError("Asset rights must be verified before attaching it to a segment.")
+    if row["lifecycle_state"] != "active":
+        raise ValueError("Only active library assets can be attached to a segment.")
+    library_root = (root / "runtime/assets/library").resolve()
+    image_path = (root / row["stored_path"]).resolve()
+    if library_root not in image_path.parents or not image_path.is_file():
+        raise ValueError("Selected library image is missing or outside the library.")
+
+    segment["media_asset_id"] = asset_id
+    if caption:
+        segment["media_caption"] = caption
+    else:
+        segment.pop("media_caption", None)
+    run_path.write_text(json.dumps(run, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {"status": "MEDIA_ATTACHED", "run_id": run_id, "segment_id": segment_id, "asset_id": asset_id}
+
+
+def _read_api_keys(root: Path) -> dict[str, str]:
+    """Optional provider keys from the environment and the local .env file."""
+    keys = dict(os.environ)
+    env_file = root / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                keys.setdefault(key.strip(), value.strip().strip("\"'"))
+    return {name: keys[name] for name in ("PEXELS_API_KEY", "PIXABAY_API_KEY") if keys.get(name)}
+
+
+def _studio_config(root: Path) -> dict[str, Any]:
+    """Polotno key for the local Studio page (localhost server only)."""
+    keys = dict(os.environ)
+    env_file = root / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8-sig").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                keys.setdefault(key.strip(), value.strip().strip("\"'"))
+    api_key = str(keys.get("POLOTNO_API_KEY", "")).strip()
+    return {"hasKey": bool(api_key), "key": api_key}
+
+
+def _studio_starter(name: str, aspect: str) -> dict[str, Any]:
+    """Serve a hand-built starter design JSON for the Studio page."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,60}", name or ""):
+        raise ValueError("Unknown starter template.")
+    if aspect not in {"short", "long"}:
+        raise ValueError("Aspect must be short or long.")
+    path = (STUDIO_TEMPLATES_ROOT / f"{name}.{aspect}.json").resolve()
+    if STUDIO_TEMPLATES_ROOT.resolve() not in path.parents or not path.is_file():
+        raise ValueError("Unknown starter template.")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError("Starter template is unreadable.") from error
+    if not isinstance(data, dict):
+        raise ValueError("Starter template is unreadable.")
+    return data
+
+
+def _studio_export(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    """Save one Studio PNG export into the owner's pack drop folder.
+
+    The export must already be exact pixels (1080x1920 / 1920x1080);
+    anything else fails loudly instead of silently entering a pack.
+    """
+    import base64
+    import binascii
+
+    from apps.pack_import.importer import SAFE_SLUG
+
+    version = str(payload.get("version", "")).strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ValueError("Pack version must be semver (e.g. 10.0.0).")
+    layout = str(payload.get("layout", "")).strip()
+    if not SAFE_SLUG.match(layout):
+        raise ValueError("Layout id is invalid.")
+    prefix = str(payload.get("prefix", "")).strip()
+    expected = {"short": (1080, 1920), "long": (1920, 1080)}.get(prefix)
+    if expected is None:
+        raise ValueError("Prefix must be short or long.")
+    data_url = str(payload.get("dataUrl", ""))
+    marker = "data:image/png;base64,"
+    if not data_url.startswith(marker):
+        raise ValueError("Export must be a PNG data URL.")
+    try:
+        raw = base64.b64decode(data_url[len(marker):], validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise ValueError("Export data is not valid base64.") from error
+    if len(raw) > STUDIO_EXPORT_MAX_BYTES:
+        raise ValueError("Export exceeds 15 MB.")
+    from PIL import Image
+    import io
+
+    try:
+        with Image.open(io.BytesIO(raw)) as image:
+            size = image.size
+            if size != expected:
+                raise ValueError(
+                    f"Export is {size[0]}x{size[1]}, need {expected[0]}x{expected[1]}. "
+                    "Set the Studio page size first (Short/Long buttons).")
+            image.convert("RGB").save(_studio_drop_file(root, version, prefix, layout))
+    except ValueError:
+        raise
+    except Exception as error:
+        raise ValueError("Export is not a readable PNG.") from error
+    return {"status": "PACK_FILE_SAVED",
+            "path": f"pack-drop/{version}/{prefix}-{layout}.png",
+            "width": expected[0], "height": expected[1]}
+
+
+def _studio_drop_file(root: Path, version: str, prefix: str, layout: str) -> Path:
+    drop = root / "pack-drop" / version
+    drop.mkdir(parents=True, exist_ok=True)
+    target = (drop / f"{prefix}-{layout}.png").resolve()
+    if drop.resolve() not in target.parents:
+        raise ValueError("Layout id is invalid.")
+    return target
+
+
+def _studio_build(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate + install the owner's pack drop as a draft template version."""
+    from apps.pack_import import PackError, build
+
+    version = str(payload.get("version", "")).strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ValueError("Pack version must be semver (e.g. 10.0.0).")
+    drop = (root / "pack-drop" / version).resolve()
+    if (root / "pack-drop").resolve() not in drop.parents:
+        raise ValueError("Pack version is invalid.")
+    try:
+        result = build(root, drop)
+    except PackError as error:
+        raise ValueError(str(error)) from error
+    return {"status": "PACK_INSTALLED", **result,
+            "audit": "/template-foundation/pack-audit.html"}
+
+
+def _asset_file_info(root: Path, db_path: Path, asset_id: str) -> tuple[Path, str]:
+    """Resolve a library file for owner preview. Any rights state is viewable:
+    the owner must see an asset to review its rights."""
+    if not isinstance(asset_id, str) or not asset_id.strip() or len(asset_id) > 80:
+        raise ValueError("Asset ID is required.")
+    conn = connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT stored_path, mime_type FROM assets WHERE asset_id = ?",
+            (asset_id.strip(),),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        raise ValueError("Asset was not found in the library.")
+    library_root = (root / "runtime/assets/library").resolve()
+    file_path = (root / row["stored_path"]).resolve()
+    if library_root not in file_path.parents or not file_path.is_file():
+        raise ValueError("Library file is missing or outside the library.")
+    mime_type = str(row["mime_type"] or "")
+    if "/" not in mime_type:
+        import mimetypes
+        mime_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+    return file_path, mime_type
+
+
+def _read_run(root: Path, run_id: str) -> dict[str, Any]:
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    run_path = root / "runtime/runs" / f"{run_id}.json"
+    if not run_path.is_file():
+        raise ValueError("Production run was not found.")
+    try:
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError("Production run file is unreadable.") from error
+    if not isinstance(run, dict):
+        raise ValueError("Production run file is unreadable.")
+    return run
+
+
 def _overview(db_path: Path) -> dict[str, Any]:
     conn = connect(db_path)
     try:
@@ -185,6 +454,112 @@ def _assets(db_path: Path) -> list[dict[str, Any]]:
         return [dict(row) for row in rows]
     finally:
         conn.close()
+
+
+def _summarize_run(root: Path, path: Path) -> dict[str, Any] | None:
+    try:
+        run = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(run, dict):
+        return None
+    draft = run.get("draft", {})
+    if not isinstance(draft, dict):
+        draft = {}
+    segments = draft.get("segments", [])
+    if not isinstance(segments, list):
+        segments = []
+    media_count = sum(
+        1 for item in segments if isinstance(item, dict) and item.get("media_asset_id")
+    )
+    render_dir = root / "runtime/renders" / str(run.get("run_id", ""))
+    videos: dict[str, str] = {}
+    has_report = False
+    if render_dir.is_dir():
+        for name in ("template-preview.mp4", "visual-benchmark-silent.mp4", "full-render.mp4"):
+            if (render_dir / name).is_file():
+                videos[name] = f"/api/render/{run.get('run_id')}/{name}"
+        has_report = (render_dir / "render-report.json").is_file()
+    return {
+        "run_id": run.get("run_id"),
+        "created_at": run.get("created_at"),
+        "status": run.get("status", "unknown"),
+        "topic": draft.get("topic"),
+        "content_type": draft.get("content_type"),
+        "generation_mode": draft.get("generation_mode"),
+        "segment_count": len(segments),
+        "media_count": media_count,
+        "script_owner_approved": bool(run.get("script_owner_approved")),
+        "voice_preview": bool(run.get("voice_preview")),
+        "voice_preview_audited": bool(run.get("voice_preview_audited")),
+        "videos": videos,
+        "has_report": has_report,
+        "current_beat": run.get("current_beat"),
+        "total_beats": run.get("total_beats"),
+    }
+
+
+def _list_runs(root: Path, limit: int = 200) -> list[dict[str, Any]]:
+    runs_dir = root / "runtime/runs"
+    if not runs_dir.is_dir():
+        return []
+    summaries = []
+    for path in runs_dir.glob("*.json"):
+        if not re.fullmatch(r"[a-f0-9]{12}\.json", path.name):
+            continue
+        summary = _summarize_run(root, path)
+        if summary is not None:
+            summaries.append(summary)
+    summaries.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
+    return summaries[:limit]
+
+
+def _stats(root: Path, db_path: Path) -> dict[str, Any]:
+    conn = connect(db_path)
+    try:
+        total = conn.execute("SELECT COUNT(*) FROM assets").fetchone()[0]
+        verified = conn.execute(
+            "SELECT COUNT(*) FROM assets WHERE rights_state = 'verified'"
+        ).fetchone()[0]
+        active = conn.execute(
+            "SELECT COUNT(*) FROM assets WHERE lifecycle_state = 'active'"
+        ).fetchone()[0]
+
+        def daily(where: str) -> list[dict[str, Any]]:
+            rows = conn.execute(
+                "SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS count "
+                f"FROM assets WHERE {where} GROUP BY day ORDER BY day",
+            ).fetchall()
+            return [{"day": row["day"], "count": row["count"]} for row in rows]
+
+        by_day = daily("1 = 1")
+        verified_by_day = daily("rights_state = 'verified'")
+        active_by_day = daily("lifecycle_state = 'active'")
+        by_license = conn.execute(
+            "SELECT COALESCE(NULLIF(license_type, ''), 'Unknown') AS license, "
+            "COUNT(*) AS count FROM assets GROUP BY license "
+            "ORDER BY count DESC LIMIT 6",
+        ).fetchall()
+    finally:
+        conn.close()
+    runs = _list_runs(root)
+    by_status: dict[str, int] = {}
+    for item in runs:
+        key = str(item.get("status", "unknown"))
+        by_status[key] = by_status.get(key, 0) + 1
+    return {
+        "asset_count": total,
+        "verified_rights_count": verified,
+        "active_count": active,
+        "run_count": len(runs),
+        "assets_by_day": by_day,
+        "verified_by_day": verified_by_day,
+        "active_by_day": active_by_day,
+        "assets_by_license": [
+            {"license": row["license"], "count": row["count"]} for row in by_license
+        ],
+        "runs_by_status": by_status,
+    }
 
 
 def _template_foundation(db_path: Path) -> dict[str, Any]:
@@ -244,7 +619,29 @@ def _content_status(root: Path) -> dict[str, Any]:
     }
 
 
-def _review_asset_rights(db_path: Path, asset_id: str) -> dict[str, str]:
+_GRANT_FIELDS = (
+    "platforms",
+    "territories",
+    "commercial",
+    "monetization",
+    "expires_at",
+    "edit_allowed",
+    "credit_required",
+    "credit_text",
+    "clip_limit",
+    "license",
+    "source",
+    "copyright_exception",
+    "notes",
+    "reviewed_by",
+)
+
+
+def _review_asset_rights(
+    db_path: Path,
+    asset_id: str,
+    grant_fields: dict[str, Any] | None = None,
+) -> dict[str, str]:
     conn = connect(db_path)
     try:
         row = conn.execute(
@@ -253,8 +650,6 @@ def _review_asset_rights(db_path: Path, asset_id: str) -> dict[str, str]:
         ).fetchone()
         if row is None:
             raise ValueError("Asset was not found in the library.")
-        if row["rights_state"] == "verified":
-            return {"status": "ALREADY_VERIFIED", "asset_id": asset_id}
 
         metadata = json.loads(row["metadata_json"] or "{}")
         if not isinstance(metadata, dict):
@@ -263,19 +658,114 @@ def _review_asset_rights(db_path: Path, asset_id: str) -> dict[str, str]:
         metadata["rights_reviewed_by_user"] = True
         metadata["rights_reviewed_at"] = reviewed_at
         metadata["rights_review_source"] = "local_ui_confirmation"
-        conn.execute(
-            """
-            UPDATE assets
-            SET rights_state = 'verified', lifecycle_state = 'active',
-                metadata_json = ?
-            WHERE asset_id = ?
-            """,
-            (json.dumps(metadata, ensure_ascii=False, sort_keys=True), asset_id),
-        )
+
+        if grant_fields:
+            # ValueError propagates to the route handler -> HTTP 400.
+            # Applies EVEN when the asset is already verified: "verified" only
+            # means suitability-reviewed, never "usable for every upload", so
+            # an explicit grant must still be persisted to rights_scope_json.
+            scope = build_rights_scope(**grant_fields)
+            conn.execute(
+                """
+                UPDATE assets
+                SET rights_state = 'verified', lifecycle_state = 'active',
+                    metadata_json = ?,
+                    rights_scope_json = ?
+                WHERE asset_id = ?
+                """,
+                (
+                    json.dumps(metadata, ensure_ascii=False, sort_keys=True),
+                    json.dumps(scope, ensure_ascii=False),
+                    asset_id,
+                ),
+            )
+        elif row["rights_state"] == "verified":
+            # No new grant and already verified: nothing to scope. Do not
+            # touch rights_scope_json; keep prior ALREADY_VERIFIED behavior.
+            return {"status": "ALREADY_VERIFIED", "asset_id": asset_id}
+        else:
+            # No grant fields: verified/active flip only. NULL rights_scope_json
+            # means denied at usage time by is_usable_for.
+            conn.execute(
+                """
+                UPDATE assets
+                SET rights_state = 'verified', lifecycle_state = 'active',
+                    metadata_json = ?
+                WHERE asset_id = ?
+                """,
+                (json.dumps(metadata, ensure_ascii=False, sort_keys=True), asset_id),
+            )
         conn.commit()
         return {"status": "RIGHTS_VERIFIED", "asset_id": asset_id}
     finally:
         conn.close()
+
+
+def _distribution_detail(root: Path, run_id: str) -> dict[str, Any]:
+    """Routing plan + publish records + lifecycle for one run (read-only)."""
+    run = _read_run(root, run_id)
+    plan = read_plan(root, run_id)
+    records: list[dict[str, Any]] = []
+    records_path = root / "runtime/publish" / run_id / "publish-records.json"
+    if records_path.is_file():
+        try:
+            loaded = json.loads(records_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, list):
+                records = [r for r in loaded if isinstance(r, dict)]
+        except (OSError, json.JSONDecodeError):
+            records = []
+    observations = [
+        json.loads(line) for line in
+        ((root / "runtime/measurement/observations.jsonl").read_text(encoding="utf-8").splitlines()
+         if (root / "runtime/measurement/observations.jsonl").is_file() else [])
+        if line.strip()
+    ]
+    payouts = [
+        json.loads(line) for line in
+        ((root / "runtime/measurement/payouts.jsonl").read_text(encoding="utf-8").splitlines()
+         if (root / "runtime/measurement/payouts.jsonl").is_file() else [])
+        if line.strip()
+    ]
+    run_obs = [o for o in observations if isinstance(o, dict) and o.get("run_id") == run_id]
+    run_pay = [p for p in payouts if isinstance(p, dict) and p.get("run_id") == run_id]
+    lifecycle = classify_lifecycle(run, plan, records, run_obs, run_pay)
+    return {"run_id": run_id, "plan": plan, "records": records,
+            "observations": run_obs, "payouts": run_pay, "lifecycle": lifecycle}
+
+
+def _plan_distribution_for_run(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    run = _read_run(root, run_id)
+    raw_dests = payload.get("destinations", [{"platform": "local_file", "account_ref": "local"}])
+    if not isinstance(raw_dests, list) or not raw_dests or len(raw_dests) > 4:
+        raise ValueError("Provide 1-4 destinations.")
+    destinations: dict[str, list[ChannelDestination]] = {}
+    plan = plan_distribution(root, run, {})
+    for item in raw_dests:
+        if not isinstance(item, dict) or not str(item.get("platform", "")).strip():
+            raise ValueError("Each destination needs a platform.")
+        dest = ChannelDestination(
+            platform=str(item["platform"]).strip(),
+            account_ref=str(item.get("account_ref", "")).strip(),
+            market=str(item.get("market", plan.get("market", "VN"))).strip() or "VN",
+        )
+        destinations.setdefault(plan["channel_id"], []).append(dest)
+    plan = plan_distribution(root, run, destinations)
+    return stage_plan(root, plan)
+
+
+def _publish_distribution_for_run(root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"[a-f0-9]{12}", run_id):
+        raise ValueError("Production run ID is invalid.")
+    run = _read_run(root, run_id)
+    plan = read_plan(root, run_id)
+    if plan is None:
+        raise ValueError("Plan distribution first via /api/distribution/plan.")
+    dry_run = payload.get("dry_run", False) is True
+    return publish_plan(root, run, plan, registry=default_registry(), dry_run=dry_run)
 
 
 def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
@@ -319,7 +809,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 self.end_headers()
                 self.wfile.write(body)
                 return
-            render_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/(template-preview\.mp4|full-render\.mp4)", path)
+            render_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/(template-preview\.mp4|visual-benchmark-silent\.mp4|full-render\.mp4)", path)
             if render_match:
                 run_id, filename = render_match.groups()
                 video_file = (db_path.parent.parent / "runtime/renders" / run_id / filename).resolve()
@@ -358,6 +848,23 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         self.wfile.write(block)
                         remaining -= len(block)
                 return
+            asset_match = re.fullmatch(r"/api/assets/file/([A-Za-z0-9][A-Za-z0-9_-]{0,79})", path)
+            if asset_match:
+                try:
+                    file_path, mime_type = _asset_file_info(
+                        db_path.parent.parent, db_path, asset_match.group(1)
+                    )
+                except ValueError:
+                    self._send_json({"error": "Library file not found."}, HTTPStatus.NOT_FOUND)
+                    return
+                body = file_path.read_bytes()
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", mime_type)
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+                return
             report_match = re.fullmatch(r"/api/render/([a-f0-9]{12})/report", path)
             if report_match:
                 report_path = db_path.parent.parent / "runtime/renders" / report_match.group(1) / "render-report.json"
@@ -386,6 +893,68 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     )
                 return
 
+            if path == "/api/jobs":
+                try:
+                    jobs = list_jobs(db_path.parent.parent)
+                    counts: dict[str, int] = {}
+                    for item in jobs:
+                        state = str(item.get("status", "?"))
+                        counts[state] = counts.get(state, 0) + 1
+                    self._send_json({"jobs": jobs, "counts": counts})
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not read worker jobs."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            if path == "/api/runs":
+                try:
+                    self._send_json({"runs": _list_runs(db_path.parent.parent)})
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not read engine runs."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            run_detail_match = re.fullmatch(r"/api/runs/([a-f0-9]{12})", path)
+            if run_detail_match:
+                try:
+                    self._send_json(_read_run(db_path.parent.parent, run_detail_match.group(1)))
+                except ValueError as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not read the run."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            summary_match = re.fullmatch(r"/api/content/summary/([a-f0-9]{12})", path)
+            if summary_match:
+                try:
+                    self._send_json(build_summary(
+                        db_path.parent.parent, summary_match.group(1)))
+                except ValueError as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not build the pre-production summary."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            if path == "/api/stats":
+                try:
+                    self._send_json(_stats(db_path.parent.parent, db_path))
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not compute engine stats."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
             if path == "/api/template-foundation":
                 try:
                     self._send_json(_template_foundation(db_path))
@@ -400,12 +969,100 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 self._send_json(_content_status(db_path.parent.parent))
                 return
 
+            if path == "/api/studio/config":
+                self._send_json(_studio_config(db_path.parent.parent))
+                return
+
+            studio_starter_match = re.fullmatch(r"/api/studio/starter/([A-Za-z0-9_-]{1,60})", path)
+            if studio_starter_match:
+                try:
+                    query = dict(
+                        pair.split("=", 1) if "=" in pair else (pair, "")
+                        for pair in urlparse(self.path).query.split("&") if pair)
+                    self._send_json(_studio_starter(
+                        studio_starter_match.group(1),
+                        str(query.get("aspect", "short")).strip().lower()))
+                except ValueError as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                return
+
+            distribution_match = re.fullmatch(r"/api/distribution/([a-f0-9]{12})", path)
+            if distribution_match:
+                try:
+                    self._send_json(_distribution_detail(
+                        db_path.parent.parent, distribution_match.group(1)))
+                except ValueError as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not read the distribution plan."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
+            if path == "/api/measurement/summary":
+                try:
+                    root = db_path.parent.parent
+                    self._send_json({
+                        "by_run": summarize_by_run(root),
+                        "by_channel": summarize_by_channel(root),
+                    })
+                except Exception:
+                    self._send_json(
+                        {"error": "Could not compute measurement summary."},
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                return
+
             template_file = TEMPLATE_FILES.get(path)
+            if template_file is None:
+                # Owner packs add previews without code changes: any safe
+                # short-/long- name that exists as a file in the package.
+                preview_match = re.fullmatch(
+                    r"/template-foundation/previews/(short|long)-([A-Za-z0-9_-]{1,60})\.(png|jpg)",
+                    path)
+                if preview_match:
+                    ext = preview_match.group(3)
+                    template_file = (
+                        f"previews/{preview_match.group(1)}-{preview_match.group(2)}.{ext}",
+                        "image/png" if ext == "png" else "image/jpeg",
+                    )
+            if template_file is None:
+                # Art beds: generative pack resources referenced by starters.
+                beds_match = re.fullmatch(
+                    r"/template-foundation/resources/beds/([A-Za-z0-9_-]{1,60})\.png",
+                    path)
+                if beds_match:
+                    template_file = (
+                        f"resources/beds/{beds_match.group(1)}.png",
+                        "image/png",
+                    )
+            if template_file is None:
+                # Owner plates: v12 backgrounds referenced by rewired starters.
+                plates_match = re.fullmatch(
+                    r"/template-foundation/resources/pack/(short|long)-([A-Za-z0-9_-]{1,60})\.(png|jpg|jpeg)",
+                    path)
+                if plates_match:
+                    ext = plates_match.group(3)
+                    template_file = (
+                        f"resources/pack/{plates_match.group(1)}-{plates_match.group(2)}.{ext}",
+                        "image/png" if ext == "png" else "image/jpeg",
+                    )
+            if template_file is None:
+                manim_match = re.fullmatch(
+                    r"/template-foundation/previews/manim/([A-Za-z]{1,40})\.mp4", path)
+                if manim_match:
+                    template_file = (
+                        f"previews/manim/videos/sportskit/1920p30/{manim_match.group(1)}.mp4",
+                        "video/mp4",
+                    )
             if template_file:
                 template_id = (
                     LONG_TEMPLATE_ID
                     if path == "/template-foundation/previews/landscape-composite.png"
                     or path.startswith("/template-foundation/previews/long-")
+                    or path.startswith("/template-foundation/resources/beds/long-")
+                    or path.startswith("/template-foundation/resources/pack/long-")
                     else TEMPLATE_ID
                 )
                 package = resolve_template(
@@ -415,7 +1072,7 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 )
                 relative_path, content_type = template_file
                 resource_path = (package.root / relative_path).resolve()
-                if package.root not in resource_path.parents:
+                if package.root not in resource_path.parents or not resource_path.is_file():
                     self._send_json({"error": "Not found."}, HTTPStatus.NOT_FOUND)
                     return
                 body = resource_path.read_bytes()
@@ -464,6 +1121,40 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 except Exception:
                     self._send_json({"error": "Could not store the voice reference locally."}, HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
+            if path == "/api/studio/export":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if length <= 0 or length > STUDIO_EXPORT_MAX_BYTES:
+                        raise ValueError("Export body size is invalid (max 15 MB).")
+                    payload = json.loads(self.rfile.read(length))
+                    if not isinstance(payload, dict):
+                        raise ValueError("Request must be a JSON object.")
+                    self._send_json(
+                        _studio_export(db_path.parent.parent, payload),
+                        HTTPStatus.CREATED)
+                except (json.JSONDecodeError, TypeError, ValueError) as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                except Exception:
+                    self._send_json({"error": "Studio export could not be saved."},
+                                    HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+            if path == "/api/studio/build":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if length <= 0 or length > MAX_REQUEST_BYTES:
+                        raise ValueError("Request body size is invalid.")
+                    payload = json.loads(self.rfile.read(length))
+                    if not isinstance(payload, dict):
+                        raise ValueError("Request must be a JSON object.")
+                    self._send_json(
+                        _studio_build(db_path.parent.parent, payload),
+                        HTTPStatus.CREATED)
+                except (json.JSONDecodeError, TypeError, ValueError) as error:
+                    self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                except Exception:
+                    self._send_json({"error": "Pack build failed."},
+                                    HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
             if path == "/api/voice/preview":
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
@@ -487,10 +1178,18 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                 "/api/assets/approve-candidate",
                 "/api/assets/review-rights",
                 "/api/content/agent-runs",
+                "/api/content/attach-media",
+                "/api/content/render-visual-benchmark",
                 "/api/content/script-review",
                 "/api/content/voice-review",
                 "/api/content/render-preview",
                 "/api/content/render-full",
+                "/api/distribution/plan",
+                "/api/distribution/publish",
+                "/api/measurement/observations",
+                "/api/measurement/payouts",
+                "/api/studio/export",
+                "/api/studio/build",
             }:
                 self._send_json(
                     {"error": "Not found."},
@@ -508,13 +1207,35 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     raise ValueError("Request must be a JSON object.")
 
                 if path == "/api/discovery-search":
-                    candidates = search_image_candidates(
+                    resource_type = str(payload.get("resource_type", "image")).strip().lower()
+                    if resource_type not in {"image", "video"}:
+                        raise ValueError("Discovery supports image and video requests.")
+                    sort = str(payload.get("sort", "relevance")).strip().lower()
+                    if sort not in {"relevance", "newest"}:
+                        raise ValueError("Sort must be relevance or newest.")
+                    candidates, statuses, tiers = search_candidates_tiered(
                         str(payload.get("query", "")),
+                        resource_type=resource_type,
                         limit=int(payload.get("limit", 24)),
+                        api_keys=_read_api_keys(db_path.parent.parent),
+                        sort=sort,
                     )
+                    ready = sorted({item["label"] for item in statuses if item["state"] == "ready"})
+                    identity = None
+                    entity_id = str(payload.get("entity_id", "")).strip()
+                    if entity_id:
+                        candidates, identity = apply_identity_filter(
+                            candidates, entity_id, db_path
+                        )
                     self._send_json(
                         {
-                            "provider": "Openverse + Wikimedia Commons",
+                            "provider": " + ".join(ready) if ready else "No providers available",
+                            "provider_status": statuses,
+                            "tiers_queried": tiers["tiers_queried"],
+                            "escalated": tiers["escalated"],
+                            "escalation_reason": tiers["escalation_reason"],
+                            "keyed_available": tiers["keyed_available"],
+                            "identity": identity,
                             "candidates": [asdict(item) for item in candidates],
                         }
                     )
@@ -528,9 +1249,50 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                         str(payload.get("story_form", "")),
                         str(payload.get("evidence", "")),
                         str(payload.get("content_type", "short")),
-                        str(payload.get("colorway", "match-night")),
+                        str(payload.get("colorway", "cyber-pitch")),
                     )
                     self._send_json(result, HTTPStatus.CREATED)
+                    return
+
+                if path == "/api/content/batch-runs":
+                    try:
+                        jobs = payload.get("jobs")
+                        if not isinstance(jobs, list) or not jobs:
+                            raise ValueError("jobs must be a non-empty list.")
+                        if len(jobs) > MAX_BATCH_JOBS:
+                            raise ValueError(
+                                f"Batch is limited to {MAX_BATCH_JOBS} jobs.")
+                        cleaned = [validate_draft_payload(item) for item in jobs]
+                    except ValueError as error:
+                        self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                        return
+                    try:
+                        enqueued = [enqueue_job(db_path.parent.parent, "draft", item)
+                                    for item in cleaned]
+                    except ValueError as error:
+                        self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                        return
+                    self._send_json(
+                        {"job_ids": [item["id"] for item in enqueued],
+                         "queued": len(enqueued)}, HTTPStatus.CREATED)
+                    return
+
+                if path == "/api/content/summary-review":
+                    try:
+                        result = review_summary(
+                            db_path.parent.parent,
+                            str(payload.get("run_id", "")),
+                            payload.get("approved", False) is True,
+                            payload.get("fixes", []),
+                        )
+                    except ValueError as error:
+                        self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+                        return
+                    except RuntimeError as error:
+                        self._send_json({"error": str(error)},
+                                        HTTPStatus.SERVICE_UNAVAILABLE)
+                        return
+                    self._send_json(result)
                     return
 
                 if path == "/api/content/script-review":
@@ -541,8 +1303,57 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     self._send_json(_approve_voice_preview(db_path.parent.parent, payload))
                     return
 
+                if path == "/api/content/attach-media":
+                    self._send_json(_attach_segment_media(db_path.parent.parent, db_path, payload))
+                    return
+
+                if path == "/api/distribution/plan":
+                    self._send_json(_plan_distribution_for_run(db_path.parent.parent, payload))
+                    return
+
+                if path == "/api/distribution/publish":
+                    self._send_json(_publish_distribution_for_run(db_path.parent.parent, payload))
+                    return
+
+                if path == "/api/measurement/observations":
+                    self._send_json(record_observation(
+                        db_path.parent.parent,
+                        run_id=str(payload.get("run_id", "")),
+                        remote_id=payload.get("remote_id"),
+                        channel_id=str(payload.get("channel_id", "")),
+                        platform=str(payload.get("platform", "")),
+                        day=str(payload.get("day", "")),
+                        views=int(payload.get("views", 0) or 0),
+                        likes=int(payload.get("likes", 0) or 0),
+                        comments=int(payload.get("comments", 0) or 0),
+                        shares=int(payload.get("shares", 0) or 0),
+                        watch_hours=float(payload.get("watch_hours", 0.0) or 0.0),
+                        ctr=float(payload.get("ctr", 0.0) or 0.0),
+                        conversions=int(payload.get("conversions", 0) or 0),
+                        earnings_estimated_usd=float(payload.get("earnings_estimated_usd", 0.0) or 0.0),
+                        source=str(payload.get("source", "ui_entry")),
+                    ), HTTPStatus.CREATED)
+                    return
+
+                if path == "/api/measurement/payouts":
+                    self._send_json(record_payout(
+                        db_path.parent.parent,
+                        run_id=payload.get("run_id"),
+                        channel_id=str(payload.get("channel_id", "")),
+                        amount_usd=float(payload.get("amount_usd", 0.0) or 0.0),
+                        kind=str(payload.get("kind", "platform_payout")),
+                        verified_cash_received=payload.get("verified_cash_received") is True,
+                        method=str(payload.get("method", "")),
+                        note=str(payload.get("note", "")),
+                    ), HTTPStatus.CREATED)
+                    return
+
                 if path == "/api/content/render-preview":
                     self._send_json(render_template_preview(db_path.parent.parent, str(payload.get("run_id", ""))))
+                    return
+
+                if path == "/api/content/render-visual-benchmark":
+                    self._send_json(render_visual_only_run(db_path.parent.parent, str(payload.get("run_id", ""))))
                     return
 
                 if path == "/api/content/render-full":
@@ -556,11 +1367,24 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     rights_reviewed = payload.get("rights_reviewed")
                     if not isinstance(rights_reviewed, bool):
                         raise ValueError("Rights review choice is required.")
+                    grant_fields = {
+                        key: payload[key]
+                        for key in _GRANT_FIELDS
+                        if key in payload
+                    } or None
+                    if grant_fields:
+                        # Validate the grant before persisting: an invalid grant
+                        # must fail loudly (ValueError -> HTTP 400) instead of
+                        # silently degrading to deny-default inside
+                        # save_commons_candidate.
+                        build_rights_scope(**grant_fields)
                     result = save_commons_candidate(
                         db_path.parent.parent,
                         str(payload.get("candidate_id", "")),
                         ResourceRequirement(**requirement_data),
                         rights_reviewed=rights_reviewed,
+                        grant_fields=grant_fields,
+                        api_keys=_read_api_keys(db_path.parent.parent),
                     )
                     self._send_json(result, HTTPStatus.CREATED)
                     return
@@ -569,7 +1393,12 @@ def make_handler(db_path: Path) -> type[BaseHTTPRequestHandler]:
                     asset_id = payload.get("asset_id")
                     if not isinstance(asset_id, str) or not asset_id:
                         raise ValueError("Asset ID is required.")
-                    result = _review_asset_rights(db_path, asset_id)
+                    grant_fields = {
+                        key: payload[key]
+                        for key in _GRANT_FIELDS
+                        if key in payload
+                    } or None
+                    result = _review_asset_rights(db_path, asset_id, grant_fields)
                     self._send_json(result)
                     return
 
@@ -617,6 +1446,11 @@ def main() -> None:
 
     project_root = Path(args.root).resolve()
     db_path = project_root / "runtime/engine.db"
+    try:
+        from apps.asset_library.entity_seed import seed_entity_catalog
+        seed_entity_catalog(project_root)
+    except Exception as error:
+        print(f"[engine-ui] entity catalog seed skipped: {error}", flush=True)
     server = ThreadingHTTPServer(
         (args.host, args.port),
         make_handler(db_path),
@@ -626,6 +1460,7 @@ def main() -> None:
         f"(project root: {project_root})",
         flush=True,
     )
+    print(f"[engine-ui] template static routes: {len(TEMPLATE_FILES)}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
