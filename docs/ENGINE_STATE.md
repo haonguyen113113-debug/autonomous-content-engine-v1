@@ -42,26 +42,17 @@ hook card; the renderer must not invent competing text outside template slots.
 ## Verified repository snapshot
 
 - Repository: `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1`
-- Branch/commit checked before this integration: `main` / `50cf709` (`merge:
-  join origin/main edd522e history (pack 12.0.0 released) into synced main`).
-- Latest upstream changes from `origin/main` are being integrated; verify the
-  final branch and commit after the merge checkpoint is committed.
-- Uncommitted work in the tree (preserve; do not reset/clean): scene-graph
-  builder/schema/executor/pipeline, `render_qa.py`, `render_starters.py`,
-  `video_renderer.py`, `card_selector.py`, `tools/ace_state.py`,
-  `tools/ace_state_lib.py`, pipeline/selector/contract tests, coordinator
-  state/packet docs, and this session's contract docs.
-- New untracked files: `apps/studio_templates/card_media.py`,
-  `template_foundation/templates/allen-knows-ball/12.0.0/card-contract.json`,
-  `tests/test_card_media_contract.py`, `tests/test_card_contract.py`,
-  `tools/build_card_contract.py`,
-  `docs/coordinator/card-media-contract-audit-2026-10-19.md`,
-  `docs/coordinator/card-media-inventory-2026-10-20.md`,
-  `docs/coordinator/contracts/c6-card-media.md`,
-  `docs/coordinator/contracts/c7-card-contract.md`,
-  `docs/coordinator/r3-r4-c6-c7-reconciliation-2026-10-20.md`.
-  `card-media-contract.json` v1.0 remains on disk as historical evidence
-  only; the runtime reads `card-contract.json`.
+- Branch/commit: `main` / `8bac94d` (C-09/C7 checkpoint integrated with
+  latest `origin/main`, including C-11 and Hermes changes).
+- Integration changes are committed; the checkpoint documentation is being
+  finalized in a separate commit. Verify remote sync before starting another
+  task.
+- The merged checkpoint includes C7 contracts for all 90 cards in both packs,
+  C-09 source-card execution in 12.1.0, C-11 short opening hook in both packs,
+  Scene Graph/renderer QA wiring, and the Hermes/ACE boundary documentation.
+  Docker configuration is removed; local queue worker remains.
+- Historical `card-media-contract.json` v1.0 remains evidence only; runtime
+  reads `card-contract.json`.
 - `PROJECT_SPEC.md` describes a much broader autonomous business engine than
   the current Soccer video workflow. Keep those scopes distinct.
 
@@ -128,18 +119,18 @@ hook card; the renderer must not invent competing text outside template slots.
 
 ## Tests and inspections run
 
-Focused verification (re-run 2026-10-20, after the C7 QA/selector changes):
-`python -m pytest tests/test_card_selector.py tests/test_scene_graph_pipeline.py
-tests/test_renderer_scenegraph.py tests/test_scene_graph_v1_roles.py
-tests/test_rights_gate.py tests/test_card_media_contract.py
-tests/test_card_contract.py tests/test_scene_graph_executor_overlays.py
-tests/test_scene_graph.py -q` → **206 passed in 31.63s**.
+Focused verification (re-run 2026-10-20 after merging upstream C-11 and
+regenerating both C7 contracts): selector, shortform fixture, C7 contracts,
+Scene Graph, renderer and motion suites → **240 passed in 54.07s**.
 
 Full suite: `python -m pytest tests -q` → **554 passed in 94.87s**
 (2026-10-20; includes 18 new unified-contract tests).
 
 Contract generator gate (2026-10-20):
-`python tools/build_card_contract.py --check` → **OK, 90 cards, exact match**.
+`python tools/build_card_contract.py --check --version 12.0.0` and default
+12.1.0 → **OK, 90 cards, exact match**. Hashes: 12.0.0
+`2fa0a5249a51b8b93654bfe366d4d035499effe756814aad4510daef9dc054f7`; 12.1.0
+`512dbbd9ccfc5bdcdecf584294bd8e7ad5a24c465e412778af8e701648e16bed`.
 
 Static starter gate (2026-10-20): `python apps/studio_templates/check_starters.py`
 → **90 files, 0 errors**. Authored starter JSONs were not modified; the
@@ -266,7 +257,7 @@ still needed. No long render or MP4 review was run this session.
 
 ## Next concrete action
 
-First, produce a **short C-09 preview using pack 12.1.0** into a temporary
+Produce a **short C-09 preview using pack 12.1.0** into a temporary
 location outside the repository's `runtime/`, with a short representative
 claim and explicit source/date. Ask the owner to inspect the actual rendered
 frame and credit readability. Keep C-09 `NEEDS_REVIEW` and R4 `BLOCKED` until

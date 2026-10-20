@@ -1,57 +1,23 @@
 {
   "schema_version": "ace-state/1.0",
-  "generated_at": "2026-10-20T14:06:34+00:00",
+  "generated_at": "2026-10-20T14:16:06+00:00",
   "repo_root": "C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1",
   "git": {
     "branch": "main",
-    "commit": "50cf709",
-    "full_commit": "50cf70932f8a5183e241cc2e93d5a213b4b33b49",
+    "commit": "8bac94d",
+    "full_commit": "8bac94d3aeced8b5bc71a3f30670058264a4b71a",
     "dirty_files": [
-      "M apps/card_selector.py",
-      " M apps/measurement/render_qa.py",
-      " M apps/scene_graph/builder.py",
-      " M apps/scene_graph/executor.py",
-      " M apps/scene_graph/pipeline.py",
-      " M apps/scene_graph/schema.py",
-      " M apps/studio_templates/render_starters.py",
-      " M apps/video_renderer.py",
-      " M docs/ENGINE_STATE.md",
+      "M docs/ENGINE_STATE.md",
       " M docs/coordinator/PROGRESS.md",
-      " M docs/coordinator/STATE.json",
-      " M docs/coordinator/contracts/README.md",
-      " M docs/coordinator/tasks/R4-final-gate/packet.md",
-      " M template_foundation/catalog.json",
-      " M tests/test_card_selector.py",
-      " M tests/test_card_selector_intent.py",
-      " M tests/test_scene_graph_pipeline.py",
-      " M tests/test_scene_graph_v1_roles.py",
-      " M tools/ace_state.py",
-      " M tools/ace_state_lib.py",
-      "?? apps/studio_templates/card_media.py",
-      "?? docs/coordinator/card-media-contract-audit-2026-10-19.md",
-      "?? docs/coordinator/card-media-inventory-2026-10-20.md",
-      "?? docs/coordinator/contracts/c6-card-media.md",
-      "?? docs/coordinator/contracts/c7-card-contract.md",
-      "?? docs/coordinator/grammar-planner-s3-1-2026-10-20.md",
-      "?? docs/coordinator/r3-r4-c6-c7-reconciliation-2026-10-20.md",
-      "?? docs/coordinator/source-card-c9-12-1-0-2026-10-20.md",
-      "?? docs/coordinator/tasks/R4-final-gate/report.md",
-      "?? template_foundation/templates/allen-knows-ball/12.0.0/card-contract.json",
-      "?? template_foundation/templates/allen-knows-ball/12.0.0/card-media-contract.json",
-      "?? template_foundation/templates/allen-knows-ball/12.1.0/",
-      "?? tests/fixtures/",
-      "?? tests/test_card_contract.py",
-      "?? tests/test_card_media_contract.py",
-      "?? tests/test_shortform_news_fixture.py",
-      "?? tools/build_card_contract.py"
+      " M docs/coordinator/STATE.json"
     ],
     "worktrees": [
       "C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1"
     ],
     "recent_log": [
-      "50cf709 merge: join origin/main edd522e history (pack 12.0.0 released) into synced main",
-      "0499fc1 feat: sync origin/main pack 12.0.0 plus coordinator system and R2 rights gate",
-      "edd522e feat: connect rights and scene graph production workflow"
+      "8bac94d merge: integrate upstream C-11 and Hermes updates",
+      "cd23ea7 feat: freeze card contracts and promote C-09 source card",
+      "17423f7 docs: align readme with owner review workflow"
     ]
   },
   "goal": {
@@ -102,7 +68,7 @@
       "id": "c7-card-contract",
       "version": "2.0",
       "path": "docs/coordinator/contracts/c7-card-contract.md",
-      "sha8": "9754636a"
+      "sha8": "e5d30b68"
     }
   ],
   "tasks": [
@@ -210,6 +176,7 @@
     "test_scene_graph_executor_overlays.py",
     "test_scene_graph_overlay_contract.py",
     "test_scene_graph_pipeline.py",
+    "test_scene_graph_render_smoke.py",
     "test_scene_graph_timeline_overlay_freeze.py",
     "test_scene_graph_v1_roles.py",
     "test_script_decomposition.py",

@@ -1,8 +1,8 @@
 # ACE Progress — auto-generated reference
 
-> Generated 2026-10-20T14:06:34+00:00. Workers read STATE.json; humans read this. Refresh with `python tools/ace_state.py --write`.
+> Generated 2026-10-20T14:16:06+00:00. Workers read STATE.json; humans read this. Refresh with `python tools/ace_state.py --write`.
 
-Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `main/50cf709`
+Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `main/8bac94d`
 
 ## Tasks
 - P0-port-1200: **PACKET_READY**
@@ -22,7 +22,7 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 - c4-scene-graph v1.0 sha:a01bcdb0
 - c5-qa-finding v1.0 sha:9c8a6cca
 - c6-card-media v1.0 sha:b9fa96f6
-- c7-card-contract v2.0 sha:9754636a
+- c7-card-contract v2.0 sha:e5d30b68
 
 ## Recent renders (reference only)
 - a92f6d31c7b4: mp4=['automatic-card-diagnostic.mp4']
@@ -32,26 +32,9 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 - 2556c12f9ba8: mp4=['full-render.mp4']
 
 ## Dirty files
-- M apps/card_selector.py
--  M apps/measurement/render_qa.py
--  M apps/scene_graph/builder.py
--  M apps/scene_graph/executor.py
--  M apps/scene_graph/pipeline.py
--  M apps/scene_graph/schema.py
--  M apps/studio_templates/render_starters.py
--  M apps/video_renderer.py
--  M docs/ENGINE_STATE.md
+- M docs/ENGINE_STATE.md
 -  M docs/coordinator/PROGRESS.md
 -  M docs/coordinator/STATE.json
--  M docs/coordinator/contracts/README.md
--  M docs/coordinator/tasks/R4-final-gate/packet.md
--  M template_foundation/catalog.json
--  M tests/test_card_selector.py
--  M tests/test_card_selector_intent.py
--  M tests/test_scene_graph_pipeline.py
--  M tests/test_scene_graph_v1_roles.py
--  M tools/ace_state.py
--  M tools/ace_state_lib.py
 
 ## Handoff prose (from docs/ENGINE_STATE.md, coordinator-owned)
 
@@ -68,6 +51,16 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 > stronger PC. Voice naturalness and publishing are not current proof gates.
 > The larger portfolio business in `PROJECT_SPEC.md` remains the long-term
 > north star, not the current implementation claim.
+>
+> ## Hermes boundary
+>
+> Hermes is the planned external research/script/orchestration agent; ACE remains
+> the deterministic asset-check, template/Scene Graph, voice/render, and QA
+> engine. Owner review and publishing remain manual. The authenticated submit/
+> status API and versioned Hermes payload are not implemented. The Docker setup
+> was removed; the durable local queue worker remains available. See
+> `docs/hermes-engine-integration.md`. Short-form C-11 is the authored opening
+> hook card; the renderer must not invent competing text outside template slots.
 >
 > ## Owner's current architecture constraints
 >
@@ -89,24 +82,17 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 > ## Verified repository snapshot
 >
 > - Repository: `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1`
-> - Branch/commit checked: `main` / `50cf709` (`merge: join origin/main edd522e
->   history (pack 12.0.0 released) into synced main`).
-> - Uncommitted work in the tree (preserve; do not reset/clean): scene-graph
->   builder/schema/executor/pipeline, `render_qa.py`, `render_starters.py`,
->   `video_renderer.py`, `card_selector.py`, `tools/ace_state.py`,
->   `tools/ace_state_lib.py`, pipeline/selector/contract tests, coordinator
->   state/packet docs, and this session's contract docs.
-> - New untracked files: `apps/studio_templates/card_media.py`,
->   `template_foundation/templates/allen-knows-ball/12.0.0/card-contract.json`,
->   `tests/test_card_media_contract.py`, `tests/test_card_contract.py`,
->   `tools/build_card_contract.py`,
->   `docs/coordinator/card-media-contract-audit-2026-10-19.md`,
->   `docs/coordinator/card-media-inventory-2026-10-20.md`,
->   `docs/coordinator/contracts/c6-card-media.md`,
->   `docs/coordinator/contracts/c7-card-contract.md`,
->   `docs/coordinator/r3-r4-c6-c7-reconciliation-2026-10-20.md`.
->   `card-media-contract.json` v1.0 remains on disk as historical evidence
->   only; the runtime reads `card-contract.json`.
+> - Branch/commit: `main` / `8bac94d` (C-09/C7 checkpoint integrated with
+>   latest `origin/main`, including C-11 and Hermes changes).
+> - Integration changes are committed; the checkpoint documentation is being
+>   finalized in a separate commit. Verify remote sync before starting another
+>   task.
+> - The merged checkpoint includes C7 contracts for all 90 cards in both packs,
+>   C-09 source-card execution in 12.1.0, C-11 short opening hook in both packs,
+>   Scene Graph/renderer QA wiring, and the Hermes/ACE boundary documentation.
+>   Docker configuration is removed; local queue worker remains.
+> - Historical `card-media-contract.json` v1.0 remains evidence only; runtime
+>   reads `card-contract.json`.
 > - `PROJECT_SPEC.md` describes a much broader autonomous business engine than
 >   the current Soccer video workflow. Keep those scopes distinct.
 >
@@ -125,7 +111,7 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >   - **Unified card contract v2.0** (C7, supersedes C6 as runtime):
 >     `template_foundation/templates/allen-knows-ball/12.0.0/card-contract.json`
 >     + `apps/studio_templates/card_media.py` +
->     `tools/build_card_contract.py`. One record for **89/89** built cards
+>     `tools/build_card_contract.py`. One record for **90/90** built cards
 >     (505 data slots typed `text`, 143 distinct keys), generated
 >     deterministically from the registry + starter JSONs + selector/layout
 >     mappings. Each record freezes
@@ -133,7 +119,7 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >     route, execution status, data slots (sources, boxes, fonts, fit floors,
 >     length limits, fallback), editor notes, and media slots (`media_slots: []`
 >     where none; each declares rights/use constraints).
->     Execution coverage: **19 `contract`, 7 `partial`, 63
+>     Execution coverage in 12.0.0: **20 `contract`, 7 `partial`, 63
 >     `legacy_non_ready`**. `--check` must match the on-disk contract exactly.
 >   - **C6 `player_portrait` slot carried unchanged** in the unified record:
 >     `C-04`/`MR-08`/`BP-03` across five player-card modes, box
@@ -173,21 +159,21 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >
 > ## Tests and inspections run
 >
-> Focused verification (re-run 2026-10-20, after the C7 QA/selector changes):
-> `python -m pytest tests/test_card_selector.py tests/test_scene_graph_pipeline.py
-> tests/test_renderer_scenegraph.py tests/test_scene_graph_v1_roles.py
-> tests/test_rights_gate.py tests/test_card_media_contract.py
-> tests/test_card_contract.py tests/test_scene_graph_executor_overlays.py
-> tests/test_scene_graph.py -q` → **206 passed in 31.63s**.
+> Focused verification (re-run 2026-10-20 after merging upstream C-11 and
+> regenerating both C7 contracts): selector, shortform fixture, C7 contracts,
+> Scene Graph, renderer and motion suites → **240 passed in 54.07s**.
 >
 > Full suite: `python -m pytest tests -q` → **554 passed in 94.87s**
 > (2026-10-20; includes 18 new unified-contract tests).
 >
 > Contract generator gate (2026-10-20):
-> `python tools/build_card_contract.py --check` → **OK, 89 cards, exact match**.
+> `python tools/build_card_contract.py --check --version 12.0.0` and default
+> 12.1.0 → **OK, 90 cards, exact match**. Hashes: 12.0.0
+> `2fa0a5249a51b8b93654bfe366d4d035499effe756814aad4510daef9dc054f7`; 12.1.0
+> `512dbbd9ccfc5bdcdecf584294bd8e7ad5a24c465e412778af8e701648e16bed`.
 >
 > Static starter gate (2026-10-20): `python apps/studio_templates/check_starters.py`
-> → **89 files, 0 errors**. Authored starter JSONs were not modified; the
+> → **90 files, 0 errors**. Authored starter JSONs were not modified; the
 > `media_slot` layer type exists only in planner-produced graphs, so the static
 > gate correctly never sees it.
 >
@@ -207,18 +193,18 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >
 > - **Unified card contract v2.0 frozen (C7)**, superseding C6 as the runtime
 >   contract: every built card has exactly one record in
->   `card-contract.json` (89/89), including `media_slots: []` cards. Text/data,
+>   `card-contract.json` (90/90), including `media_slots: []` cards. Text/data,
 >   execution status, media regions and fallback are authored in the pinned
 >   pack; the planner freezes them and the renderer executes them. See
 >   `docs/coordinator/contracts/c7-card-contract.md`. Current
->   `contract_hash=cad623bd30050dd300f27a8eb9e39408e99f2d181703917db19282f08e4e499b`;
+>   `contract_hash=2fa0a5249a51b8b93654bfe366d4d035499effe756814aad4510daef9dc054f7`;
 >   regenerating it invalidates frozen graphs by design.
 > - **C6 card media contract v1.0 remains frozen history**: variable media
 >   enters a card only through a declared slot; geometry/fit/focal/mask/z-order/
 >   fallback are authored in the pinned pack, not chosen by the renderer. Its
 >   `player_portrait` slot is carried unchanged into C7. Extending slots or
 >   changing geometry requires a new contract version/pack release.
-> - **Execution is explicit**: 19 `contract`, 7 `partial`, 63
+> - **Execution is explicit in 12.0.0**: 20 `contract`, 7 `partial`, 63
 >   `legacy_non_ready`. Legacy modes are named per card; `MR-04` executes only
 >   `score_card` (`goal_card` is legacy because the layout needs `hook_text`);
 >   stat rows `MR-07`/`MR-09`/`BP-15` execute only `stat_leader`; `BP-06`
@@ -259,23 +245,24 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >   repetition; the plan reports contract/partial/legacy/production starters,
 >   non-ready beats, and `grammar_variety_ok`. A sole valid contract choice is
 >   retained with an explicit reason/warning, never replaced by a legacy mode.
->   Verified: focused 219 passed; full suite 567 passed; contract and starter
->   gates exact. **Blocker:** C7 has no contract tactical/context/source card,
+>   Verified before the upstream C-11 sync: focused 219 passed; full suite 567
+>   passed. **Blocker:** C7 has no contract tactical/context card,
 >   so the five tactical R3 beats remain explicit legacy pitch-plate fallbacks.
 >   R4 stays `BLOCKED`. See
 >   `docs/coordinator/grammar-planner-s3-1-2026-10-20.md`.
 > - **C-09 source attribution (2026-10-20)**: `source_card` is contract-executable
->   only in pinned pack **12.1.0**. Released 12.0.0 remains immutable. Only C-09
->   is promoted; BP-20, MR-12, U-08, and long-form source cards remain legacy.
+>   only in pinned pack **12.1.0**. The upstream C-11 opening hook is included
+>   in both versioned contracts; C-09 is the only card whose execution differs
+>   between them. BP-20, MR-12, U-08, and long-form source cards remain legacy.
 >   C-09 binds reviewed `claim` to `src-body`, and explicit `source` + `date` to
 >   required `credit`; missing values fall back non-ready. The starter and its
 >   geometry are unchanged. Contract hash:
->   `8ceb621132f47f3fcc77b2a2a634f85cd4f85e7c6c328cce59b1ed0d928f0d0d`.
+>   `512dbbd9ccfc5bdcdecf584294bd8e7ad5a24c465e412778af8e701648e16bed`.
 >   The fixture's 82-character claim still fails text-fit; a short claim passes
 >   text-fit but remains non-ready pending rendered inspection and owner
->   approval. Reported full suite: 587 passed; coordinator independently reran
->   117 focused tests, both versioned contract checks, and the 89-file starter
->   check successfully. No C-09 render or visual approval was performed. See
+>   approval. The pre-sync report recorded 587 full-suite passes. Both versioned
+>   contract checks now pass, and the starter check reports 90 files with 0
+>   errors. No C-09 render or visual approval was performed. See
 >   `docs/coordinator/source-card-c9-12-1-0-2026-10-20.md`.
 > - Rights: `verified` is necessary but never sufficient; `is_usable_for(asset,
 >   purpose)` is the use-scoped gate. Deny-default for YouTube/unknown
@@ -289,7 +276,7 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >
 > 1. **R4 is blocked; fix the R3 aesthetic/planner/template blockers before a
 >    final-gate render.** `docs/coordinator/r3-r4-c6-c7-reconciliation-2026-10-20.md`
->    records that C7 closes card text/media execution (89/89 records) but does
+>    records that C7 closes card text/media execution (90/90 records) but does
 >    not clear S2.5 hook hierarchy, S3.5/S4.2 source beat, S4.1 owner-approved
 >    media/purpose or S5.2 headline motion. The S3.1 planner is now contract-first
 >    and reports variety honestly. C-09 closes only short-form attribution
@@ -303,15 +290,14 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >    Extend execution or media only where a card already has an authored region
 >    and after rendered inspection. `LC-11` (long form) has a portrait purpose
 >    but no contract slot; long form is deferred.
-> 3. Minor cleanups: `card_registry.py` docstring still says 90 cards (list and
->    tests say 89; extra `duel_columns.short.json` is unregistered);
+> 3. Minor cleanups: extra `duel_columns.short.json` is unregistered;
 >    `_check_asset_ref` messages still say "roles." for binding refs;
 >    `_write_scene_graph_beat` retains unused `root`/`scene_number` params.
 > 4. Keep R4 blocked until rendered review and remaining R3 gates are addressed.
 >
 > ## Next concrete action
 >
-> First, produce a **short C-09 preview using pack 12.1.0** into a temporary
+> Produce a **short C-09 preview using pack 12.1.0** into a temporary
 > location outside the repository's `runtime/`, with a short representative
 > claim and explicit source/date. Ask the owner to inspect the actual rendered
 > frame and credit readability. Keep C-09 `NEEDS_REVIEW` and R4 `BLOCKED` until
