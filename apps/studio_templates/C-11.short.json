@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 4,
+  "width": 1080,
+  "height": 1920,
+  "fonts": [],
+  "pages": [
+    {
+      "id": "p1",
+      "background": "#060913",
+      "children": [
+        {
+          "id": "bed-70",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "width": 1080,
+          "height": 1920,
+          "src": "/template-foundation/resources/pack/short-opening.jpg",
+          "selectable": false,
+          "draggable": false,
+          "resizable": false,
+          "removable": false
+        },
+        {
+          "id": "val-claim",
+          "type": "text",
+          "x": 90,
+          "y": 310,
+          "width": 900,
+          "height": 250,
+          "text": "Câu chuyện bắt đầu",
+          "fontSize": 72,
+          "fontFamily": "Be Vietnam Pro",
+          "fontWeight": "bold",
+          "fill": "#F2F6FF",
+          "align": "center",
+          "draggable": false,
+          "resizable": false,
+          "removable": false,
+          "styleEditable": false,
+          "contentEditable": true,
+          "custom": {
+            "slot": "claim"
+          }
+        }
+      ]
+    }
+  ],
+  "audios": []
+}

@@ -18,7 +18,7 @@
   },
   "layout_grammar": {
     "path": "template_foundation/templates/allen-knows-ball/12.0.0/graphic-templates.json",
-    "sha256": "9a289ecc7bb19f6e7c65cfee856823d393fe07cae247dff69b3f58f797e31280"
+    "sha256": "9b76518e6a8cc5af1ad3eb3b7cdc17cd16c6adc874c68f40ccab81d477511339"
   },
   "source_of_truth": {
     "card_index": "apps/studio_templates/card_registry.py",
@@ -8419,6 +8419,85 @@
             "max_chars": 78,
             "max_words": 10,
             "max_lines": 1,
+            "pattern": null
+          }
+        }
+      ],
+      "static_text_layers": [],
+      "editor_notes": [],
+      "media_slots": []
+    },
+    {
+      "card_id": "C-11",
+      "starter_id": "C-11",
+      "aspect": "short",
+      "family": "core",
+      "canvas": {
+        "width": 1080,
+        "height": 1920
+      },
+      "starter_file": "C-11.short.json",
+      "starter_sha256": "70b516fd07b9bf2ca47312d3dd8d0de135f827515eb44cfafa4d1808667bd7a0",
+      "template_version": "12.0.0",
+      "modes": [
+        "hook_card"
+      ],
+      "renderer_route": {
+        "kind": "generic",
+        "mode": "hook_card"
+      },
+      "execution": {
+        "route": "starter_design",
+        "status": "contract",
+        "modes": [
+          "hook_card"
+        ],
+        "legacy_modes": [],
+        "reason": null
+      },
+      "pack_layer_id": "bed-70",
+      "data_slots": [
+        {
+          "slot_id": "claim",
+          "layer_id": "val-claim",
+          "type": "text",
+          "role": "hook_text",
+          "active_modes": [
+            "hook_card"
+          ],
+          "required_for_modes": [
+            "hook_card"
+          ],
+          "sources": [
+            "hook_text"
+          ],
+          "transform": null,
+          "fallback": "hide",
+          "required": true,
+          "box_px": [
+            90,
+            310,
+            900,
+            250
+          ],
+          "font": {
+            "family": "Be Vietnam Pro",
+            "size_px": 72,
+            "weight": "bold",
+            "align": "center"
+          },
+          "fit": {
+            "mode": "shrink",
+            "min_size_px": 36
+          },
+          "max_lines": 2,
+          "max_words": 10,
+          "max_chars": 82,
+          "validation": {
+            "non_empty": true,
+            "max_chars": 82,
+            "max_words": 10,
+            "max_lines": 2,
             "pattern": null
           }
         }
@@ -23815,5 +23894,5 @@
       "media_slots": []
     }
   ],
-  "contract_hash": "cad623bd30050dd300f27a8eb9e39408e99f2d181703917db19282f08e4e499b"
+  "contract_hash": "2fa0a5249a51b8b93654bfe366d4d035499effe756814aad4510daef9dc054f7"
 }

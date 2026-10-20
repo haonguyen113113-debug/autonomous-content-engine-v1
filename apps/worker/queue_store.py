@@ -1,7 +1,7 @@
 """File-backed job queue for the worker (spec section 10).
 
-The in-memory ``job_queue`` cannot cross processes: the web server and the
-docker worker never see each other's jobs. This store persists every job
+The in-memory ``job_queue`` cannot cross processes: the web server and a
+separate worker process never see each other's jobs. This store persists every job
 under ``runtime/queue/{queued,claimed,done,failed}/<job_id>.json`` so a
 producer (UI/API) and any number of worker processes share one queue, and
 a worker restart never loses a job — stale claims are recovered, never

@@ -43,10 +43,12 @@ def test_legacy_goal_intent_does_not_override_contract_score():
     # reviewed data are hard constraints.
     seg0 = _seg("mo dau", mode="hook_card", data={"hook_text": "X"}, id="beat-0")
     with_intent = _seg("ban thang ti so", mode=None,
-                       data={"home": "A", "away": "B", "score": "1-0"},
+                       data={"home": "A", "away": "B", "score": "1-0",
+                             "hook_text": "Ti so tran dau"},
                        id="beat-1", beat_intent=FULL_INTENT)
     without_intent = _seg("ban thang ti so", mode=None,
-                          data={"home": "A", "away": "B", "score": "1-0"},
+                          data={"home": "A", "away": "B", "score": "1-0",
+                                "hook_text": "Ti so tran dau"},
                           id="beat-1")
     out_with = select_cards([seg0, with_intent])
     out_without = select_cards([seg0, without_intent])

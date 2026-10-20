@@ -173,6 +173,16 @@ run and results, remaining limitations, and whether any overlap with
    styling/layout keys and role/type mismatches fail validation. QA does not
    call a structurally valid declared overlay visually verified: it remains
    `NEEDS_REVIEW` pending final-video inspection.
+6. **Short-form opening hook card:** short-form no longer renders the C-01
+   opening brand scene. Beat-0 opens with the new C-11 opening hook card
+   (background `short-opening.jpg`, single `hook_text` slot) showing the
+   approved hook from script/graphic data. If no hook is provided, no text is
+   fabricated (fail-closed). C-10 ending card is unchanged for short-form;
+   long-form opening/ending (LC-14) unchanged. `C-11` added to
+   `card_registry.py`, `graphic-templates.json`, `build_starters.py`, and
+   `card_selector.STARTERS_SHORT` (`hook_card` → `C-11`). `STARTERS_SHORT`
+   mapping updated; `C-03` remains built but unreferenced by `STARTERS_SHORT`.
+   `test_card_registry.py` count updated 89→90.
 
 ### Verification performed in this review
 
@@ -190,18 +200,204 @@ data as explicit overlays instead of exercising `build_clip_graphs`; the
 production-path tests now cover conversion, filtering, deduplication,
 timebase, and fail-closed validation.
 
+#### Short-render smoke test (MP4, 2026-10-18)
+
+Added `tests/test_scene_graph_render_smoke.py`: short-form full render on the
+Scene Graph production path (`ACE_SCENE_GRAPH_RENDER=1`), self-contained in
+`pytest tmp_path` (no repo `runtime/`, no user voice/library/assets).
+
+```text
+python -m pytest tests/test_scene_graph_render_smoke.py -q
+```
+
+The handoff's first test version did not actually assert FPS, compare frames
+within one beat, or inspect the rendered overlay window. Those assertions were
+added during coordinator review and the smoke test was rerun.
+
+Result: **1 passed in 52.06s**. Verified:
+- MP4 really produced by FFmpeg (`libx264`, `yuv420p`, `1080×1920@30`) and
+  confirmed by ffprobe (video stream `h264`, width/height, average FPS 30
+  within 0.1, duration ≈ 20s within ±1s tolerance).
+- Decoded frames at t=1.0 and t=8.0 within the same beat differ at the pixel
+  level; this checks motion within a scene rather than merely a scene cut.
+- Pixel counts in fixed overlay regions increase while the first caption and
+  second-beat lower-third are active, then decrease after their declared
+  windows. This verifies representative in/out overlay paint in the encoded
+  MP4; it does not replace visual review of placement/readability.
+- `run["draft"]["scene_graphs"]` attached: 2 graphs, overlays clip-relative
+  within beat duration, `provenance.graph_hash` 64-hex.
+- QA does not over-claim: `scene_graph_qa.verdict == NEEDS_REVIEW`,
+  `ready == False`, criterion `"Overlay rendered" == NEEDS_REVIEW`; QA itself
+  still requires review evidence and does not infer a PASS from declarations.
+- `render_scene_png` beat-0 still renders non-empty PNG.
+
+The smoke test exercises the real production path end-to-end
+(`render_full_run → apply_card_plan → build_run_scene_graphs → _render`
+FFmpeg → ffprobe). The smoke test checks overlay presence in representative
+time windows and motion between two same-beat frames. Fine placement,
+readability, transition appearance, narration sync, and aesthetic still need
+owner review on the rendered clip; QA keeps those at `NEEDS_REVIEW`.
+
 ### Remaining limits / owner review
 
-- No final MP4 was rendered or visually reviewed in this pass. Overlay paint,
-  actual transition/motion appearance, narration synchronization, and overall
-  aesthetic still need an owner review on a rendered clip. QA correctly keeps
-  such checks at `NEEDS_REVIEW` where pixels or motion cannot be established
-  from the frozen graph alone.
-- The full test suite was not run; only the focused command above was run.
+- Final MP4 was rendered (smoke test, 20s short clip) but not visually
+  reviewed. Automated sample-frame checks establish changing pixels within a
+  beat and overlay paint during/outside representative windows; actual
+  placement/readability, transition quality, narration synchronization, and
+  overall aesthetic still need an owner review.
+- The full test suite was not run; only the focused integration command above
+  plus the smoke test were run.
 - Strict overlay validation is a compatibility tightening: legacy graphs
   without an `overlays` field remain accepted, while old graphs that include
   non-preset roles or extra per-overlay styling/layout keys will now be
   rejected and must be rebuilt under the current contract.
-- The active change set contains 15 modified tracked files and 8 new files;
-  no overlap with `stash@{0}` was applied or resolved wholesale. Keep the
-  stash intact until any future file-by-file comparison is explicitly needed.
+- The active change set (uncommitted) contains 1 modified tracked checkpoint
+  and 1 new untracked test file (`tests/test_scene_graph_render_smoke.py`);
+  the integration work (rights scope, Scene Graph production path, planner
+  boundary, timeline overlays) was committed in `edd522e`. No overlap with
+  `stash@{0}` was applied or resolved wholesale. Keep the stash intact until
+  any future file-by-file comparison is explicitly needed.
+
+## Current continuation checkpoint — 2026-10-18 (local, uncommitted)
+
+This addendum supersedes earlier short-render smoke results and any statement
+that all current integration checks pass. Earlier sections remain historical.
+
+### Repository state
+
+- Branch: `main`; HEAD: `edd522edb4cb3b1f8173897b4413a860169d4fae`.
+- Current worktree contains uncommitted changes from the previous integration
+  rounds, including C-11, Scene Graph overlay suppression, renderer changes,
+  tests, and docs. Preserve all of them; do not reset/clean/revert/stash.
+- `stash@{0}` remains `WIP on feature/template-nova: ecdba9c`; do not apply,
+  pop, or drop it.
+- No commit or push has been made. Do not read/write/modify the repository's
+  `runtime/` directory.
+
+### Completed since the preceding checkpoint
+
+1. **Short opening hook card C-11:** registered in `card_registry.py`,
+   `graphic-templates.json`, `build_starters.py`, and
+   `card_selector.STARTERS_SHORT`. Short-form does not render C-01 as a separate
+   opening; its first beat uses the approved hook card and C-10 remains the
+   short ending. Missing `graphic_data.hook_text` stays empty; the selector
+   does not infer it from narration.
+2. **C-11 proof/layout correction:** `C-11.short.json` uses the existing
+   `short-opening.jpg` artwork. Its single text slot is positioned above the
+   central mark (`x=90`, `y=310`, `width=900`, `height=250`) with base
+   `fontSize=72`, so the existing shrink-to-fit path can fit hooks up to the
+   selector's eight-word cap. The proof image is
+   `template_foundation/templates/allen-knows-ball/12.0.0/previews/short-c-11-proof.png`.
+   Manual still renders confirmed 1080x1920 output and readable, non-clipped
+   text for a representative eight-word Vietnamese hook. This is not an MP4
+   review.
+3. **Selector wording:** `_normalize_hook_text` now normalizes/caps only the
+   already supplied `graphic_data.hook_text`; it does not derive hook copy from
+   narration. The reason/warning strings describe that source accurately.
+   The selector session reported 43 focused tests passing.
+
+### Latest verification and unresolved failure
+
+The latest combined command was:
+
+```text
+python -m pytest tests/test_card_selector.py tests/test_card_selector_intent.py tests/test_card_registry.py tests/test_renderer_scenegraph.py tests/test_scene_graph_executor_overlays.py tests/test_renderer_scenegraph_timeline_overlay_freeze.py tests/test_scene_graph_render_smoke.py -q
+```
+
+Result: **103 passed, 1 failed in 94.35s**. The sole failure is
+`tests/test_scene_graph_render_smoke.py::test_scene_graph_short_render_smoke`:
+the decoded RGB frames at 3.0s and 8.0s within the same beat are identical.
+The test also verified the encoded H.264 1080x1920@30 MP4 path before reaching
+that failing temporal assertion. Treat the prior `1 passed` smoke result above
+as superseded; the current state has a confirmed same-beat motion failure.
+
+Additional checks after the C-11 layout correction:
+
+- `python -m pytest tests/test_card_registry.py -q` — **5 passed**.
+- `python apps/studio_templates/check_starters.py` — **90 files, 0 errors**.
+- Manual `render_starter_scene` output for a Vietnamese eight-word hook —
+  **1080x1920**, visual still checked; not an MP4 render.
+
+### Active follow-up workstreams
+
+- **Renderer motion:** investigate and fix the same-beat identical-frame smoke
+  failure. Do not weaken the assertion without evidence; verify actual frame
+  pixel differences and preserve the authored card safe area. Ownership:
+  `apps/video_renderer.py` and `tests/test_scene_graph_render_smoke.py`.
+- **QA truthfulness audit (read-only):** inspect whether motion/structure QA can
+  claim PASS based on configured filters rather than observed rendered output;
+  also audit fail-closed overlay behavior and C-11 role/order checks. Do not
+  edit files while the renderer workstream runs.
+
+Both tasks were handed to separate OpenCode sessions. Their completion has not
+yet been confirmed. Keep the worktree uncommitted and rerun the focused
+integration command after the motion fix.
+
+## Architecture direction update — Hermes orchestration (2026-10-19)
+
+### Decision
+
+- Hermes is the outer daily coordinator for story discovery, relevance
+  assessment, evidence gathering, structured script drafting, Engine job
+  submission, monitoring, and completion reporting.
+- The Engine's target role is video production: validate the handoff, enforce
+  asset qualification/rights/provenance/purpose gates, plan deterministically
+  from the fixed template and Scene Graph, generate voice, render, run QA, and
+  return the artifact plus evidence-backed status.
+- The owner reviews and publishes. The Engine/Hermes flow must not publish or
+  receive publishing credentials.
+- Research and script generation do not need to be duplicated inside the
+  Engine's target Hermes path. Existing standalone drafting remains during
+  migration, but is not the target orchestrator.
+- Asset auto-save for qualifying candidates remains authorized for workflow
+  smoothness; this does not bypass rights scope, provenance, qualification, or
+  use-purpose checks.
+
+### Integration work still required
+
+- Freeze a versioned JSON Schema for topic, research sources and claim/evidence
+  references, short/long content type, ordered beats, narration, timing,
+  semantic `beat_intent`, supported `graphic_data`, asset requests, and upload
+  purpose. The model must not control layout, coordinates, typography, color,
+  motion, or transitions.
+- Implement a dedicated authenticated production-job submit/status contract
+  and connect it to the existing durable local queue. The current
+  `/api/content/batch-runs` interface is draft-oriented and is not yet the
+  Hermes production contract. Submission must be idempotent and validate the
+  whole payload before enqueueing.
+- Return stable job IDs, explicit lifecycle states, artifact location, QA
+  verdict/evidence, warnings, and actionable errors. `FAIL` and
+  `NEEDS_REVIEW` must never be reported as ready for owner review.
+- Add completion webhooks only after polling/status behavior is stable.
+- Keep Engine and queue worker as local Python processes on the production PC.
+  Docker/Compose support has been removed from the repository; this does not
+  remove the durable queue or local worker.
+
+### Rollout gates and known blocker
+
+1. Freeze the handoff schema and API contract.
+2. Implement and validate submit/status against the existing queue.
+3. Prove one fixture job through asset gates, render, and QA.
+4. Connect Hermes in draft/render/report mode; owner retains review/publishing.
+5. Enable scheduled production only after the same-beat motion smoke failure
+   below is rerun and confirmed fixed, and the owner has visually reviewed the
+   resulting video.
+
+The latest verified checkpoint still reports identical decoded frames at 3s
+and 8s within one beat. The completion status of the two previously assigned
+OpenCode sessions has not been confirmed in this checkout; treat the motion
+issue as open. Do not claim the Hermes API or schema has been implemented.
+
+### Files updated for this direction
+
+- `docs/hermes-engine-integration.md` records the responsibility boundary,
+  contract requirements, job lifecycle, runtime, and rollout gates.
+- `README.md`, `PROJECT_SPEC.md`, and `docs/machine-setup.md` distinguish the
+  target Hermes workflow from the existing standalone drafting path.
+- Docker artifacts are deleted; queue processing remains available through
+  `python -m apps.worker.main`.
+- The current worktree also contains the C-11/template and renderer/QA changes
+  listed in the repository status; preserve them with this documentation work.
+  No new tests were run for this architecture/documentation update. The latest
+  recorded focused result remains 103 passed / 1 failed on the same-beat
+  motion assertion. Preserve `stash@{0}`.

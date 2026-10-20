@@ -20,16 +20,13 @@ workstream nay dua tren `docs/build-audit-protocol.md` (gates),
   (starter: bg + text tach lop) hoac `_paint_broll_primitive` (b-roll: void +
   anh contained, caption, credit — layout co dinh cua owner, khong re-wrap).
 - **Cam tuyet doi trong SG mode**: chon lai mode/starter, chuyen mode theo
-  timeline event, media forcing/drop, kinetic overlays (hook stagger, hero
-  count-up — re-wrap text), ball/trail tu fallback spec, ending C-10 tu gan,
-  lower-third/caption ngoai graph. Overlay duoc khai bao theo timebase
-  CLIP-RELATIVE (`start_seconds`/`end_seconds` bat dau tu dau beat, so sanh
-  voi `beat_duration = timing.end - timing.start`); renderer chuyen sang
-  absolute ve khung khi ap dung.
-- **Motion dong bang thuc thi verbatim** (vo \(hien co, khong phat minh them):
-  `hook_punch_in`/`number_pop` -> punch zoom (numerals giu nguyen, khong
-  re-layout); `slide_in_right_0_3s` -> slide-in 0.3s; `fade_0_3s` -> fade in/out;
-  `chalk_line_wipe` -> slide-in 0.3s; `clean_cut` -> hard cut (tat slide).
+  timeline event, media forcing/drop, kinetic text tu do, ball/trail tu
+  fallback spec va lower-third/caption khong co template-slot binding. Fixed
+  opening/ending scenes duoc goi tu template pack cho ca short va long form.
+- **Motion dong bang thuc thi**: hook/number punch zoom duoc gioi han toi
+  1.035x de giu chu trong safe area; camera drift khac toi da 1.025x;
+  `slide_in_right_0_3s`/`chalk_line_wipe` -> slide-in 0.3s;
+  `fade_0_3s` -> fade in/out; `clean_cut` -> hard cut (tat slide).
 - Overlay contract chi nhan `type`, `text`, `start_seconds`, `end_seconds`,
   va `role` tuy chon. Role preset hop le: `lower_third/name_tag` va
   `caption/hook`; key style/layout bat ky khac bi validator tu choi.
@@ -55,7 +52,7 @@ Verdict `PASS|FAIL|NEEDS_REVIEW` kem evidence, do tren scene render THAT:
 | Visual density | text area <=40% | >40% | primitive |
 | Contrast (sampled) | sample pixel nen that, floors 4.5/3.0 | duoi floor | thieu bg layer |
 | Text actually paints | box khac nen | box pixel-identical nen | so sanh loi |
-| Overlay rendered | khong overlay khai bao hoac danh sach rong (khong gi can ve) | type sai, text trong, timing ngoai cua so beat / clip-relative | khai bao hop le nhung still khong the xac nhan ve — xac nhan ve dung cua so can MP4 |
+| Overlay rendered | khong overlay khai bao hoac danh sach rong | graph co free-standing text overlay chua bind vao frozen template slot | — |
 | Narration fit | ~words/2.6wps vua window | vuot >1.15x window | thieu narration / sat nut |
 | Media rights | approved + verified/active/file + scope allowed (+credit note) / monogram | pending / unverified / missing / scope denied (kem reasons) | khong registry / khong intent / co che chua biet |
 | Tactical vectors | — | — | primitive tactical (vectors tu fallback, verify bang mat) |
@@ -97,21 +94,9 @@ Clip render (`_render` SG mode) extend `quality_checks` hinh `render-report.json
 - Fail-closed flag: `ACE_SCENE_GRAPH_RENDER=1` + thieu `scene_graphs`
   (missing/empty) -> raise ValueError, khong fallback legacy. Legacy chi
   khi flag tat (mac dinh), byte-identical.
-- Overlay (caption/lower_third): thoi gian la CLIP-RELATIVE bat dau tu dau
-  beat (`start_seconds`/`end_seconds` so sanh voi `beat_duration =
-  timing.end - timing.start`, khong so thang truc tiep voi `timing.start`).
-  Renderer SG mode doc overlay CHI tu `sg_graphs[index]["overlays"]`,
-  chuyen sang absolute ve khung (`abs_start = beat.start + start_seconds`),
-  KHONG tu suy tao/lay tu `timeline_events`/`segment` va KHONG render
-  lower-third/caption ngoai graph. Overlay khai bao trong graph la duy nhat
-  (explicit): renderer khong gop/dedup voi timeline_events (timeline la thoi
-  gian tuyet doi, chi co trong legacy path khi flag tat). Tat ca truong
-  overlay (type/text/timing/role) duoc bao boi boi `provenance.graph_hash` —
-  tamper mot truong thi hash khong khop, `validate_scene_graph` chay reject
-  graph. Neu graph khai bao overlay nhung renderer khong the chuan bi lenh ve
-  tu graph -> QA khong PASS (fail-closed overlay); khai bao hop le nhung still
-  chua xac nhan ve dung khung -> NEEDS_REVIEW, khong bao PASS chi vi co trong
-  input.
+- Overlay metadata van co timebase CLIP-RELATIVE va duoc `graph_hash` bao ve,
+  nhung renderer khong paint free-standing overlay. Khong co frozen slot
+  binding -> `Overlay rendered` FAIL, bat ke text/timing co hop le hay khong.
 - `number_pop` thuc thi = punch zoom (giu nang luong pop, khong stagger tung so);
   `freeze_and_trace`/`pitch_grid` ngoai tactical chua co primitive -> NEEDS_REVIEW.
 - Tactical primitive vectors tu fallback storyboard (executor cua ws3) -> QA luon
@@ -120,15 +105,29 @@ Clip render (`_render` SG mode) extend `quality_checks` hinh `render-report.json
 - Stagger 0.18s / count_up_steps khong co line-timing dong bang -> khong chay
   (re-wrap text bi cam).
 - Overlay lower-third/caption ngoai graph -> SG mode khong render.
-- Overlay QA (still vs MP4): `qa_scene` (anh PNG) chi xac nhan overlay trong graph
-  co text/timing hop le va nam trong cua so beat; mot khung mot the xac nhan da ve
-  dung vi tri/thoi gian, nen overlay khai bao hop le -> NEEDS_REVIEW (chua ready),
-  khong bao giu PASS chi vi co trong input. Xac nhan ve dung cua so can MP4
-  (`qa_clip` tong hop, van can owner eyeball mo dong thuc te). Thieu/sai timing
-  -> FAIL.
-- Fail-closed overlay: neu graph khai bao overlay nhung renderer khong the chuan
-  bi lenh ve tu graph -> QA khong PASS; renderer khong tu suy tao/lay overlay tu
-  `timeline_events`/`segment` (chỉ legacy path khi flag tat).
+- Renderer khong tao text tu `timeline_events` hay `graph.overlays`. Text chi
+  duoc render khi nam trong card art hoac supported frozen slot; slot chua duoc
+  ket noi thi QA FAIL, khong can eyeball de cho qua.
+
+## 6. Addendum — template-bound text and brand scenes (2026-10-18)
+
+- Renderer-level title/ident, free-standing caption/lower-third, hook/hero
+  kinetic copy, and end-card takeaway/tagline/version are disabled. Text must
+  be part of a selected card design or a supported, frozen card slot.
+- Timeline captions/lower-thirds and Scene Graph `overlays` are not painted
+  until a deterministic template-slot binding exists. A graph with declared
+  overlays fails `Overlay rendered` QA; presence in graph data is not proof of
+  output.
+- `_render` now renders and calls the fixed opening and ending scenes from the
+  matching pack: short C-01/C-10; long pack opening artwork/LC-14. The unused
+  credit/source placeholder is hidden. No topic or narration is injected into
+  these brand-only cards.
+- Body-card camera zoom is capped at 1.025x (1.035x for declared punch motion)
+  to keep baked typography inside the card's safe area. Starter text and its
+  background use the same transform.
+- This addendum supersedes earlier lines above that described graph overlays
+  as rendered, generic opener text, Ken Burns at 1.07x/1.12x, or an ending card
+  only on short-form legacy renders.
 
 ## 5. Diem cho tich hop
 

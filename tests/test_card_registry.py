@@ -17,10 +17,10 @@ RENDER_MODES = set(VISUAL_MODES) | {"media_b_roll"}
 
 
 def test_registry_counts():
-    assert len(CARDS) == 89
-    assert len(BUILT) == 89
+    assert len(CARDS) == 90
+    assert len(BUILT) == 90
     assert len(PLANNED) == 0
-    assert len(BY_ID) == 89
+    assert len(BY_ID) == 90
 
 
 def test_registry_entries_well_formed():

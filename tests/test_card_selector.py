@@ -48,21 +48,33 @@ def _assets():
 def test_beat_zero_opens_on_hook_with_derived_text():
     out = select_cards([_seg("Hang thu sap do toi nay truoc suc ep khung khiep",
                              mode="statline_scorecard",
-                             data={"metrics": []}, id="beat-1")])
+                             data={"hook_text": "Hang thu sap do toi nay truoc suc ep khung khiep", "metrics": []}, id="beat-1")])
     first = out["decisions"][0]
     assert first["visual_mode"] == "hook_card"
-    assert first["starter_id"] == "C-03"
+    assert first["starter_id"] == "C-11"
     assert 5 <= len(first["graphic_data"]["hook_text"].split()) <= 8
     assert any("beat-0" in r for r in first["reasons"])
-    assert any("8-word cap" in w for w in first["warnings"])
+    assert any("capped" in w or "8 words" in w for w in first["warnings"])
+    assert not any("derived from narration" in w for w in first["warnings"])
 
 
 def test_short_hook_derives_cleanly_without_warning():
     out = select_cards([_seg("Hang thu sap do toi nay",
-                             mode="hook_card", id="beat-1")])
+                             mode="hook_card",
+                             data={"hook_text": "Hang thu sap do toi nay"},
+                             id="beat-1")])
     first = out["decisions"][0]
     assert first["graphic_data"]["hook_text"] == "Hang thu sap do toi nay"
     assert not any("cap" in w or "minimum" in w for w in first["warnings"])
+
+
+def test_short_hook_without_text_returns_empty_not_fabricated():
+    out = select_cards([_seg("Co noi dung nhung khong co hook",
+                             mode="hook_card", id="beat-1")])
+    first = out["decisions"][0]
+    assert first["graphic_data"].get("hook_text", "") == ""
+    # No fabricated placeholder hook text
+    assert "CAU HOI TRAN DAU" not in str(first["graphic_data"])
 
 
 def test_unknown_mode_falls_back_with_warning():
@@ -317,7 +329,7 @@ def test_plan_aggregates_warnings_and_counts():
     assert out["plan"]["beats"] == 2
     assert out["plan"]["mode_counts"]["hook_card"] == 1
     assert any("source+date" in w for w in out["plan"]["warnings"])
-    assert "C-03" in out["plan"]["starters"]
+    assert "C-11" in out["plan"]["starters"]
 
 
 def test_deterministic():
@@ -426,13 +438,13 @@ def test_apply_feeds_segments_and_stores_plan(tmp_path):
 
     run = _feed_run(
         _seg("Hang thu sap do toi nay", mode="statline_scorecard",
-             data={"metrics": []}, id="beat-1"),
+             data={"hook_text": "Hang thu sap do toi nay", "metrics": []}, id="beat-1"),
         _seg("Bang doi dau", mode="duel_columns",
              data={"metrics": [{"label": "X", "home": "1", "away": "0"}],
                    "source": "D", "date": "D"}, id="beat-2"))
     plan = apply_card_plan(tmp_path, run)
     assert run["draft"]["segments"][0]["visual_mode"] == "hook_card"
-    assert "hook_text" in run["draft"]["segments"][0]["graphic_data"]
+    assert run["draft"]["segments"][0]["graphic_data"]["hook_text"] == "Hang thu sap do toi nay"
     assert run["card_plan"]["plan"]["beats"] == 2
     assert plan is run["card_plan"]
 
@@ -1054,3 +1066,29 @@ def test_apply_card_plan_does_not_trigger_a_render(tmp_path, monkeypatch):
     assert plan["decisions"]
     assert calls == []
     assert "render_report" not in run
+def test_hook_text_never_derived_from_narration():
+    # Narration dài nhưng graphic_data KHÔNG có hook_text: slot phải để trống,
+    # không được suy diễn hook từ narration (fail-closed).
+    out = select_cards([_seg("Co noi dung dai dai dai dai dai dai dai dai dai",
+                             mode="hook_card", id="beat-1")])
+    first = out["decisions"][0]
+    assert first["graphic_data"].get("hook_text", "") == ""
+    assert not any("hook_text" in w and "narration" in w
+                   for w in first["warnings"] + first["reasons"])
+
+
+def test_hook_text_normalized_from_graphic_data_not_narration():
+    # graphic_data có hook_text dài; narration hoàn toàn khác. Hook_text phải
+    # được cắt từ graphic_data, KHÔNG được lấy từ đầu narration.
+    narration = "Toan bo noi dung noi dung dai dai dai dai dai dai dai dai dai dai"
+    data = {"hook_text": "Mot cau hook dai dai dai dai dai dai dai dai dai dai dai"}
+    out = select_cards([_seg(narration, mode="hook_card",
+                             data=data, id="beat-1")])
+    first = out["decisions"][0]
+    # Cắt từ graphic_data.hook_text (8 từ đầu), không phải từ narration.
+    expected = " ".join(data["hook_text"].split()[:8])
+    assert first["graphic_data"]["hook_text"] == expected
+    assert first["graphic_data"]["hook_text"] != " ".join(narration.split()[:8])
+    assert any("capped" in w or "8 words" in w for w in first["warnings"])
+    assert not any("derived from narration" in w
+                   for w in first["warnings"] + first["reasons"])

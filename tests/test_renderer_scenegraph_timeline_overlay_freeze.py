@@ -1,17 +1,9 @@
-"""In-memory tests: beat-relative overlay -> absolute FFmpeg window in Scene Graph render mode.
+"""In-memory tests: reject free-standing copy outside template slots.
 
-Contract (không đổi, dùng để viết tests):
-- graph.overlays[].start_seconds/end_seconds là beat-relative (0 = đầu beat).
-- Renderer (video_renderer.py, lines 2673-2689, đã implement):
-    abs_start = graph_start + overlay.start_seconds
-    abs_end   = graph_start + overlay.end_seconds
-  cửa sổ được đóng vào [graph_start, graph_end] qua
-  max(graph_start, ...) / min(graph_end, ...), rồi dùng trong
-  FFmpeg filter between(t,abs_start,abs_end).
-- Executor (scene_graph/executor.py): chỉ vẽ overlay từ graph, KHÔNG đọc lại
-  timeline/segment để tái suy overlay.
-- Renderer SG mode: KHÔNG đọc lại segment.timeline_events để tạo overlay —
-  chỉ dùng sg_graphs[index]["overlays"].
+Contract:
+- Graph may retain clip-relative overlay metadata for audit/provenance.
+- Renderer does not paint free-standing overlays without a frozen template
+  slot binding; QA reports them as FAIL.
 
 Mọi test chạy in-memory, không ffmpeg, không network, không đọc/ghi repo runtime/
 (root = tmp_path; tất cả hàm ghi file và subprocess bị mock).
@@ -82,19 +74,8 @@ def _install_renderer_mocks(monkeypatch, captured_calls):
     monkeypatch.setattr(renderer, "_write_scene_graph_beat", lambda *a, **k: None)
     monkeypatch.setattr(renderer, "_write_pass_trail", lambda *a, **k: None)
     monkeypatch.setattr(renderer, "_write_ball_sprite", lambda *a, **k: None)
+    monkeypatch.setattr(renderer, "_render_brand_scene", lambda package, *, content_type, role, output_path: output_path.write_bytes(b"fixed-card"))
     monkeypatch.setattr(renderer, "_render_purpose", lambda run, draft: None)
-
-    def draw_sg_overlay(item, window, *, index, job, work_dir, scene_x, scene_y,
-                        panel_w, panel_h, font_path, chalk, signal_lime, ink):
-        captured_calls.append({
-            "item": dict(item),
-            "window": window,
-            "index": index,
-            "job": job,
-        })
-        return []
-
-    monkeypatch.setattr(renderer, "_draw_sg_overlay", draw_sg_overlay)
 
     class _FakeCompletedProcess:
         def __init__(self, returncode=0, stdout=""):
@@ -112,7 +93,7 @@ def _install_renderer_mocks(monkeypatch, captured_calls):
 
 
 def _render_full(tmp_path, monkeypatch, run):
-    """Chạy _render thật với mọi phụ trọng bị mock; trả về danh sách các lần gọi _draw_sg_overlay."""
+    """Run _render with side effects mocked; return attempted free-standing text draws."""
     captured = []
     renderer = _install_renderer_mocks(monkeypatch, captured)
     # preview=False + visual_only=True: bỏ qua đoạn voice/soundpack, giữ segments thực tế.
@@ -128,8 +109,7 @@ def _render_full(tmp_path, monkeypatch, run):
     return captured
 
 
-def test_renderer_converts_beat_relative_to_absolute_window(tmp_path, monkeypatch):
-    """graph beat [9.0, 18.0], overlay clip-relative [2.0, 5.0] -> absolute [11.0, 14.0]."""
+def test_renderer_suppresses_unbound_scene_graph_overlay(tmp_path, monkeypatch):
     graph_overlay = _graph(
         "beat-2",
         9.0,
@@ -148,20 +128,11 @@ def test_renderer_converts_beat_relative_to_absolute_window(tmp_path, monkeypatc
     )
     captured = _render_full(tmp_path, monkeypatch, run)
 
-    assert len(captured) == 1, captured
-    call = captured[0]
-    # abs_start = 9.0 + 2.0 = 11.0 ; abs_end = 9.0 + 5.0 = 14.0
-    assert call["window"] == "between(t,11.000,14.000)", call
-    assert call["item"]["text"] == "Xin chào Việt Nam"
-    assert call["item"]["start_seconds"] == 2.0
-    assert call["item"]["end_seconds"] == 5.0
-    assert call["index"] == 1
-    assert call["job"] == 0
+    assert captured == []
 
 
-def test_renderer_sg_mode_does_not_re_read_segment_timeline_events(tmp_path, monkeypatch):
-    """sg_graphs không None -> renderer chỉ dùng sg_graphs[index]["overlays"],
-    KHÔNG đọc lại segment.timeline_events để tái suy overlay."""
+def test_renderer_suppresses_graph_and_timeline_copy(tmp_path, monkeypatch):
+    """Neither graph overlays nor timeline captions may create renderer text."""
     graph_overlay = _graph(
         "beat-2",
         9.0,
@@ -171,8 +142,8 @@ def test_renderer_sg_mode_does_not_re_read_segment_timeline_events(tmp_path, mon
         index=1,
     )
     # segment[1] mang timeline_events với overlay ở thời gian KHÁC (tuyệt đối [10,11]
-    # -> clip-relative [1,2]). Nếu renderer đọc lại timeline_events thì window sẽ khác
-    # so với graph overlay. Chỉ overlay từ graph được vẽ.
+    # -> clip-relative [1,2]). Neither source is template-slot-bound, so neither
+    # should be painted.
     run = _run(
         run_id="bbbbbbbbbbbb",
         graphs=[_graph("beat-1", 0.0, 9.0, index=0), graph_overlay],
@@ -187,15 +158,7 @@ def test_renderer_sg_mode_does_not_re_read_segment_timeline_events(tmp_path, mon
     )
     captured = _render_full(tmp_path, monkeypatch, run)
 
-    assert len(captured) == 1, captured
-    call = captured[0]
-    assert call["window"] == "between(t,11.000,14.000)"
-    assert call["item"]["text"] == "Xin chào Việt Nam"
-    assert call["item"]["start_seconds"] == 2.0
-    assert call["item"]["end_seconds"] == 5.0
-    assert call["index"] == 1
-    # Không có lần gọi nào sinh từ timeline_events.
-    assert not any("timeline" in str(c["item"].get("text", "")) for c in captured)
+    assert captured == []
 
 
 def test_overlay_window_clamped_to_beat_rejected_by_schema():
@@ -225,30 +188,3 @@ def test_overlay_window_clamped_to_beat_rejected_by_schema():
                            "start_seconds": 10.0, "end_seconds": 11.0}],
             )
         )
-
-
-def test_sg_overlay_filter_window_format(tmp_path):
-    """FFmpeg filter enable='between(t,11.000,14.000)' được tạo đúng từ graph overlay + timing."""
-    from apps.video_renderer import _draw_sg_overlay
-
-    filters = _draw_sg_overlay(
-        {"type": "caption", "text": "Xin chào Việt Nam", "start_seconds": 2.0, "end_seconds": 5.0},
-        "between(t,11.000,14.000)",
-        index=1,
-        job=0,
-        work_dir=tmp_path,
-        scene_x=0,
-        scene_y=0,
-        panel_w=1080,
-        panel_h=1920,
-        font_path=str(tmp_path / "f.ttf"),
-        chalk="0xFFFFFF",
-        signal_lime="0x00FF00",
-        ink="0x101814",
-    )
-    assert any("enable='between(t,11.000,14.000)'" in f for f in filters), filters
-    assert any("drawtext" in f and "textfile=" in f for f in filters)
-    # Text bị-freeze vào text file, không tái suy từ đâu khác.
-    text_file = tmp_path / "sg-overlay-1-0-caption.txt"
-    assert text_file.is_file()
-    assert text_file.read_text(encoding="utf-8") == "Xin chào Việt Nam"

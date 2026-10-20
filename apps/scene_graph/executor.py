@@ -20,133 +20,6 @@ def _validate(graph: dict[str, Any]) -> dict[str, Any]:
     return validate_scene_graph(graph)
 
 
-# Overlay role presets: vị trí/font/màu khóa theo template (deterministic),
-# KHÔNG từ LLM. Tọa độ là tỉ lệ canvas (0..1), quy về pixel khi vẽ.
-# Các role hỗ trợ: lower_third, caption, hook.
-_OVERLAY_ROLE_PRESETS: dict[str, dict[str, Any]] = {
-    "lower_third": {
-        "font": "bold",
-        "size_fraction": 0.05,
-        "x_fraction": 0.05,
-        "y_fraction": 0.82,
-        "fill": (255, 255, 255, 230),
-        "stroke_fill": (0, 0, 0, 140),
-        "stroke_width": 2,
-    },
-    "caption": {
-        "font": "latin",
-        "size_fraction": 0.04,
-        "x_fraction": 0.05,
-        "y_fraction": 0.48,
-        "fill": (255, 255, 255, 255),
-    },
-    "hook": {
-        "font": "bold",
-        "size_fraction": 0.075,
-        "x_fraction": 0.05,
-        "y_fraction": 0.10,
-        "fill": (255, 205, 0, 255),
-        "stroke_fill": (0, 0, 0, 110),
-        "stroke_width": 2,
-    },
-}
-
-
-def _role_of(overlay: dict[str, Any]) -> str:
-    """Lấy role của overlay: trường ``role`` (free label, do schema cho phép)
-    ưu tiên, rồi ``type`` (từ vựng khóa: lower_third/caption), rồi ``kind``
-    (legacy)."""
-    role = overlay.get("role")
-    if not isinstance(role, str) or not role.strip():
-        role = overlay.get("type")
-    if not isinstance(role, str) or not role.strip():
-        role = overlay.get("kind")
-    if not isinstance(role, str) or not role.strip():
-        raise ValueError("scene graph executor: overlay thiếu role/type/kind")
-    return str(role)
-
-
-def _collect_overlays(checked: dict[str, Any]) -> list[dict[str, Any]] | None:
-    """Lấy overlays đã đóng băng vào graph: top-level trước, ``params`` fallback.
-
-    Chỉ đọc giá trị đóng băng; KHÔNG đọc lại timeline/segment để suy ra overlay.
-    Schema đã chặn cấu trúc không hợp lệ trước khi executor được gọi.
-    """
-    overlays = checked.get("overlays")
-    if overlays is None and isinstance(checked.get("params"), dict):
-        overlays = checked["params"].get("overlays")
-    return overlays
-
-
-def _overlay_font_paths(is_long: bool) -> tuple[str, str]:
-    """Đường dẫn font (read-only từ released pack) dùng vẽ overlay."""
-    from template_foundation import resolve_template
-    from pathlib import Path as _Path
-
-    anchor = _Path(__file__).resolve().parents[2]
-    package_id = ("allen-knows-ball.longform-analyst" if is_long
-                  else "allen-knows-ball.shortform-analyst")
-    package = resolve_template(anchor, package_id, allow_draft=True)
-    bold = str(package.root / "resources/fonts/BeVietnamPro-Bold.ttf")
-    latin = str(package.root / "resources/fonts/BarlowCondensed-Bold.ttf")
-    return bold, latin
-
-
-def _draw_overlay(image: Any, overlay: dict[str, Any], width: int,
-                  height: int) -> None:
-    """Vẽ một overlay văn bản lên ảnh đã render (mutates ``image``).
-
-    Fail-closed: role không hỗ trợ hoặc thiếu văn bản -> ValueError rõ,
-    không tự bịa composition.
-    """
-    if not isinstance(overlay, dict):
-        raise ValueError("scene graph executor: overlay phải là một đối tượng")
-    role = _role_of(overlay)
-    preset = _OVERLAY_ROLE_PRESETS.get(role)
-    if preset is None:
-        raise ValueError(
-            f"scene graph executor: không hỗ trợ overlay role {role!r}; "
-            "các role hỗ trợ: lower_third, caption, hook"
-        )
-    text = overlay.get("text")
-    if not isinstance(text, str) or not text.strip():
-        raise ValueError("scene graph executor: overlay thiếu văn bản không rỗng")
-
-    from PIL import ImageDraw as _ImageDraw
-    from PIL import ImageFont as _ImageFont
-
-    is_long = (width, height) == (1920, 1080)
-    bold_path, latin_path = _overlay_font_paths(is_long)
-    font_path = bold_path if preset["font"] == "bold" else latin_path
-    size = max(12, int(height * preset["size_fraction"]))
-    font = _ImageFont.truetype(font_path, size)
-
-    drawer = _ImageDraw.Draw(image)
-    x = int(width * preset["x_fraction"])
-    y = int(height * preset["y_fraction"])
-    kwargs: dict[str, Any] = {
-        "xy": (x, y),
-        "text": text,
-        "font": font,
-        "fill": preset["fill"],
-    }
-    if "stroke_fill" in preset:
-        kwargs["stroke_width"] = int(preset.get("stroke_width", 2))
-        kwargs["stroke_fill"] = preset["stroke_fill"]
-    drawer.text(**kwargs)
-
-
-def _apply_overlays(image: Any, overlays: list[dict[str, Any]], width: int,
-                    height: int) -> None:
-    """Vẽ toàn bộ overlays lên ảnh đã render (theo thứ tự trong danh sách)."""
-    for index, overlay in enumerate(overlays):
-        if not isinstance(overlay, dict):
-            raise ValueError(
-                f"scene graph executor: overlays[{index}] phải là một đối tượng"
-            )
-        _draw_overlay(image, overlay, width, height)
-
-
 def render_scene_graph(
     graph: dict[str, Any],
     *,
@@ -167,11 +40,9 @@ def render_scene_graph(
     generic data frames) are rendered by the matching existing primitive
     for the frozen mode, without any mode switching.
 
-    Khi graph kèm theo ``overlays`` (đóng băng bởi builder; top-level
-    trước, ``params`` fallback), executor vẽ mỗi overlay văn bản theo role
-    preset cố định lên ảnh đã render. Overlay không vẽ được -> ValueError
-    (fail-closed, không tự bịa composition). Executor KHÔNG đọc lại
-    timeline/segment để suy ra overlay.
+    Free-standing ``overlays`` are retained for provenance but deliberately
+    not painted. Without a frozen template-slot binding they would create
+    text outside the card design; QA marks such graphs not ready.
     """
     checked = _validate(graph)
     canvas = checked["canvas"]
@@ -248,19 +119,8 @@ def render_scene_graph(
 
                 image = _Image.open(out).copy()
 
-    # Overlays đóng băng trong graph (top-level trước, params fallback).
-    # Vẽ lên ảnh đã render theo role preset cố định; KHÔNG đọc lại
-    # timeline/segment để suy ra overlay.
-    overlays = _collect_overlays(checked)
-    if overlays:
-        try:
-            _apply_overlays(image, overlays, width, height)
-        except ValueError:
-            raise
-        except Exception as error:  # pragma: no cover - fail-closed
-            raise ValueError(
-                f"scene graph executor: không thể vẽ overlays: {error}"
-            ) from error
+    # No free-standing overlay paint: only text already in the frozen card
+    # design is composited into this still.
     return image
 
 

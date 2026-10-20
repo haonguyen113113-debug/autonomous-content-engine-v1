@@ -4,12 +4,12 @@ Status: frozen for worker tasks. Changes require coordinator approval and a
 contract rebuild. Supersedes C6 v1.0 as the runtime card contract; the C6
 `player_portrait` slot is carried forward unchanged.
 
-Pack history: **12.0.0** is the frozen 19/7/63 baseline. **12.1.0** is the
-current runtime pack and adds exactly one execution promotion: `C-09`
-`source_card` (20/7/62). 12.0.0 remains readable and immutable; old Scene
-Graphs stay pinned to it. 12.1.0 reuses the 12.0.0 font/kit/pack resources
-byte-for-byte and does not change C-09's starter JSON, boxes, fonts, colours or
-background art.
+Pack history: the upstream `C-11` short opening hook card is included in the
+released **12.0.0** pack and is contract-executable there (20/7/63). **12.1.0**
+adds exactly one further execution promotion: `C-09` `source_card` (21/7/62).
+The contracts are pinned by pack version. 12.1.0 reuses the 12.0.0
+font/kit/pack resources byte-for-byte and does not change C-09's starter JSON,
+boxes, fonts, colours or background art.
 
 ## Rule
 
@@ -26,11 +26,10 @@ Authoritative runtime file:
 `template_foundation/templates/allen-knows-ball/12.1.0/card-contract.json`
 (`schema_version` 2.0, `template_version` 12.1.0, `contract_id`
 `card-contract`, `contract_hash`
-`8ceb621132f47f3fcc77b2a2a634f85cd4f85e7c6c328cce59b1ed0d928f0d0d`).
+`512dbbd9ccfc5bdcdecf584294bd8e7ad5a24c465e412778af8e701648e16bed`).
 The historical file
 `template_foundation/templates/allen-knows-ball/12.0.0/card-contract.json`
-keeps its original bytes and hash
-`cad623bd30050dd300f27a8eb9e39408e99f2d181703917db19282f08e4e499b`.
+hash: `2fa0a5249a51b8b93654bfe366d4d035499effe756814aad4510daef9dc054f7`.
 
 Build/check tool: `tools/build_card_contract.py --version <version>`.
 Loader/validator: `apps/studio_templates/card_media.py`.
@@ -118,15 +117,15 @@ explicit `fallback` bindings retaining `proposed_asset_id`.
 
 | Status | 12.0.0 | 12.1.0 | Meaning |
 |---|---:|---:|---|
-| `contract` | 19 | 20 | All selected modes execute the authored starter design through the contract. |
+| `contract` | 20 | 21 | All selected modes execute the authored starter design through the contract. |
 | `partial` | 7 | 7 | At least one selected mode is executable; the card also has legacy modes. |
 | `legacy_non_ready` | 63 | 62 | No selected mode is contract-executable; rendered by a legacy path and never QA-`PASS` as contract-ready. |
-| **Total** | **89** | **89** | Exactly one record per registry card. |
+| **Total** | **90** | **90** | Exactly one record per registry card. |
 
 Contract-executable cards and modes (12.1.0):
 
 - hook: `C-02`, `C-03`, `MR-01`, `MR-10`, `BP-01`, `BP-02`, `BP-09`,
-  `BP-18`, `BP-19` on `hook_card`;
+  `BP-18`, `BP-19`, `C-11` on `hook_card`;
 - score: `MR-02`, `MR-03` on `score_card`; `MR-04` on `score_card` only
   (`goal_card` is legacy because the layout requires `hook_text`, which the
   authored score card cannot supply);

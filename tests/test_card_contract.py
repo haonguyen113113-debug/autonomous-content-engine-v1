@@ -1,11 +1,11 @@
 """Unified card contract v2.0: coverage, drift, binding, fallback, tamper.
 
-``12.0.0`` remains the frozen historical contract (19 contract / 7 partial /
-63 legacy cards). ``12.1.0`` adds exactly one execution promotion: C-09
-``source_card``. These tests pin both the immutable old artifact and the
+``12.0.0`` has 90 records including the upstream C-11 opening hook card
+(20 contract / 7 partial / 63 legacy cards). ``12.1.0`` adds exactly one
+execution promotion: C-09 ``source_card``. These tests pin both artifacts and the
 per-card-only new promotion, plus the planner/renderer boundaries:
 
-* exactly one record per registry card (89 cards; media-less cards included);
+* exactly one record per registry card (90 cards; media-less cards included);
 * every data/media box, fit limit and execution route is authored, not
   inferred at render time;
 * the builder freezes card/text/media values and the contract hash;
@@ -49,10 +49,10 @@ NEW_CONTRACT_FILE = (
 PORTRAIT_CARDS = {"C-04", "MR-08", "BP-03"}
 SOURCE_CARDS = {"BP-20", "C-09", "MR-12", "U-08"}
 OLD_CONTRACT_HASH = (
-    "cad623bd30050dd300f27a8eb9e39408e99f2d181703917db19282f08e4e499b"
+    "2fa0a5249a51b8b93654bfe366d4d035499effe756814aad4510daef9dc054f7"
 )
 NEW_CONTRACT_HASH = (
-    "8ceb621132f47f3fcc77b2a2a634f85cd4f85e7c6c328cce59b1ed0d928f0d0d"
+    "512dbbd9ccfc5bdcdecf584294bd8e7ad5a24c465e412778af8e701648e16bed"
 )
 
 
@@ -133,7 +133,7 @@ def test_contract_covers_every_built_card_exactly_once():
 
     contract = _contract()
     card_ids = [card["card_id"] for card in contract["cards"]]
-    assert len(card_ids) == len(set(card_ids)) == 89
+    assert len(card_ids) == len(set(card_ids)) == 90
     assert set(card_ids) == {str(card["id"]) for card in CARDS}
     assert contract["schema_version"] == "2.0"
     assert contract["contract_id"] == "card-contract"
@@ -148,7 +148,7 @@ def test_contract_execution_partitions_are_explicit():
         card["execution"]["status"] for card in _contract()["cards"]
     )
     assert statuses == {
-        "contract": 19,
+        "contract": 20,
         "partial": 7,
         "legacy_non_ready": 63,
     }
@@ -170,6 +170,9 @@ def test_12_0_0_contract_is_byte_hash_frozen():
     on_disk = json.loads(CONTRACT_FILE.read_text(encoding="utf-8"))
     assert on_disk["template_version"] == "12.0.0"
     assert on_disk["contract_hash"] == OLD_CONTRACT_HASH
+    c11 = next(card for card in on_disk["cards"] if card["card_id"] == "C-11")
+    assert c11["execution"]["status"] == "contract"
+    assert c11["execution"]["modes"] == ["hook_card"]
 
 
 def test_12_1_0_promotes_only_c09_source_card():
@@ -180,7 +183,7 @@ def test_12_1_0_promotes_only_c09_source_card():
     assert Counter(
         card["execution"]["status"] for card in new["cards"]
     ) == {
-        "contract": 20,
+        "contract": 21,
         "partial": 7,
         "legacy_non_ready": 62,
     }

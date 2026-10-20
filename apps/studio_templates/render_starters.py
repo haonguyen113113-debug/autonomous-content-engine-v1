@@ -30,10 +30,10 @@ PREVIEWS_SHORT = ROOT / "template_foundation" / "templates" / "allen-knows-ball"
 PREVIEWS_LONG = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "longform-12.0.0" / "previews"
 ROWS = TPL / "proof-rows.json"
 
-SPRINT_SHORT = ["C-03", "C-04", "C-06", "C-07", "C-09", "C-10", "U-02", "U-03",
-                "U-05", "MR-01", "MR-02", "MR-04", "MR-06", "MR-10", "MR-12",
-                "BP-01", "BP-02", "BP-08", "BP-13", "BP-14", "BP-16", "BP-18",
-                "BP-19", "BP-20"]
+SPRINT_SHORT = ["C-03", "C-04", "C-06", "C-07", "C-09", "C-10", "C-11", "U-02",
+                "U-03", "U-05", "MR-01", "MR-02", "MR-04", "MR-06", "MR-10",
+                "MR-12", "BP-01", "BP-02", "BP-08", "BP-13", "BP-14", "BP-16",
+                "BP-18", "BP-19", "BP-20"]
 SPRINT_LONG = ["TA-01", "TA-02", "TA-03", "TA-05", "TA-06", "TA-11", "TA-12",
                "TA-14", "TA-16", "TA-18", "TA-19"]
 # Sprint 2 (inventory §6): tactical P1 long cards.

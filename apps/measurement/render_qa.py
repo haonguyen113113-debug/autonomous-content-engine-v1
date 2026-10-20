@@ -305,12 +305,8 @@ def check_media_rights(
 def _overlay_rendered_check(graph: dict[str, Any]) -> dict[str, Any]:
     """Overlay rendered check on the RAW graph (lenient, never raises).
 
-    Overlays are declared in ``graph["overlays"]`` (frozen by ws3, covered
-    by graph_hash). Each overlay must carry a valid type / text / timing
-    and lie inside the beat window. A single rendered still cannot confirm
-    in-frame paint or timing, so a declared + structurally valid overlay is
-    NEEDS_REVIEW (confirm on the rendered MP4), never a blind PASS on mere
-    presence in the input. No overlay declared -> PASS (nothing to render).
+    Free-standing text overlays have no template-slot binding and are not
+    rendered. A graph that declares one therefore fails this production gate.
     """
     if not isinstance(graph, dict):
         return _check("Overlay rendered", NEEDS_REVIEW,
@@ -367,10 +363,11 @@ def _overlay_rendered_check(graph: dict[str, Any]) -> dict[str, Any]:
             continue
     if problems:
         return _check("Overlay rendered", FAIL, "; ".join(problems))
-    return _check("Overlay rendered", NEEDS_REVIEW,
-                  f"{len(overlays)} overlay(s) declared with valid text/timing "
-                  "inside the beat window; a still cannot confirm in-frame "
-                  "paint — verify on the rendered MP4.")
+    return _check(
+        "Overlay rendered", FAIL,
+        "Free-standing text overlays are not rendered: no frozen template-slot binding exists. "
+        "Move the copy into a supported card slot before rendering.",
+    )
 
 
 def _max_channel_difference(left: Any, right: Any) -> Any:
@@ -1364,8 +1361,8 @@ def qa_clip(
     if any(st == FAIL for st in scene_overlay):
         checks.append(_check(
             "Overlay rendered", FAIL,
-            "One or more scenes declare invalid overlay text/timing "
-            "(outside the beat window or malformed)."))
+            "One or more scenes declare free-standing overlays without a "
+            "frozen template-slot binding; renderer suppresses them."))
     elif any(st == NEEDS_REVIEW for st in scene_overlay):
         checks.append(_check(
             "Overlay rendered", NEEDS_REVIEW,

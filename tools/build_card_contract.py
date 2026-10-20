@@ -20,10 +20,10 @@ Usage (from the repository root):
     python tools/build_card_contract.py --write
     python tools/build_card_contract.py --check --version 12.0.0
 
-12.0.0 generation is pinned to its historical starter-mode surface and slot
-mapping so the released artifact stays byte-identical. 12.1.0 adds exactly
-one execution promotion: C-09/source_card (claim + source + date credit);
-BP-20/MR-12/U-08 remain legacy/non-ready, and long-form is unchanged.
+12.0.0 generation uses its frozen starter-mode surface and includes the
+released C-11 hook card. 12.1.0 adds exactly one further execution promotion:
+C-09/source_card (claim + source + date credit); BP-20/MR-12/U-08 remain
+legacy/non-ready, and long-form is unchanged.
 
 No network, no clock, no randomness.
 """
