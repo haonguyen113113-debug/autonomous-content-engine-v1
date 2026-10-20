@@ -346,9 +346,11 @@ def test_fetch_asset_infos_selects_rights_scope_json(tmp_path):
     infos = pipeline._fetch_asset_infos(root, ["a-1"])
     assert "a-1" in infos
     assert infos["a-1"]["rights_scope_json"] == _human_scope_json()
+    assert infos["a-1"]["asset_type"] == "image"
     assert "rights_scope" not in infos["a-1"]  # khong doc cot cu khong ton tai
-    # khong tao/sua thu muc runtime cua du an (chua duoi tmp_path)
-    assert not (ROOT / "runtime").exists()
+    # Registry fixture is isolated under tmp_path; repo runtime may already exist.
+    assert db_path.is_file()
+    assert db_path.is_relative_to(tmp_path)
 
 
 def test_fetch_asset_infos_old_registry_without_rights_scope_json(tmp_path):
@@ -395,8 +397,9 @@ def test_fetch_asset_infos_old_registry_without_rights_scope_json(tmp_path):
     assert ref["approval_status"] == "pending"
     assert ref["rights_scope"] == "rights-scope-missing"
     assert ref["asset_id"] == "a-old"
-    # khong tao/sua runtime cua du an
-    assert not (ROOT / "runtime").exists()
+    # Registry fixture is isolated under tmp_path; repo runtime may already exist.
+    assert db_path.is_file()
+    assert db_path.is_relative_to(tmp_path)
 
 
 def test_tactical_blocks_passed_through_not_invented(monkeypatch):

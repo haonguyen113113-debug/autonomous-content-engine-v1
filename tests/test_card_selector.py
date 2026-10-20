@@ -8,10 +8,12 @@ from apps.card_selector import (
     REQUIRED_SLOTS,
     SUPPORTED_MODES,
     _eligible_asset,
+    contract_grammar_modes,
     normalize_upload_purpose,
     select_cards,
 )
 from apps.content_workflow import LAYOUT_MODES, VISUAL_MODES
+from apps.studio_templates.card_media import card_contract
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -69,7 +71,7 @@ def test_unknown_mode_falls_back_with_warning():
     assert any("unknown visual_mode" in w for w in out["decisions"][0]["warnings"])
 
 
-def test_duel_signals_pick_duel_columns_and_starter():
+def test_duel_signals_pick_duel_columns_and_contract_starter():
     out = select_cards([
         _seg("Mo dau tran dau", mode="hook_card",
              data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
@@ -79,8 +81,12 @@ def test_duel_signals_pick_duel_columns_and_starter():
                    "source": "Demo", "date": "Demo"}, id="beat-2"),
     ])
     second = out["decisions"][1]
-    assert second["visual_mode"] == "comparison_duel"
-    assert second["starter_id"] == "C-07"
+    # comparison_duel / C-07 is a partial historical path. The planner uses
+    # the card-level contract duel grammar instead of silently rendering C-07.
+    assert second["visual_mode"] == "duel_columns"
+    assert second["starter_id"] == "BP-14"
+    assert second["card_execution"] == "contract"
+    assert second["production_ready"] is True
     assert second["score"] >= 70
 
 
@@ -157,7 +163,7 @@ def test_unverified_binding_is_dropped():
     assert any("no purpose/scope" in w for w in second["warnings"])
 
 
-def test_bound_asset_forces_broll_outside_portrait_modes():
+def test_bound_asset_is_dropped_when_card_has_no_media_slot():
     out = select_cards([
         _seg("Mo dau", mode="hook_card",
              data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
@@ -167,17 +173,31 @@ def test_bound_asset_forces_broll_outside_portrait_modes():
              media_asset_id="a-portrait", id="beat-2"),
     ], assets=_assets(), purpose=PURPOSE)
     second = out["decisions"][1]
-    assert second["visual_mode"] == "media_b_roll"
-    assert second["media_asset_id"] == "a-portrait"
+    # BP-16 is contract-ready but declares no media slot. The old renderer
+    # rule converted this to media_b_roll; the C7 planner must not do that.
+    assert second["visual_mode"] == "stat_leader"
+    assert second["starter_id"] == "BP-16"
+    assert second["media_asset_id"] is None
+    assert any("declares no media slot" in w for w in second["warnings"])
+    assert second["card_execution"] == "contract"
+    assert second["production_ready"] is True
 
 
-def test_broll_without_asset_falls_back_to_pitch():
-    out = select_cards([_seg("Mo dau tran", mode="media_b_roll", id="beat-1")])
-    # beat-0 hook rule wins, but the fallback reason must be recorded
-    assert any("pitch plate" in r for r in out["decisions"][0]["reasons"])
+def test_declared_media_b_roll_has_no_contract_path():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Ket luan", mode="media_b_roll", id="beat-2"),
+    ])
+    second = out["decisions"][1]
+    assert second["visual_mode"] == "tactical_explainer"
+    assert second["media_asset_id"] is None
+    assert second["card_execution"] == "none"
+    assert second["production_ready"] is False
+    assert any("no C7 media slot" in w for w in second["warnings"])
 
 
-def test_immediate_repeat_prefers_declared_but_triple_flips():
+def test_single_contract_mode_repeats_without_fake_variety():
     out = select_cards([
         _seg("Mo dau", mode="hook_card",
              data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
@@ -192,8 +212,46 @@ def test_immediate_repeat_prefers_declared_but_triple_flips():
                    "source": "D", "date": "D"}, id="beat-4"),
     ])
     got = [d["visual_mode"] for d in out["decisions"]]
-    assert got[1] == "duel_columns" and got[2] == "duel_columns"
-    assert got[3] != "duel_columns"  # third in a row flips for variety
+    # Only duel_columns has complete data; no tactical/legacy mode is
+    # substituted just to manufacture a different-looking sequence.
+    assert got[1:] == ["duel_columns", "duel_columns", "duel_columns"]
+    assert out["plan"]["grammar_variety_ok"] is False
+    assert out["plan"]["over_repeated_modes"] == {"duel_columns": 3}
+    assert any("repeated more than twice" in w for w in out["plan"]["warnings"])
+    assert any("only one valid contract grammar" in r
+               for r in out["decisions"][3]["reasons"])
+    assert all(d["card_execution"] == "contract" for d in out["decisions"])
+
+
+def test_contract_repetition_guard_uses_a_valid_alternative():
+    common = {
+        "metrics": [{"label": "X", "home": "1", "away": "0"}],
+        "stats": [{"label": "Ban", "value": "19"}],
+        "source": "D", "date": "D",
+    }
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("So sanh thong ke suc manh", mode="tactical_explainer",
+             data=dict(common), id="beat-2",
+             beat_intent={"image_goal": "compare_numbers"}),
+        _seg("So sanh thong ke kha nang", mode="tactical_explainer",
+             data=dict(common), id="beat-3",
+             beat_intent={"image_goal": "compare_numbers"}),
+        _seg("So sanh thong ke hieu qua", mode="tactical_explainer",
+             data=dict(common), id="beat-4",
+             beat_intent={"image_goal": "compare_numbers"}),
+    ])
+    modes = [d["visual_mode"] for d in out["decisions"]]
+    # Both duel_columns and stat_leader have full data. The guard avoids an
+    # immediate repeat and uses both contract grammars; it never falls back to
+    # a legacy mode for variety.
+    assert len(set(modes[1:])) == 2
+    assert modes[1] != modes[2]
+    assert modes[2] != modes[3]
+    assert all(d["card_execution"] == "contract" for d in out["decisions"])
+    assert all(d["production_ready"] for d in out["decisions"])
+    assert out["plan"]["grammar_variety_ok"] is True
 
 
 def test_fixture_maps_to_mr11():
@@ -215,6 +273,17 @@ def test_long_pressing_maps_to_ta06():
         _seg("Doi hinh pressing tam cao", mode="tactical_explainer", id="beat-2"),
     ], content_type="long")
     assert out["decisions"][1]["starter_id"] == "TA-06"
+
+
+def test_short_tactical_scene_does_not_claim_section_divider_starter():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Cau hoi chien thuat"}, id="beat-1"),
+        _seg("Doi hinh pressing tam cao", mode="tactical_explainer", id="beat-2"),
+    ])
+    tactical = out["decisions"][1]
+    assert tactical["visual_mode"] == "tactical_explainer"
+    assert tactical.get("starter_id") is None
 
 
 def test_long_tactical_signals_map_to_sprint2():
@@ -415,7 +484,29 @@ def test_apply_auto_attaches_library_portrait(tmp_path):
     assert plan["decisions"][1]["suggested_asset_id"] is None
 
 
-def test_apply_auto_picks_broll_pool_for_closing_hook(tmp_path):
+def test_alternating_contract_grammars_are_varied_not_over_repeated():
+    common = {
+        "metrics": [{"label": "X", "home": "1", "away": "0"}],
+        "stats": [{"label": "Ban", "value": "19"}],
+        "source": "D", "date": "D",
+    }
+    segments = [_seg("Mo dau", mode="hook_card",
+                     data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1")]
+    for index in range(2, 7):
+        segments.append(_seg("So sanh thong ke", mode="tactical_explainer",
+                             data=dict(common), id=f"beat-{index}",
+                             beat_intent={"image_goal": "compare_numbers"}))
+    out = select_cards(segments)
+    modes = [d["visual_mode"] for d in out["decisions"]]
+    # Two contract grammars alternate; total frequency can exceed two without
+    # being a per-beat repetition blocker.
+    assert set(modes[1:]) == {"duel_columns", "stat_leader"}
+    assert out["plan"]["max_mode_repeat"] == 1
+    assert out["plan"]["grammar_variety_ok"] is True
+    assert out["plan"]["over_repeated_modes"] == {}
+
+
+def test_apply_does_not_bind_broll_outside_declared_media_slots(tmp_path):
     import sqlite3
 
     from apps.asset_library.registry import connect
@@ -442,11 +533,14 @@ def test_apply_auto_picks_broll_pool_for_closing_hook(tmp_path):
              data={"hook_text": "Het gio"}, id="beat-2"),
         purpose=PURPOSE,
     )
-    apply_card_plan(tmp_path, run)
+    plan = apply_card_plan(tmp_path, run)
     first, second = run["draft"]["segments"]
-    assert "media_asset_id" not in first  # opener keeps branded hook
-    assert second.get("media_asset_id") == "stad-pool"
-    assert second["visual_mode"] == "media_b_roll"
+    assert "media_asset_id" not in first
+    # C7 12.0.0 has no general b-roll slot. The generic pool asset must not be
+    # silently attached or converted into a media_b_roll scene.
+    assert second.get("media_asset_id") is None
+    assert second["visual_mode"] == "hook_card"
+    assert all(d["visual_mode"] != "media_b_roll" for d in plan["decisions"])
 
 
 def test_sprint3_short_story_signals_map_to_p1():
@@ -470,15 +564,18 @@ def test_sprint3_short_story_signals_map_to_p1():
         ("Derby kình địch lịch sử đối đầu", "duel_columns",
          {"metrics": [{"label": "Thang", "home": "12", "away": "8"}],
           "source": "D", "date": "D"}, "BP-10"),
+        # C7 12.0.0: BP-15/MR-09/MR-07 are card-level partial. The generic
+        # contract stat grammar BP-16 replaces them; the planner records the
+        # non-contract historical starter in its reasons.
         ("Top ghi bàn nhiều nhất mùa giải", "stat_leader",
          {"stats": [{"label": "Ban", "value": "19"}],
-          "source": "D", "date": "D"}, "BP-15"),
+          "source": "D", "date": "D"}, "BP-16"),
         ("Điểm số hiệu số cuộc đua vô địch", "stat_leader",
          {"stats": [{"label": "Diem", "value": "45"}],
-          "source": "D", "date": "D"}, "MR-09"),
+          "source": "D", "date": "D"}, "BP-16"),
         ("Kiểm soát bóng cú sút xG trận đấu", "stat_leader",
          {"stats": [{"label": "xG", "value": "1.8"}],
-          "source": "D", "date": "D"}, "MR-07"),
+          "source": "D", "date": "D"}, "BP-16"),
         ("Cột mốc sự nghiệp career cầu thủ", "chart_timeline",
          {"values": [1, 2, 3]}, "BP-04"),
         ("Tái sinh sau sa sút phong độ", "chart_timeline",
@@ -520,6 +617,9 @@ def test_sprint3_new_modes_have_starters():
     assert starters[2] == "MR-06"
     assert starters[3] == "BP-06"
     assert starters[4] == "C-05"
+    # These are explicit fallback starters, not production-ready grammars.
+    assert all(not d["production_ready"] for d in out["decisions"][1:])
+    assert all(d["card_execution"] != "contract" for d in out["decisions"][1:])
 
 
 def test_sprint3_long_hook_and_fallbacks():
@@ -740,3 +840,217 @@ def test_apply_card_plan_normalizes_destinations_purpose(tmp_path):
     assert plan_purpose["territory"] == "VN"
     assert plan_purpose["commercial"] is False
     assert plan_purpose["monetization"] is False
+
+def test_contract_grammar_modes_are_card_level_contract_only():
+    modes = contract_grammar_modes()
+    assert set(modes["score_card"]) == {"MR-02", "MR-03"}
+    assert "C-07" not in modes["duel_columns"]
+    assert {"C-06", "BP-15", "MR-09", "MR-07"}.isdisjoint(
+        modes["stat_leader"])
+    assert "BP-06" not in modes.get("welcome_card", ())
+    for mode, starters in modes.items():
+        assert starters, mode
+        for starter in starters:
+            record = card_contract(starter)
+            assert record is not None
+            assert record["execution"]["status"] == "contract"
+            assert mode in record["execution"]["modes"]
+
+
+def test_news_result_with_score_data_selects_contract_score_card():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Tỷ số chung cuộc trận đấu", mode="tactical_explainer",
+             data={"home": "A", "away": "B", "score": "2 - 0",
+                   "source": "D", "date": "D"}, id="beat-2"),
+    ])
+    second = out["decisions"][1]
+    assert second["visual_mode"] == "score_card"
+    assert second["starter_id"] in {"MR-02", "MR-03"}
+    assert second["card_execution"] == "contract"
+    assert second["production_ready"] is True
+    assert any("overridden" in w for w in second["warnings"])
+    assert "tactical_explainer" not in [d["visual_mode"] for d in out["decisions"]]
+
+
+def test_reviewed_results_and_stats_choose_contract_grammars():
+    common = {"source": "D", "date": "D"}
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("So sánh sức mạnh hai đội", mode="tactical_explainer",
+             data={"metrics": [{"label": "Bàn", "home": "45", "away": "38"}],
+                   **common}, id="beat-2"),
+        _seg("Thống kê ấn tượng trận đấu", mode="tactical_explainer",
+             data={"stats": [{"label": "Bàn", "value": "19"}],
+                   **common}, id="beat-3"),
+    ])
+    duel, stat = out["decisions"][1], out["decisions"][2]
+    assert (duel["visual_mode"], duel["starter_id"]) == ("duel_columns", "BP-14")
+    assert (stat["visual_mode"], stat["starter_id"]) == ("stat_leader", "BP-16")
+    assert all(d["production_ready"] for d in (duel, stat))
+    assert duel["grammar"]["source"] == stat["grammar"]["source"] == "contract"
+
+
+def test_missing_required_data_does_not_claim_contract_ready():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Thống kê ấn tượng trận đấu", mode="stat_leader",
+             data={"stats": [{"label": "Bàn", "value": "19"}]}, id="beat-2"),
+    ])
+    second = out["decisions"][1]
+    assert second["visual_mode"] == "stat_leader"
+    assert second["starter_id"] == "C-06"
+    assert second["card_execution"] == "partial"
+    assert second["production_ready"] is False
+    assert any("card-level partial" in w for w in second["warnings"])
+    assert out["plan"]["partial_starters"] == ["C-06"]
+    assert out["plan"]["production_ready"] is False
+
+
+def test_media_binds_only_to_a_declared_purpose_cleared_slot():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _portrait_segment(),
+        _seg("Nhin lai dien bien", mode="stat_leader",
+             data={"stats": [{"label": "Ban", "value": "19"}],
+                   "source": "D", "date": "D"},
+             media_asset_id="a-cleared", id="beat-3"),
+    ], assets=_portrait_assets(), purpose=PURPOSE)
+    portrait, stat = out["decisions"][1], out["decisions"][2]
+    assert (portrait["visual_mode"], portrait["starter_id"]) == (
+        "player_poster_side", "C-04")
+    assert portrait["media_asset_id"] == "a-cleared"
+    assert portrait["media_status"] == "bound"
+    assert portrait["production_ready"] is True
+    assert stat["media_asset_id"] is None
+    assert stat["production_ready"] is True
+    assert any("declares no media slot" in w for w in stat["warnings"])
+
+
+def test_portrait_slot_refuses_wrong_subject_and_missing_purpose():
+    wrong_subject = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Tien dao Nguyen Van B toa sang", mode="player_poster_side",
+             data={"player_name": "Nguyen Van B",
+                   "stats": [{"label": "Ban", "value": "19"}]}, id="beat-2"),
+    ], assets=_portrait_assets(), purpose=PURPOSE)
+    second = wrong_subject["decisions"][1]
+    assert second["visual_mode"] == "player_poster_side"
+    assert second["starter_id"] == "C-04"
+    assert second["media_asset_id"] is None
+    assert second["production_ready"] is False
+    assert any("portrait media fallback" in w for w in second["warnings"])
+
+    no_purpose = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _portrait_segment(),
+    ], assets=_portrait_assets())
+    second = no_purpose["decisions"][1]
+    assert second["media_asset_id"] is None
+    assert second["production_ready"] is False
+    assert any("no purpose/scope" in w for w in second["warnings"])
+
+
+def test_beat_intent_player_override_uses_contract_portrait():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Tien dao Nguyen Van A toa sang", mode="tactical_explainer",
+             data={"player_name": "Nguyen Van A",
+                   "stats": [{"label": "Ban", "value": "19"}]},
+             beat_intent={"image_goal": "introduce_player"}, id="beat-2"),
+    ], assets=_portrait_assets(), purpose=PURPOSE)
+    second = out["decisions"][1]
+    assert second["visual_mode"] in {"player_card", "player_poster_side"}
+    assert second["starter_id"] == "C-04"
+    assert second["media_asset_id"] == "a-cleared"
+    assert second["production_ready"] is True
+    assert second["grammar"]["source"] == "contract"
+
+
+def test_money_stat_uses_contract_money_starter():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+        _seg("Phí chuyển nhượng kỷ lục mùa hè", mode="stat_leader",
+             data={"stats": [{"label": "Phí chuyển nhượng", "value": "120"}],
+                   "source": "D", "date": "D"}, id="beat-2"),
+    ])
+    second = out["decisions"][1]
+    assert second["visual_mode"] == "stat_leader"
+    assert second["starter_id"] == "BP-08"
+    assert second["card_execution"] == "contract"
+    assert second["production_ready"] is True
+
+
+def test_tactical_only_script_reports_variety_blocker_without_fake_cards():
+    segments = [
+        _seg("Hang thu sap do toi nay", mode="hook_card",
+             data={"hook_text": "Hang thu sap do toi nay"}, id="beat-1"),
+        _seg("Be day chien thuat cua huan luyen vien",
+             mode="tactical_explainer", id="beat-2"),
+        _seg("Tuyen giua di chuyen tao khoang trong",
+             mode="tactical_explainer", id="beat-3"),
+        _seg("Hau ve canh cao doi mat", mode="tactical_explainer", id="beat-4"),
+        _seg("Tien dao ep cao gay suc ep", mode="tactical_explainer", id="beat-5"),
+        _seg("Ket luan ve the tran", mode="tactical_explainer", id="beat-6"),
+    ]
+    out = select_cards(segments)
+    decisions = out["decisions"]
+    assert [d["visual_mode"] for d in decisions[1:]] == [
+        "tactical_explainer"] * 5
+    assert all(not d["production_ready"] for d in decisions[1:])
+    assert out["plan"]["grammar_variety_ok"] is False
+    assert out["plan"]["over_repeated_modes"] == {"tactical_explainer": 5}
+    assert out["plan"]["non_ready_roles"] == ["tactical"]
+    assert any("no contract-ready card grammar for role 'tactical'"
+               in w for w in decisions[1]["warnings"])
+    assert any("R3 S3.1 cannot be cleared" in w
+               for w in out["plan"]["warnings"])
+
+
+def test_select_cards_is_deterministic_for_same_inputs():
+    def build():
+        return [
+            _seg("Mo dau", mode="hook_card",
+                 data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+            _seg("So sanh suc manh hai doi", mode="tactical_explainer",
+                 data={"metrics": [{"label": "Ban", "home": "45", "away": "38"}],
+                       "source": "D", "date": "D"}, id="beat-2"),
+            _seg("Thong ke an tuong", mode="tactical_explainer",
+                 data={"stats": [{"label": "Ban", "value": "19"}],
+                       "source": "D", "date": "D"}, id="beat-3"),
+            _portrait_segment(),
+        ]
+
+    first = select_cards(build(), assets=_portrait_assets(), purpose=PURPOSE)
+    second = select_cards(build(), assets=_portrait_assets(), purpose=PURPOSE)
+    assert first == second
+
+
+def test_apply_card_plan_does_not_trigger_a_render(tmp_path, monkeypatch):
+    from apps.card_selector import apply_card_plan
+    import apps.video_renderer as renderer
+
+    calls = []
+
+    def fail(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("planner must not trigger a render")
+
+    monkeypatch.setattr(renderer, "render_full_run", fail)
+    monkeypatch.setattr(renderer, "render_scene_png", fail)
+    run = _feed_run(
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Mot tran cau dinh doat"}, id="beat-1"),
+    )
+    plan = apply_card_plan(tmp_path, run)
+    assert plan["decisions"]
+    assert calls == []
+    assert "render_report" not in run

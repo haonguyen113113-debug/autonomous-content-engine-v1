@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "owner_resources": [
+    {
+      "what": "Background plates, cyber neon system",
+      "by": "Owner (Pippit AI export, corner marks inpainted)",
+      "terms": "Channel-owned; confirm plan commercial terms before publishing"
+    },
+    {
+      "what": "Channel badge baked on opening and ending only",
+      "by": "Owner; circular crop of AKB-Badge.png, watermark excluded, YouTube-circle frame",
+      "terms": "Channel identity; never a team crest"
+    },
+    {
+      "what": "Team crests on duel, score and fixture layouts",
+      "by": "Dynamic monogram or rights-cleared library crest at card stage",
+      "terms": "Never baked; real marks banned without clearance"
+    },
+    {
+      "what": "Channel badge-circle.png",
+      "by": "Owner; circular crop of AKB-Badge.png, watermark excluded",
+      "terms": "Channel-owned identity; never a team crest"
+    }
+  ],
+  "policy": "Owner plates plus fonts plus kit plus beds; real crests, footage and likeness banned.",
+  "badge_policy": "Channel badge on opener and end card only; team slots dynamic per video.",
+  "third_party_resources": [
+    {
+      "family": "AI night pitch bed",
+      "files": [
+        "resources/ai-night-pitch-p.jpg"
+      ],
+      "license": "AI-generated bed, owner-provided; confirm commercial terms before publishing",
+      "source": "owner export"
+    }
+  ]
+}

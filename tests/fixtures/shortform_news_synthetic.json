@@ -1,0 +1,149 @@
+{
+  "fixture_id": "synthetic-shortform-news-001",
+  "synthetic": true,
+  "description": "Synthetic short-form football news fixture for planner checks. It is not a real match, transfer, result, or source. All team names, scores, players, metrics, sources, dates and times are invented.",
+  "content_type": "short",
+  "segments": [
+    {
+      "id": "beat-hook",
+      "synthetic": true,
+      "narration": "SYNTHETIC: Kết quả mới nhất",
+      "visual": "Synthetic headline for a short news update",
+      "visual_mode": "hook_card",
+      "duration_seconds": 5,
+      "start_seconds": 0.0,
+      "end_seconds": 5.0,
+      "beat_intent": {
+        "image_goal": "establish_moment",
+        "focus_subject": "synthetic result headline",
+        "evidence_type": "none",
+        "emphasis_level": "hero"
+      },
+      "graphic_data": {
+        "hook_text": "SYNTHETIC: Kết quả mới nhất",
+        "source": "Synthetic Sports Desk (fixture)",
+        "date": "20/10/2026 (synthetic)",
+        "credit": "Nguồn: Synthetic Sports Desk • 20/10/2026 (synthetic)"
+      },
+      "evidence_refs": [
+        "Synthetic Sports Desk (fixture), 20/10/2026"
+      ]
+    },
+    {
+      "id": "beat-result",
+      "synthetic": true,
+      "narration": "Kết quả: SYNTHETIC FC thắng DEMO UNITED 2-1",
+      "visual": "Synthetic Cup full-time score",
+      "visual_mode": "score_card",
+      "duration_seconds": 6,
+      "start_seconds": 5.0,
+      "end_seconds": 11.0,
+      "beat_intent": {
+        "image_goal": "show_evidence",
+        "focus_subject": "full-time score",
+        "evidence_type": "match_event",
+        "emphasis_level": "standard"
+      },
+      "graphic_data": {
+        "home": "SYNTHETIC FC",
+        "away": "DEMO UNITED",
+        "score": "2-1",
+        "context": "Synthetic Cup • 20/10/2026 20:00 (synthetic)",
+        "source": "Synthetic Sports Desk (fixture)",
+        "date": "20/10/2026 (synthetic)",
+        "credit": "Nguồn: Synthetic Sports Desk • 20/10/2026 (synthetic)"
+      },
+      "evidence_refs": [
+        "Synthetic Sports Desk (fixture), 20/10/2026"
+      ]
+    },
+    {
+      "id": "beat-event",
+      "synthetic": true,
+      "narration": "Phút 78, Synthetic 09 ghi bàn nâng tỷ số lên 2-1",
+      "visual": "Synthetic match event with scorer and minute",
+      "visual_mode": "goal_card",
+      "duration_seconds": 6,
+      "start_seconds": 11.0,
+      "end_seconds": 17.0,
+      "beat_intent": {
+        "image_goal": "show_evidence",
+        "focus_subject": "synthetic scorer and updated score",
+        "evidence_type": "match_event",
+        "emphasis_level": "standard"
+      },
+      "graphic_data": {
+        "home": "SYNTHETIC FC",
+        "away": "DEMO UNITED",
+        "score": "2-1",
+        "context": "Phút 78 • Synthetic 09 ghi bàn",
+        "source": "Synthetic Sports Desk (fixture)",
+        "date": "20/10/2026 (synthetic)",
+        "credit": "Nguồn: Synthetic Sports Desk • 20/10/2026 (synthetic)"
+      },
+      "evidence_refs": [
+        "Synthetic Sports Desk (fixture), 20/10/2026"
+      ]
+    },
+    {
+      "id": "beat-stat",
+      "synthetic": true,
+      "narration": "Chỉ số synthetic: 7 cú sút trúng đích",
+      "visual": "Synthetic match metric",
+      "visual_mode": "stat_leader",
+      "duration_seconds": 5,
+      "start_seconds": 17.0,
+      "end_seconds": 22.0,
+      "beat_intent": {
+        "image_goal": "show_evidence",
+        "focus_subject": "synthetic shot count",
+        "evidence_type": "sourced_stat",
+        "emphasis_level": "standard"
+      },
+      "graphic_data": {
+        "stats": [
+          {
+            "label": "Sút trúng đích (synthetic)",
+            "value": "7",
+            "summary": "Synthetic match metric"
+          },
+          {
+            "label": "Nguồn",
+            "summary": "Synthetic Sports Desk (fixture)"
+          }
+        ],
+        "source": "Synthetic Sports Desk (fixture)",
+        "date": "20/10/2026 (synthetic)",
+        "credit": "Nguồn: Synthetic Sports Desk • 20/10/2026 (synthetic)"
+      },
+      "evidence_refs": [
+        "Synthetic Sports Desk (fixture), 20/10/2026"
+      ]
+    },
+    {
+      "id": "beat-source",
+      "synthetic": true,
+      "narration": "Nguồn: Synthetic Sports Desk, cập nhật 20/10/2026",
+      "visual": "Synthetic attribution card",
+      "visual_mode": "source_card",
+      "duration_seconds": 4,
+      "start_seconds": 22.0,
+      "end_seconds": 26.0,
+      "beat_intent": {
+        "image_goal": "show_evidence",
+        "focus_subject": "synthetic source attribution",
+        "evidence_type": "sourced_quote",
+        "emphasis_level": "quiet"
+      },
+      "graphic_data": {
+        "source": "Synthetic Sports Desk (fixture)",
+        "date": "20/10/2026 20:00 (synthetic)",
+        "claim": "Fixture synthetic: tên đội, tỷ số, cầu thủ và số liệu đều không phải dữ liệu thật.",
+        "credit": "Synthetic Sports Desk • 20/10/2026 (synthetic)"
+      },
+      "evidence_refs": [
+        "Synthetic Sports Desk (fixture), 20/10/2026"
+      ]
+    }
+  ]
+}

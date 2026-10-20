@@ -2217,8 +2217,7 @@ def _render(
                         for graph in sg_graphs]
     sg_purpose = _render_purpose(run, draft) if sg_graphs is not None else None
     legacy_purpose = _render_purpose(run, draft)
-    sg_media_records: dict[int, dict[str, Any]] = {}
-    sg_credit_texts: dict[int, str | None] = {}
+    sg_media_records: dict[int, dict[str, dict[str, Any]]] = {}
     fallback_diagrams = _diagram_specs()
     diagram_specs: list[dict[str, Any]] = []
     scene_paths: list[Path] = []
@@ -2295,11 +2294,9 @@ def _render(
             frozen_params = frozen_params if isinstance(frozen_params, dict) else {}
             frozen_graphic = frozen_params.get("graphic_data")
             graphic_data = dict(frozen_graphic) if isinstance(frozen_graphic, dict) else {}
-            gated_record, gated_credit = _scene_graph_media(root, sg_graphs[index], sg_purpose)
-            if gated_record is not None:
-                media_record = gated_record
-                sg_media_records[index] = gated_record
-                sg_credit_texts[index] = gated_credit
+            gated_media, _credits = _scene_graph_media(root, sg_graphs[index], sg_purpose)
+            if gated_media:
+                sg_media_records[index] = gated_media
         elif not preview and segment.get("media_asset_id"):
             media_record = _library_image_record(root, str(segment["media_asset_id"]))
             # C1 rights gate: the asset must be eligible for this exact upload
@@ -2340,8 +2337,7 @@ def _render(
                 palette=scene_palette,
                 is_long=is_long,
                 scene_number=index + 1,
-                media_record=media_record,
-                credit_text=sg_credit_texts.get(index),
+                media_slots=sg_media_records.get(index),
                 text_path=work_dir / f"tactical-text-{index}.png",
             )
             scene_text_paths[index] = returned_text
@@ -2406,8 +2402,9 @@ def _render(
                 if not is_long and not segment.get("media_asset_id"):
                     from apps.card_selector import STARTERS_SHORT as _SS2
                     from apps.studio_templates.starter_scenes import render_starter_layers as _rsl
+                    starter_for_mode = _SS2.get(mode)
                     layers = _rsl(mode, graphic_data, segment.get("evidence_refs", []),
-                                  _SS2.get(mode))
+                                  starter_for_mode) if starter_for_mode else None
                     if layers is not None:
                         starter_img, starter_text = layers
             except Exception:
@@ -3035,16 +3032,33 @@ def _render(
 
         sg_full: list[Any] = []
         sg_bg: list[Any] = []
+        sg_pack: list[Any] = []
         for beat_index, beat_graph in enumerate(sg_graphs):
             try:
                 beat_bg = _Image.open(scene_paths[beat_index]).convert("RGBA")
             except (OSError, ValueError):
                 sg_full.append(None)
                 sg_bg.append(None)
+                sg_pack.append(None)
                 continue
             beat_text_path = scene_text_paths[beat_index]
             if beat_graph.get("kind") == "starter":
                 sg_bg.append(beat_bg.convert("RGB"))
+                # Pack-only baseline: the same frozen design rendered with no
+                # bound media. QA compares it to the painted background to
+                # prove in-slot paint and fallback non-paint.
+                if beat_graph.get("media_bindings"):
+                    try:
+                        from apps.scene_graph import executor as _sg_executor
+
+                        pack_image = _sg_executor.render_scene_graph(
+                            beat_graph, texts=False, media={}
+                        )
+                        sg_pack.append(pack_image.convert("RGB"))
+                    except Exception:
+                        sg_pack.append(None)
+                else:
+                    sg_pack.append(None)
                 if beat_text_path is not None and Path(beat_text_path).is_file():
                     try:
                         beat_tx = _Image.open(beat_text_path).convert("RGBA")
@@ -3058,6 +3072,7 @@ def _render(
             else:
                 sg_full.append(beat_bg.convert("RGB"))
                 sg_bg.append(None)
+                sg_pack.append(None)
         sg_narrations: dict[str, str] = {}
         for seg in (draft.get("segments", []) if isinstance(draft.get("segments"), list) else []):
             if isinstance(seg, dict) and seg.get("segment_id") and isinstance(seg.get("narration"), str):
@@ -3066,6 +3081,7 @@ def _render(
             sg_graphs,
             sg_full,
             bg_images=sg_bg,
+            pack_images=sg_pack,
             narrations=sg_narrations,
             duration_target=float(duration),
             roles=None,
@@ -3283,44 +3299,23 @@ def _render_purpose(run: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any
     return normalize_upload_purpose(run, draft)
 
 
-def _scene_graph_media(
-    root: Path, graph: dict[str, Any], purpose: dict[str, Any] | None = None
-) -> tuple[dict[str, Any] | None, str | None]:
-    """Resolve the media this scene paints: (record, credit_text_override).
+def _resolve_library_image(
+    root: Path,
+    ref: dict[str, Any],
+    purpose: dict[str, Any] | None,
+    *,
+    scene: str,
+) -> tuple[dict[str, Any], str | None]:
+    """Resolve one frozen library_image ref through both rights gates.
 
-    Returns (None, None) for media-free scenes. Every painted asset must be
-    planner-approved AND verified/active/with-file; when the upload intent
-    is known the workstream-1 scope gate must additionally allow it.
-    Anything else raises - no silent drop, no substitution. Monogram
-    fallbacks paint no image and need no resolution.
+    Gate 1: planner approval + verified/active image + file inside the
+    library. Gate 2 (when the upload intent is known): ``is_usable_for``.
+    Any failure raises: the renderer never substitutes another asset.
     """
-    from apps.measurement.render_qa import graph_asset_refs
-
-    if not isinstance(graph, dict):
-        raise ValueError("scene graph media: graph must be an object")
-    if graph.get("kind") == "starter":
-        return None, None  # frozen design pixels only; portraits unused
-    refs = [ref for ref in graph_asset_refs(graph)
-            if ref.get("kind") == "library_image"]
-    if str(graph.get("mode", "")) != "media_b_roll":
-        if refs:
-            raise ValueError(
-                f"scene graph beat {graph.get('segment_id', '?')} carries media refs "
-                "on a non-b-roll primitive the frozen design cannot paint; "
-                "the planner must re-freeze the beat."
-            )
-        return None, None
-    if not refs:
-        raise ValueError(
-            f"scene graph b-roll beat {graph.get('segment_id', '?')} names no "
-            "frozen asset; the planner must freeze one - the renderer never "
-            "picks media."
-        )
-    ref = refs[0]
     if ref.get("approval_status") == "pending":
         raise ValueError(
-            f"library asset {ref['asset_id']} is frozen as approval_status=pending "
-            f"({ref.get('rights_scope')}); the planner did not clear it - "
+            f"library asset {ref.get('asset_id')} is frozen as approval_status=pending "
+            f"({ref.get('rights_scope')}) on {scene}; the planner did not clear it - "
             "route to human rights review instead of rendering."
         )
     # Full-row probe (same shape QA uses): gate-1 on verified/active/file,
@@ -3328,34 +3323,34 @@ def _scene_graph_media(
     # persisted rights_scope_json. Never migrates the user DB.
     from apps.measurement.render_qa import _registry_row
 
-    row, error = _registry_row(Path(root), ref["asset_id"])
+    row, error = _registry_row(Path(root), str(ref.get("asset_id")))
     if error is not None and error not in ("", "absent"):
         raise ValueError(
-            f"library asset {ref['asset_id']} is unverifiable at render time: "
-            f"{error}; refusing to paint it."
+            f"library asset {ref.get('asset_id')} is unverifiable at render time: "
+            f"{error}; refusing to paint it ({scene})."
         )
     if error == "absent" or row is None:
         raise ValueError(
-            f"library asset {ref['asset_id']} does not exist in the registry."
+            f"library asset {ref.get('asset_id')} does not exist in the registry ({scene})."
         )
     if row.get("asset_type") != "image" or row.get("rights_state") != "verified" \
             or row.get("lifecycle_state") != "active":
         raise ValueError(
-            f"library asset {ref['asset_id']} is {row.get('asset_type')}/"
+            f"library asset {ref.get('asset_id')} is {row.get('asset_type')}/"
             f"{row.get('rights_state')}/{row.get('lifecycle_state')} - only "
-            "verified + active images may render."
+            f"verified + active images may render ({scene})."
         )
     library_root = (Path(root) / "runtime/assets/library").resolve()
     try:
         image_path = (Path(root) / str(row.get("stored_path") or "")).resolve()
     except Exception:
         raise ValueError(
-            f"library asset {ref['asset_id']} has an unresolvable stored_path."
+            f"library asset {ref.get('asset_id')} has an unresolvable stored_path ({scene})."
         )
     if library_root not in image_path.parents or not image_path.is_file():
         raise ValueError(
-            f"library asset {ref['asset_id']} file is missing or outside "
-            "runtime/assets/library."
+            f"library asset {ref.get('asset_id')} file is missing or outside "
+            f"runtime/assets/library ({scene})."
         )
     try:
         import json as _json
@@ -3379,14 +3374,85 @@ def _scene_graph_media(
         scope_out = is_usable_for(row, purpose)
         if not scope_out.get("allowed"):
             raise ValueError(
-                f"library asset {ref['asset_id']} denied for this upload: "
+                f"library asset {ref.get('asset_id')} denied for this upload: "
                 f"{'; '.join(str(r) for r in scope_out.get('reasons', []))} "
-                f"(action: {scope_out.get('required_action')})."
+                f"(action: {scope_out.get('required_action')}; {scene})."
             )
         credit = (scope_out.get("scope") or {}).get("credit") or {}
         if credit.get("required") and isinstance(credit.get("text"), str) and credit["text"].strip():
             credit_text = credit["text"].strip()[:80]
     return record, credit_text
+
+
+def _scene_graph_media(
+    root: Path, graph: dict[str, Any], purpose: dict[str, Any] | None = None
+) -> tuple[dict[str, dict[str, Any]], dict[str, str | None]]:
+    """Resolve the media this scene paints, keyed by frozen slot.
+
+    Starter graphs paint only ``media_bindings`` entries with status
+    ``bound`` into their authored regions; fallback entries paint nothing.
+    Primitive b-roll keeps its single ``media_b_roll`` record. Every painted
+    asset must be planner-approved AND verified/active/with-file; when the
+    upload intent is known the scope gate must additionally allow it.
+    Anything else raises - no silent drop, no substitution.
+    """
+    from apps.measurement.render_qa import graph_asset_refs
+
+    if not isinstance(graph, dict):
+        raise ValueError("scene graph media: graph must be an object")
+    scene = f"beat {graph.get('segment_id', '?')}"
+    if graph.get("kind") == "starter":
+        bindings = graph.get("media_bindings")
+        if not isinstance(bindings, list) or not bindings:
+            return {}, {}
+        records: dict[str, dict[str, Any]] = {}
+        credits: dict[str, str | None] = {}
+        for binding in bindings:
+            if not isinstance(binding, dict) or binding.get("status") != "bound":
+                continue
+            slot_id = str(binding.get("slot_id", "?"))
+            ref = binding.get("asset")
+            if not isinstance(ref, dict) or ref.get("kind") != "library_image":
+                raise ValueError(
+                    f"scene graph {scene} slot {slot_id}: bound media lacks a "
+                    "library_image asset ref; the planner must re-freeze the beat."
+                )
+            record, credit_text = _resolve_library_image(
+                Path(root), ref, purpose, scene=f"{scene} slot {slot_id}"
+            )
+            records[slot_id] = {
+                "path": record["path"],
+                "fit": str(binding.get("fit", "cover")),
+                "focal_point": list(binding.get("focal_point") or [0.5, 0.5]),
+                "mask": binding.get("mask"),
+                "min_source_px": list(binding.get("min_source_px") or [1, 1]),
+                "asset_id": ref.get("asset_id"),
+            }
+            credits[slot_id] = credit_text
+        return records, credits
+    refs = [ref for ref in graph_asset_refs(graph)
+            if ref.get("kind") == "library_image"]
+    if str(graph.get("mode", "")) != "media_b_roll":
+        if refs:
+            raise ValueError(
+                f"scene graph beat {graph.get('segment_id', '?')} carries media refs "
+                "on a non-b-roll primitive the frozen design cannot paint; "
+                "the planner must re-freeze the beat."
+            )
+        return {}, {}
+    if not refs:
+        raise ValueError(
+            f"scene graph b-roll beat {graph.get('segment_id', '?')} names no "
+            "frozen asset; the planner must freeze one - the renderer never "
+            "picks media."
+        )
+    record, credit_text = _resolve_library_image(
+        Path(root), refs[0], purpose, scene=f"{scene} b-roll"
+    )
+    return (
+        {"media_b_roll": {**record, "credit_text": credit_text}},
+        {"media_b_roll": credit_text},
+    )
 
 
 def _scene_graph_plate(
@@ -3462,7 +3528,18 @@ def render_scene_png(
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
     if checked.get("kind") == "starter":
-        image = _executor.render_scene_graph(checked)
+        bindings = checked.get("media_bindings") or []
+        media: dict[str, dict[str, Any]] = {}
+        if any(isinstance(b, dict) and b.get("status") == "bound"
+               for b in bindings):
+            if root is None:
+                raise ValueError(
+                    "scene graph starter carries bound library media; a library "
+                    "root is required to resolve it. The renderer never silently "
+                    "falls back to pack artwork for a bound slot."
+                )
+            media, _credits = _scene_graph_media(Path(root), checked, purpose)
+        image = _executor.render_scene_graph(checked, media=media)
         image.convert("RGB").save(out)
         return out
     if checked.get("mode") != "media_b_roll":
@@ -3474,13 +3551,14 @@ def render_scene_png(
             "scene graph b-roll needs a library root to resolve its "
             "rights-verified image; refusing to render without one."
         )
-    record, credit_text = _scene_graph_media(Path(root), checked, purpose)
+    media, _credits = _scene_graph_media(Path(root), checked, purpose)
+    record = media.get("media_b_roll")
     if record is None:  # pragma: no cover - _scene_graph_media raises first
         raise ValueError("scene graph b-roll resolved to no media record.")
     canvas = checked.get("canvas", {})
     palette, font, latin = _scene_graph_plate(Path(root), canvas)
     width, height = int(canvas.get("width", 1080)), int(canvas.get("height", 1920))
-    _paint_broll_primitive(out, checked, record, credit_text, palette,
+    _paint_broll_primitive(out, checked, record, record.get("credit_text"), palette,
                            font, latin, (width, height) == (1920, 1080))
     return out
 
@@ -3495,34 +3573,37 @@ def _write_scene_graph_beat(
     palette: dict[str, str],
     is_long: bool,
     scene_number: int,
-    media_record: dict[str, Any] | None,
-    credit_text: str | None,
+    media_slots: dict[str, dict[str, Any]] | None,
     text_path: Path,
 ) -> Path | None:
     """Paint one clip beat from its frozen graph. Returns the text layer path.
 
     Starter graphs split into background + text layers (type entrances
-    after the plate lands); b-roll paints the owner-fixed void from the
-    already-gated record; other primitives execute verbatim. Raises on
-    missing b-roll media instead of substituting.
+    after the plate lands) and paint only the already-gated media payloads
+    keyed by their frozen media_slot ids; b-roll paints the owner-fixed
+    void from the already-gated record; other primitives execute verbatim.
+    Raises on missing bound media instead of substituting.
     """
     from apps.scene_graph import executor as _executor
 
     if graph.get("kind") == "starter":
-        bg_image, text_image = _executor.render_scene_graph_layers(graph)
+        bg_image, text_image = _executor.render_scene_graph_layers(
+            graph, media=media_slots or {}
+        )
         bg_image.convert("RGB").save(scene_path)
         if text_image is not None:
             text_image.save(text_path)
             return text_path
         return None
     if graph.get("mode") == "media_b_roll":
-        if media_record is None:
+        record = (media_slots or {}).get("media_b_roll")
+        if record is None:
             raise ValueError(
                 f"scene graph beat {graph.get('segment_id', '?')} reached paint "
                 "with no gated media record; unverified or missing media "
                 "blocks the render instead of falling back."
             )
-        _paint_broll_primitive(scene_path, graph, media_record, credit_text,
+        _paint_broll_primitive(scene_path, graph, record, record.get("credit_text"),
                                palette, font_path, display_font_path, is_long)
         return None
     image = _executor.render_scene_graph(graph)

@@ -20,6 +20,7 @@ user data; a missing asset registry yields NEEDS_REVIEW, not a new DB).
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,14 @@ FAIL = "FAIL"
 NEEDS_REVIEW = "NEEDS_REVIEW"
 
 VERDICTS = (PASS, FAIL, NEEDS_REVIEW)
+
+# C-09 attribution is graph-level executable in 12.1.0, but no rendered
+# source-card frame has been inspected or owner-approved. Keep every QA /
+# readiness claim below visual PASS until that separate review happens.
+SOURCE_CARD_REVIEW_STATUS: dict[str, Any] = {
+    "rendered_inspection": "pending",
+    "owner_approved": False,
+}
 
 
 def readiness_verdict(report: dict[str, Any] | None) -> bool:
@@ -163,7 +172,13 @@ def check_media_rights(
         if not isinstance(graph, dict):
             return [], None
         if graph.get("kind") == "starter":
-            return [], None  # frozen design pixels only; portraits unused
+            # Only bound media_bindings paint; fallback entries leave the
+            # authored pack artwork and need no licence. Unused role refs
+            # (cleared-but-not-painted) are reported by the empty-ref path.
+            return [
+                ref for ref in graph_asset_refs(graph)
+                if str(ref.get("where", "")).startswith("media_bindings[")
+            ], None
         params = graph.get("params") if isinstance(graph.get("params"), dict) else {}
         graphic = params.get("graphic_data") if isinstance(params, dict) else {}
         if isinstance(graphic, dict) and graphic.get("media_file"):
@@ -196,6 +211,16 @@ def check_media_rights(
                 str(r["asset_id"]) + " (" + str(r["where"]) + ")" for r in unused)
             note = (" Cleared-but-unused ref(s) not painted by the frozen design: "
                     + labelled + ".")
+        fallbacks = [
+            str(binding.get("slot_id"))
+            for binding in (graph.get("media_bindings") or [])
+            if isinstance(binding, dict) and binding.get("status") == "fallback"
+        ]
+        if fallbacks:
+            note += (
+                " Media slot fallback(s) " + ", ".join(sorted(fallbacks))
+                + " keep the authored pack artwork; no library image is painted."
+            )
         if slots and provenance.get("crest") != "monogram-fallback":
             return _check(name, NEEDS_REVIEW,
                           f"Crest slots {sorted(set(slots))} use a non-monogram mechanism "
@@ -348,11 +373,524 @@ def _overlay_rendered_check(graph: dict[str, Any]) -> dict[str, Any]:
                   "paint — verify on the rendered MP4.")
 
 
+def _max_channel_difference(left: Any, right: Any) -> Any:
+    """Per-pixel max RGB difference as an L image (0-255)."""
+    from PIL import ImageChops
+
+    diff = ImageChops.difference(left.convert("RGB"), right.convert("RGB"))
+    red, green, blue = diff.split()
+    return ImageChops.lighter(ImageChops.lighter(red, green), blue)
+
+
+def _changed_pixels(diff_map: Any, box: tuple[int, int, int, int] | None = None,
+                    threshold: int = 2) -> int:
+    """Count pixels whose max channel difference exceeds ``threshold``."""
+    target = diff_map.crop(box) if box is not None else diff_map
+    histogram = target.histogram()
+    return sum(count for value, count in enumerate(histogram) if value > threshold)
+
+
+def check_media_placement(
+    graph: dict[str, Any],
+    painted: Any | None,
+    pack_only: Any | None,
+) -> dict[str, Any] | None:
+    """Verify media paint against the pack-only baseline (rendered pixels).
+
+    - A ``bound`` slot must change at least ``qa.min_painted_fraction`` of
+      its authored box and must not change more than
+      ``qa.max_outside_leak_pixels`` outside it.
+    - A ``fallback`` slot must be pixel-identical to the pack-only render
+      inside AND outside its box: the renderer paints no substitute media.
+
+    ``painted`` is the background layer (texts=False) that includes any
+    gated media; ``pack_only`` is the same layer rendered with ``media={}``.
+    Without the baseline this returns NEEDS_REVIEW instead of guessing.
+    """
+    if not isinstance(graph, dict) or graph.get("kind") != "starter":
+        return None
+    bindings = graph.get("media_bindings")
+    if not isinstance(bindings, list) or not bindings:
+        return None
+    name = "Media placement"
+    if painted is None:
+        return _check(
+            name, NEEDS_REVIEW,
+            "Scene declares media bindings but no rendered background layer "
+            "was supplied — placement cannot be measured.",
+        )
+    if pack_only is None:
+        return _check(
+            name, NEEDS_REVIEW,
+            "Pack-only baseline missing — paint/leak cannot be distinguished "
+            "from authored artwork.",
+        )
+    try:
+        from PIL import Image, ImageChops, ImageDraw
+
+        painted_rgb = painted.convert("RGB")
+        pack_rgb = pack_only.convert("RGB")
+        if painted_rgb.size != pack_rgb.size:
+            return _check(
+                name, NEEDS_REVIEW,
+                f"Rendered size {painted_rgb.size} differs from pack baseline "
+                f"{pack_rgb.size}; placement unverifiable.",
+            )
+        diff_map = _max_channel_difference(painted_rgb, pack_rgb)
+        failures: list[str] = []
+        evidence: list[str] = []
+        for binding in bindings:
+            if not isinstance(binding, dict):
+                continue
+            slot_id = str(binding.get("slot_id", "?"))
+            box = binding.get("box_px")
+            if not isinstance(box, list) or len(box) != 4:
+                failures.append(f"{slot_id}: invalid frozen box_px")
+                continue
+            x, y, w, h = (int(value) for value in box)
+            if w <= 0 or h <= 0:
+                failures.append(f"{slot_id}: empty frozen box_px")
+                continue
+            area = w * h
+            inside = _changed_pixels(diff_map, (x, y, x + w, y + h))
+            mask = Image.new("L", painted_rgb.size, 255)
+            ImageDraw.Draw(mask).rectangle([x, y, x + w - 1, y + h - 1], fill=0)
+            outside = _changed_pixels(ImageChops.multiply(diff_map, mask))
+            qa = binding.get("qa") if isinstance(binding.get("qa"), dict) else {}
+            status = binding.get("status")
+            if status == "bound":
+                minimum = float(qa.get("min_painted_fraction", 0.0))
+                leak_limit = int(qa.get("max_outside_leak_pixels", 0))
+                fraction = inside / area if area else 0.0
+                if fraction < minimum:
+                    failures.append(
+                        f"{slot_id}: painted {fraction:.1%} of its box < "
+                        f"{minimum:.1%} (asset may be blank or mis-sized)"
+                    )
+                else:
+                    evidence.append(f"{slot_id} painted {fraction:.1%}")
+                if outside > leak_limit:
+                    failures.append(
+                        f"{slot_id}: {outside} changed pixel(s) outside the "
+                        f"frozen box > {leak_limit}"
+                    )
+                else:
+                    evidence.append(f"{slot_id} leak {outside}px")
+            elif status == "fallback":
+                if inside or outside:
+                    failures.append(
+                        f"{slot_id}: fallback must paint no media but "
+                        f"{inside} inside / {outside} outside pixel(s) changed"
+                    )
+                else:
+                    evidence.append(f"{slot_id} fallback left pack artwork intact")
+        if failures:
+            return _check(name, FAIL, "; ".join(failures))
+        return _check(
+            name, PASS,
+            "Measured against the pack-only render: " + "; ".join(evidence) + ".",
+        )
+    except Exception as error:
+        return _check(
+            name, NEEDS_REVIEW,
+            f"Pixel comparison failed ({str(error)[:120]}) — cannot evaluate.",
+        )
+
+
+def check_card_contract(graph: dict[str, Any]) -> dict[str, Any]:
+    """Report whether the rendered card actually executed its contract.
+
+    A legacy/fallback/contract-less graph is never a PASS: it may render, but
+    it is not covered by the authored card contract and must not be published
+    as contract-ready. The check reads the frozen provenance and the current
+    contract; it never trusts an asset id or a route name alone.
+    """
+    provenance = graph.get("provenance") if isinstance(graph.get("provenance"), dict) else {}
+    meta = provenance.get("card_contract") if isinstance(provenance, dict) else None
+    starter_id = graph.get("starter_id")
+    if meta is None:
+        if graph.get("kind") == "starter" or starter_id:
+            return _check(
+                "Card contract", NEEDS_REVIEW,
+                "Graph has no card-contract provenance: it used a legacy path "
+                "or predates contract v2.0. Rebuild with the planner; do not "
+                "treat this render as contract-ready.")
+        return _check(
+            "Card contract", NEEDS_REVIEW,
+            "Primitive graph has no authored card contract: it was rendered "
+            "by the legacy generic path, not a contract-executable card. "
+            "Inspect it, but do not treat it as contract-ready.")
+    if not isinstance(meta, dict):
+        return _check(
+            "Card contract", FAIL,
+            "provenance.card_contract is not an object.")
+    status = meta.get("status")
+    card_id = str(meta.get("card_id") or starter_id or "?")
+    version = str(meta.get("template_version") or provenance.get("template_version") or "")
+    reason = str(meta.get("reason") or "").strip()
+    if status == "contract":
+        from apps.studio_templates.card_media import card_contract
+
+        record = card_contract(starter_id, version)
+        if record is None:
+            return _check(
+                "Card contract", FAIL,
+                f"Contract status names {card_id}, but no record exists in "
+                f"card-contract {version}.")
+        if str(meta.get("sha256")) != record["contract_hash"]:
+            return _check(
+                "Card contract", FAIL,
+                f"{card_id} was frozen against a different contract hash "
+                f"({str(meta.get('sha256'))[:12]}… vs "
+                f"{record['contract_hash'][:12]}…). Rebuild the graph.")
+        if str(meta.get("starter_sha256")) != record["starter_sha256"]:
+            return _check(
+                "Card contract", FAIL,
+                f"{card_id} was frozen against a different authored starter.")
+        if graph.get("kind") != "starter":
+            return _check(
+                "Card contract", FAIL,
+                f"{card_id} claims contract execution but rendered a primitive "
+                "graph.")
+        if graph.get("fallback"):
+            return _check(
+                "Card contract", FAIL,
+                f"{card_id} claims contract execution but carries fallback "
+                f"reason: {graph.get('fallback')}.")
+        mode = str(graph.get("mode"))
+        if mode not in record["execution"]["modes"]:
+            return _check(
+                "Card contract", FAIL,
+                f"{card_id}/{mode} is not contract-executable per the record.")
+        bindings = graph.get("data_bindings")
+        if not isinstance(bindings, list):
+            return _check(
+                "Card contract", FAIL,
+                f"{card_id} has no frozen data_bindings; text was not "
+                "contract-resolved.")
+        visible = [b for b in bindings if isinstance(b, dict) and b.get("visible")]
+        required_missing = [
+            str(b.get("slot_id")) for b in bindings
+            if isinstance(b, dict) and b.get("required") and not b.get("visible")
+        ]
+        if required_missing:
+            return _check(
+                "Card contract", FAIL,
+                f"{card_id} left required data slots empty: "
+                f"{', '.join(sorted(required_missing))}.")
+        media_slots = record.get("media_slots") or []
+        media_bindings = graph.get("media_bindings") if isinstance(
+            graph.get("media_bindings"), list) else []
+        bound_media = [b for b in media_bindings if isinstance(b, dict)
+                       and b.get("status") == "bound"]
+        if mode == "source_card":
+            by_slot = {
+                str(binding.get("slot_id")): binding
+                for binding in bindings if isinstance(binding, dict)
+            }
+            body = by_slot.get("src-body")
+            credit = by_slot.get("credit")
+            if not body or not body.get("visible") or body.get("sources") != ["claim"]:
+                return _check(
+                    "Card contract", FAIL,
+                    f"{card_id}/source_card must bind only the reviewed claim "
+                    "to src-body and keep it visible.")
+            credit_slot = next(
+                (slot for slot in record["data_slots"]
+                 if slot["slot_id"] == "credit"), None)
+            credit_join = str((credit_slot or {}).get("join") or "")
+            credit_value = str(credit.get("value") or "").strip() if credit else ""
+            credit_parts = (
+                credit_value.split(credit_join, 1)
+                if credit_join and credit_value else [credit_value]
+            )
+            if (not credit or not credit.get("visible")
+                    or credit.get("sources") != ["source", "date"]
+                    or not credit_value
+                    or len(credit_parts) != 2
+                    or not all(part.strip() for part in credit_parts)):
+                return _check(
+                    "Card contract", FAIL,
+                    f"{card_id}/source_card must render a visible credit line "
+                    "with both source and date; missing or partial attribution "
+                    "is not contract-ready.")
+            review_pending = not (
+                SOURCE_CARD_REVIEW_STATUS.get("rendered_inspection") == "approved"
+                and SOURCE_CARD_REVIEW_STATUS.get("owner_approved") is True
+            )
+            if review_pending:
+                return _check(
+                    "Card contract", NEEDS_REVIEW,
+                    f"{card_id}/source_card executed contract {version} "
+                    f"sha256={record['contract_hash'][:12]}… with visible "
+                    "claim and source+date credit. Rendered frame inspection "
+                    "and owner visual approval are still pending, so this is "
+                    "not a visual PASS.")
+            return _check(
+                "Card contract", PASS,
+                f"{card_id}/source_card executed contract {version} "
+                f"sha256={record['contract_hash'][:12]}… with visible claim "
+                "and source+date credit; rendered inspection and owner "
+                "approval recorded.")
+        return _check(
+            "Card contract", PASS,
+            f"{card_id}/{mode} executed contract {version} "
+            f"sha256={record['contract_hash'][:12]}…; "
+            f"{len(visible)} visible data binding(s), "
+            f"{len(bound_media)}/{len(media_slots)} media slot(s) bound; "
+            "required slots visible.")
+    if status == "fallback":
+        return _check(
+            "Card contract", NEEDS_REVIEW,
+            f"{card_id} rendered a declared fallback primitive instead of the "
+            f"authored card: {reason or 'no reason recorded'}. Fallback is not "
+            "contract-ready; fix the data or choose another card.")
+    if status == "legacy_non_ready":
+        return _check(
+            "Card contract", NEEDS_REVIEW,
+            f"{card_id} mode {graph.get('mode')!r} is legacy/non-ready: "
+            f"{reason or 'not covered by the executable contract'}. This render "
+            "must not pass as contract-ready.")
+    if status in ("missing_contract_record", "no_contract"):
+        return _check(
+            "Card contract", NEEDS_REVIEW,
+            f"{card_id} has no executable card contract "
+            f"({status}): {reason or 'legacy path'}. Rebuild from the pinned "
+            "Template Foundation before publishing.")
+    return _check(
+        "Card contract", FAIL,
+        f"Unknown card-contract status {status!r} on {card_id}.")
+
+
+def _plain_text(value: str) -> str:
+    return re.sub(r"\*([^*]+)\*", r"\1", str(value))
+
+
+def _display_lines(text: str) -> list[str]:
+    """Lines the authored renderer actually draws: explicit newlines only.
+
+    The renderer does not word-wrap: a long single line overflows
+    horizontally rather than reflowing. Measuring a greedy wrap here would
+    hide that failure.
+    """
+    return str(text).split("\n")
+
+
+def _measure_text(
+    text: str,
+    *,
+    family: str,
+    weight: str,
+    size: int,
+    box_w: float,
+    box_h: float,
+) -> tuple[list[str], int, list[str]]:
+    """Measure text against its frozen box using the renderer's line rules.
+
+    Returns ``(overflow_reasons, line_count, limit_reasons)``. Metrics come
+    from the same locked font the renderer uses; multiline step matches
+    ``render_starters`` (``fontSize * 1.25``).
+    """
+    from apps.studio_templates.render_starters import font_for
+
+    font = font_for(str(family), str(weight), int(size))
+    lines = _display_lines(_plain_text(text))
+    overflow: list[str] = []
+    widest = 0.0
+    for line in lines:
+        bbox = font.getbbox(line)
+        widest = max(widest, float(bbox[2] - bbox[0]))
+    if widest > box_w + 2.0:
+        overflow.append(f"width {widest:.0f}>{box_w:.0f}px")
+    step = int(int(size) * 1.25)
+    ink_bottom = 0.0
+    for index, line in enumerate(lines):
+        bbox = font.getbbox(line)
+        ink_bottom = max(ink_bottom, index * step + float(bbox[3]))
+    # The authored box is a layout rectangle, not a clip: fonts commonly
+    # overshoot it by their ascender/descender gap. Allow one quarter of the
+    # drawn size, then fail a genuine vertical overflow (e.g. extra lines).
+    allowance = float(size) * 0.25
+    if ink_bottom > box_h + allowance + 2.0:
+        overflow.append(
+            f"height {ink_bottom:.0f}>{box_h:.0f}px "
+            f"(+{allowance:.0f}px font allowance)")
+    return overflow, len(lines), []
+
+
+def fit_text_size(slot: dict[str, Any], value: str) -> int:
+    """Return the font size the planner/builder will freeze for this slot.
+
+    Mirrors ``builder._shrink_to_fit``: step down by 2px to the contract's
+    floor, never word-wrap. Keeping the calculation here lets planner
+    readiness and rendered QA use the same measurement.
+    """
+    from apps.studio_templates.render_starters import font_for
+
+    size = int(slot["font"]["size_px"])
+    floor = max(20, size // 2)
+    width = float(slot["box_px"][2])
+    while size > floor:
+        try:
+            font = font_for(
+                str(slot["font"]["family"]),
+                str(slot["font"]["weight"]),
+                size,
+            )
+            box = font.getbbox(str(value))
+        except Exception:
+            break
+        if float(box[2] - box[0]) <= width + 2.0:
+            break
+        size -= 2
+    return size
+
+
+def measure_text_slot(
+    slot: dict[str, Any],
+    value: str,
+    *,
+    size: int | None = None,
+) -> dict[str, Any]:
+    """Measure one frozen/planned value against its contract slot.
+
+    Returns a deterministic status plus the evidence. ``size`` is the already
+    frozen draw size in graph QA; when omitted, the planner fit size is used.
+    This measures the value at the size that will actually be drawn, not the
+    intended asset/card path.
+    """
+    draw_size = int(size if size is not None else fit_text_size(slot, value))
+    _x, _y, width, height = (float(item) for item in slot["box_px"])
+    overflow, line_count, _limits = _measure_text(
+        str(value),
+        family=str(slot["font"]["family"]),
+        weight=str(slot["font"]["weight"]),
+        size=draw_size,
+        box_w=width,
+        box_h=height,
+    )
+    plain = _plain_text(str(value))
+    limit_hits: list[str] = []
+    if len(plain) > int(slot["max_chars"]):
+        limit_hits.append(f"{len(plain)}>{slot['max_chars']} chars")
+    if len(plain.split()) > int(slot["max_words"]):
+        limit_hits.append(f"{len(plain.split())}>{slot['max_words']} words")
+    if line_count > int(slot["max_lines"]):
+        limit_hits.append(f"{line_count}>{slot['max_lines']} lines")
+    status = FAIL if overflow else (NEEDS_REVIEW if limit_hits else PASS)
+    return {
+        "slot_id": str(slot["slot_id"]),
+        "status": status,
+        "size_px": draw_size,
+        "line_count": line_count,
+        "overflow": overflow,
+        "limit_hits": limit_hits,
+    }
+
+
+def check_text_fit(graph: dict[str, Any]) -> dict[str, Any] | None:
+    """Measure frozen text at its frozen font size against its contract box.
+
+    This catches the failure the shrink-to-fit step cannot: a value that
+    overflows its authored box, or one that exceeds the semantic
+    length/line limits the contract declares. It measures the frozen text
+    and geometry, not the intended asset path.
+    """
+    provenance = graph.get("provenance") if isinstance(graph.get("provenance"), dict) else {}
+    meta = provenance.get("card_contract") if isinstance(provenance, dict) else None
+    if not isinstance(meta, dict) or meta.get("status") != "contract":
+        return None
+    from apps.studio_templates.card_media import card_contract
+
+    record = card_contract(graph.get("starter_id"), meta.get("template_version"))
+    if record is None or graph.get("kind") != "starter":
+        return _check(
+            "Text fit (contract)", NEEDS_REVIEW,
+            "Cannot load the card contract/starter to measure text fit.")
+    design = graph.get("design") if isinstance(graph.get("design"), dict) else {}
+    pages = design.get("pages") if isinstance(design.get("pages"), list) else []
+    children = pages[0].get("children") if pages and isinstance(pages[0], dict) else []
+    by_layer = {
+        str(child.get("id")): child for child in children
+        if isinstance(child, dict) and child.get("type") == "text"
+    }
+    bindings = {
+        str(binding.get("slot_id")): binding
+        for binding in (graph.get("data_bindings") or [])
+        if isinstance(binding, dict)
+    }
+    overflowed: list[str] = []
+    over_limit: list[str] = []
+    measured = 0
+    try:
+        for slot in record["data_slots"]:
+            binding = bindings.get(str(slot["slot_id"]))
+            if not binding or not binding.get("visible"):
+                continue
+            layer = by_layer.get(str(slot["layer_id"]))
+            if layer is None:
+                over_limit.append(f"{slot['slot_id']}: missing frozen text layer")
+                continue
+            size = int(layer.get("fontSize", slot["font"]["size_px"]))
+            result = measure_text_slot(slot, str(binding["value"]), size=size)
+            measured += 1
+            if result["overflow"]:
+                overflowed.append(
+                    f"{slot['slot_id']} ({'; '.join(result['overflow'])})"
+                )
+            if result["limit_hits"]:
+                over_limit.append(
+                    f"{slot['slot_id']} ({', '.join(result['limit_hits'])})"
+                )
+        for static in record.get("static_text_layers") or []:
+            layer = by_layer.get(str(static["layer_id"]))
+            if layer is None:
+                over_limit.append(f"{static['layer_id']}: missing static text layer")
+                continue
+            size = int(layer.get("fontSize", static["font"]["size_px"]))
+            x, y, w, h = (float(value) for value in static["box_px"])
+            _ = (x, y)
+            overflow, _line_count, _limits = _measure_text(
+                str(static["text"]),
+                family=str(static["font"]["family"]),
+                weight=str(static["font"]["weight"]),
+                size=size,
+                box_w=w,
+                box_h=h,
+            )
+            measured += 1
+            if overflow:
+                overflowed.append(f"{static['layer_id']} ({'; '.join(overflow)})")
+    except Exception as error:  # font install/metrics failure is not a PASS
+        return _check(
+            "Text fit (contract)", NEEDS_REVIEW,
+            f"Text metrics could not be measured ({str(error)[:140]}); owner "
+            "must inspect the rendered frame.")
+    if overflowed:
+        return _check(
+            "Text fit (contract)", FAIL,
+            f"{len(overflowed)} frozen text box(es) overflow at the drawn font "
+            f"size: {'; '.join(overflowed[:4])}"
+            f"{' …' if len(overflowed) > 4 else ''}.")
+    if over_limit:
+        return _check(
+            "Text fit (contract)", NEEDS_REVIEW,
+            f"Text fits its box but exceeds declared contract limits: "
+            f"{'; '.join(over_limit[:4])}"
+            f"{' …' if len(over_limit) > 4 else ''}. Shrink-to-fit is not "
+            "editorial approval; shorten the copy or use another card.")
+    return _check(
+        "Text fit (contract)", PASS,
+        f"Measured {measured} frozen text layer(s) against their authored "
+        "boxes at the drawn font size; all fit within limits.")
+
+
 def qa_scene(
     graph: dict[str, Any],
     image: Any | None = None,
     *,
     bg_image: Any | None = None,
+    pack_image: Any | None = None,
     narration: str | None = None,
     root: Path | str | None = None,
     purpose: dict[str, Any] | None = None,
@@ -361,16 +899,20 @@ def qa_scene(
 
     This measures the rendered frame — frozen layer geometry, text clipping,
     safe area, overlap, density, contrast sampled on rendered background
-    pixels, "text actually paints", narration fit, and media rights — on
-    the actual rendered PNG. It does NOT claim the MP4 was QA'd: motion
-    execution (punch/slide/fade), timing continuity and clip structure are
-    clip-level concerns owned by qa_clip, and real motion still needs owner
-    eyeball on the MP4. Stills verify geometry and mapping only.
+    pixels, "text actually paints", media placement, narration fit, and
+    media rights — on the actual rendered PNG. It does NOT claim the MP4
+    was QA'd: motion execution (punch/slide/fade), timing continuity and
+    clip structure are clip-level concerns owned by qa_clip, and real
+    motion still needs owner eyeball on the MP4. Stills verify geometry and
+    mapping only.
 
     - graph: the validated Scene Graph that was executed.
     - image: the rendered Pillow image (RGB/RGBA) of this scene.
     - bg_image: background-only layer (executor render_scene_graph_layers);
       required for real contrast sampling and blank-text detection.
+    - pack_image: the same background layer rendered with ``media={}``;
+      required to prove frozen media painted inside its slot and nowhere
+      else (and that fallback slots painted nothing).
     - narration: beat narration text for the fit check.
     - root: repo root for the media-rights registry probe.
     - purpose: upload intent {platform, territory, ...} for the
@@ -394,6 +936,7 @@ def qa_scene(
         "Scene graph contract", PASS,
         f"version={checked.get('version')} mode={checked.get('mode')} "
         f"kind={checked.get('kind')} canvas={width}x{height}.")]
+    checks.append(check_card_contract(checked))
 
     if layers is None:
         checks.append(_check(
@@ -453,6 +996,10 @@ def qa_scene(
             FAIL if density > DENSITY_FAIL else PASS,
             f"Text boxes cover {density:.1%} of the frame "
             f"({'overcrowded' if density > DENSITY_FAIL else 'within budget'}; gate 40%)."))
+
+    text_fit = check_text_fit(checked)
+    if text_fit is not None:
+        checks.append(text_fit)
 
     if bg_image is None or layers is None:
         if layers is not None:
@@ -544,6 +1091,9 @@ def qa_scene(
                 "rendered voice preview."))
 
     checks.append(check_media_rights(checked, root, purpose))
+    placement = check_media_placement(checked, bg_image, pack_image)
+    if placement is not None:
+        checks.append(placement)
     if checked.get("kind") == "primitive" and str(checked.get("mode", "")) == "tactical_explainer":
         checks.append(_check(
             "Tactical vectors", NEEDS_REVIEW,
@@ -588,7 +1138,21 @@ def graph_asset_refs(graph: dict[str, Any]) -> list[dict[str, Any]]:
 
     params = graph.get("params") if isinstance(graph.get("params"), dict) else {}
     roles = graph.get("roles") if isinstance(graph.get("roles"), dict) else {}
-    # Roles first: they carry the planner's approval_status/rights_scope.
+    # Frozen card-media bindings are executable refs: they come first so the
+    # dedupe keeps the exact ref the renderer paints.
+    bindings = graph.get("media_bindings")
+    if isinstance(bindings, list):
+        for binding in bindings:
+            if not isinstance(binding, dict) or binding.get("status") != "bound":
+                continue
+            asset = binding.get("asset")
+            if isinstance(asset, dict) and asset.get("kind") == "library_image":
+                _take(
+                    asset.get("asset_id"),
+                    f"media_bindings[{binding.get('slot_id')}].asset",
+                    asset,
+                )
+    # Roles next: they carry the planner's approval_status/rights_scope.
     # The legacy params.media_asset_id shape has no approval info and only
     # fills gaps (dedupe keeps the first, richest record per asset).
     if isinstance(roles, dict):
@@ -645,6 +1209,7 @@ def qa_clip(
     images: list[Any] | None = None,
     *,
     bg_images: list[Any] | None = None,
+    pack_images: list[Any] | None = None,
     narrations: dict[str, str] | list[str] | None = None,
     duration_target: float | None = None,
     roles: dict[str, str] | None = None,
@@ -668,6 +1233,8 @@ def qa_clip(
     - images / bg_images: rendered Pillow images aligned with graphs
       (may be shorter than graphs or None — missing frames NEEDS_REVIEW
       the pixel checks that need them, never PASS them).
+    - pack_images: background-only renders with no bound media, aligned
+      with graphs; prove media placement and empty fallback slots.
     - narrations: {segment_id: narration} or [narration per beat].
     - roles: {segment_id: role}; without opening/ending role metadata the
       structure check NEEDS_REVIEWs instead of guessing from content.
@@ -676,6 +1243,7 @@ def qa_clip(
     graphs = list(graphs or [])
     images = list(images or [])
     bg_images = list(bg_images or [])
+    pack_images = list(pack_images or [])
 
     def _narration(index: int, graph: dict[str, Any]) -> str | None:
         if isinstance(narrations, dict):
@@ -688,6 +1256,7 @@ def qa_clip(
 
     scenes = [qa_scene(graph, images[i] if i < len(images) else None,
                        bg_image=bg_images[i] if i < len(bg_images) else None,
+                       pack_image=pack_images[i] if i < len(pack_images) else None,
                        narration=_narration(i, graph), root=root, purpose=purpose)
               for i, graph in enumerate(graphs)]
     checks: list[dict[str, Any]] = []

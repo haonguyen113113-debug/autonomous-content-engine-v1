@@ -26,7 +26,7 @@ def collect() -> dict:
         "git": git,
         "goal": {
             "priority": "beautiful render + image QA, STRICT",
-            "scope": "short-form 9:16 template 0.8.0 first, long-form later",
+            "scope": "short-form 9:16; latest pinned pack 12.1.0; long-form later",
             "pass_gate": "human eyes on contact sheet + MP4 required",
             "goal_file": "docs/coordinator/GOAL_AND_THRESHOLDS.md"
             if goal.is_file() else None,
@@ -42,6 +42,7 @@ def collect() -> dict:
             "docs/coordinator/GOAL_AND_THRESHOLDS.md",
             "docs/coordinator/AUDIT_RUBRIC_STRICT_V1.md",
             "docs/coordinator/contracts/README.md",
+            "docs/coordinator/source-card-c9-12-1-0-2026-10-20.md",
         ],
         "forbidden": ["runtime/", ".env", "credentials",
                       "docs/ENGINE_STATE.md (coordinator owns)"],

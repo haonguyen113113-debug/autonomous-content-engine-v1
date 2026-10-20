@@ -167,7 +167,8 @@ def composite(base: Image.Image, draw_fn, opacity: float) -> None:
 
 
 def render_design(data: dict, *, texts: bool = True, decor: bool = True,
-                  transparent: bool = False) -> Image.Image:
+                  transparent: bool = False,
+                  media: dict[str, dict] | None = None) -> Image.Image:
     """Render a starter scene, optionally as isolated layers.
 
     Defaults reproduce the classic single flat proof byte-identically.
@@ -175,6 +176,11 @@ def render_design(data: dict, *, texts: bool = True, decor: bool = True,
     everything else (text layer, needs transparent=True to be useful).
     Video uses bg/text layers so on-screen type can entrance after the
     plate lands instead of riding in baked from frame 0.
+
+    ``media`` maps a frozen media_slot id to an already-gated asset payload
+    (path/fit/focal_point/mask/min_source_px). Only ``media_slot`` layers
+    consume it, at their authored pixel box; a missing payload paints
+    nothing so the pack artwork underneath remains (declared fallback).
     """
     width, height = int(data["width"]), int(data["height"])
     page = data["pages"][0]
@@ -209,6 +215,18 @@ def render_design(data: dict, *, texts: bool = True, decor: bool = True,
                 alpha = layer.split()[3].point(lambda v: int(v * opacity))
                 layer.putalpha(alpha)
                 base.alpha_composite(layer)
+        elif kind == "media_slot":
+            # Authored variable-media region. The payload was already gated
+            # (verified/active/file + use scope) upstream; this primitive
+            # only performs the deterministic fit/crop/mask into the frozen
+            # box. No payload -> no paint (declared pack-artwork fallback).
+            custom = child.get("custom") if isinstance(child.get("custom"), dict) else {}
+            slot_id = custom.get("slot_id") if isinstance(custom, dict) else None
+            payload = media.get(slot_id) if isinstance(media, dict) else None
+            if isinstance(slot_id, str) and isinstance(payload, dict):
+                from apps.studio_templates.card_media import composite_media_layer
+
+                composite_media_layer(base, payload, (x, y, w, h))
         elif kind == "figure":
             fill = hex_rgb(child.get("fill", "#000000"))
             stroke = child.get("stroke")

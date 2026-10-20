@@ -19,6 +19,13 @@
       "path": "templates/allen-knows-ball/12.0.0"
     },
     {
+      "template_id": "allen-knows-ball.shortform-analyst",
+      "channel_id": "allen-knows-ball",
+      "version": "12.1.0",
+      "status": "released",
+      "path": "templates/allen-knows-ball/12.1.0"
+    },
+    {
       "template_id": "allen-knows-ball.longform-analyst",
       "channel_id": "allen-knows-ball",
       "version": "12.0.0",

@@ -1,0 +1,178 @@
+{
+  "schema_version": "1.0",
+  "contract_id": "card-media",
+  "template_version": "12.0.0",
+  "canvas": {
+    "width": 1080,
+    "height": 1920
+  },
+  "source_of_truth": "apps/studio_templates/<card_id>.short.json",
+  "rule": "This contract declares ONLY variable Asset Library media regions. Fixed pack artwork, typography and text boxes stay authored in the starter JSON and graphic-templates.json. The planner binds an eligible asset; the renderer inserts it into the declared region without choosing layout, crop intent or wording.",
+  "cards": [
+    {
+      "card_id": "C-04",
+      "aspect": "short",
+      "starter_file": "C-04.short.json",
+      "modes": [
+        "player_card",
+        "player_poster",
+        "player_poster_side",
+        "player_poster_top",
+        "potm_card"
+      ],
+      "pack_layer_id": "bed-60",
+      "media_slots": [
+        {
+          "slot_id": "player_portrait",
+          "role": "player_portrait",
+          "asset_type": "image",
+          "subject_rule": "depicts_named_player_only",
+          "required": false,
+          "box_norm": [
+            0.0,
+            0.147,
+            0.393,
+            0.646
+          ],
+          "fit": "cover",
+          "focal_point": [
+            0.5,
+            0.3
+          ],
+          "mask": {
+            "shape": "rounded_rect",
+            "corner_radii_px": [
+              0,
+              52,
+              52,
+              0
+            ]
+          },
+          "z_after_layer_id": "bed-60",
+          "min_source_px": [
+            400,
+            400
+          ],
+          "qa": {
+            "min_painted_fraction": 0.01,
+            "max_outside_leak_pixels": 64
+          },
+          "fallback": {
+            "behavior": "keep_pack_artwork",
+            "reason": "no eligible human-approved player portrait; the authored pack silhouette remains"
+          }
+        }
+      ]
+    },
+    {
+      "card_id": "MR-08",
+      "aspect": "short",
+      "starter_file": "MR-08.short.json",
+      "modes": [
+        "player_card",
+        "player_poster",
+        "player_poster_side",
+        "player_poster_top",
+        "potm_card"
+      ],
+      "pack_layer_id": "bed-60",
+      "media_slots": [
+        {
+          "slot_id": "player_portrait",
+          "role": "player_portrait",
+          "asset_type": "image",
+          "subject_rule": "depicts_named_player_only",
+          "required": false,
+          "box_norm": [
+            0.0,
+            0.147,
+            0.393,
+            0.646
+          ],
+          "fit": "cover",
+          "focal_point": [
+            0.5,
+            0.3
+          ],
+          "mask": {
+            "shape": "rounded_rect",
+            "corner_radii_px": [
+              0,
+              52,
+              52,
+              0
+            ]
+          },
+          "z_after_layer_id": "bed-60",
+          "min_source_px": [
+            400,
+            400
+          ],
+          "qa": {
+            "min_painted_fraction": 0.01,
+            "max_outside_leak_pixels": 64
+          },
+          "fallback": {
+            "behavior": "keep_pack_artwork",
+            "reason": "no eligible human-approved player portrait; the authored pack silhouette remains"
+          }
+        }
+      ]
+    },
+    {
+      "card_id": "BP-03",
+      "aspect": "short",
+      "starter_file": "BP-03.short.json",
+      "modes": [
+        "player_card",
+        "player_poster",
+        "player_poster_side",
+        "player_poster_top",
+        "potm_card"
+      ],
+      "pack_layer_id": "bed-60",
+      "media_slots": [
+        {
+          "slot_id": "player_portrait",
+          "role": "player_portrait",
+          "asset_type": "image",
+          "subject_rule": "depicts_named_player_only",
+          "required": false,
+          "box_norm": [
+            0.0,
+            0.147,
+            0.393,
+            0.646
+          ],
+          "fit": "cover",
+          "focal_point": [
+            0.5,
+            0.3
+          ],
+          "mask": {
+            "shape": "rounded_rect",
+            "corner_radii_px": [
+              0,
+              52,
+              52,
+              0
+            ]
+          },
+          "z_after_layer_id": "bed-60",
+          "min_source_px": [
+            400,
+            400
+          ],
+          "qa": {
+            "min_painted_fraction": 0.01,
+            "max_outside_leak_pixels": 64
+          },
+          "fallback": {
+            "behavior": "keep_pack_artwork",
+            "reason": "no eligible human-approved player portrait; the authored pack silhouette remains"
+          }
+        }
+      ]
+    }
+  ]
+}

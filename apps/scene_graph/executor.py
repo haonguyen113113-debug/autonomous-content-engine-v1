@@ -153,15 +153,19 @@ def render_scene_graph(
     texts: bool = True,
     decor: bool = True,
     transparent: bool = False,
+    media: dict[str, dict[str, Any]] | None = None,
 ) -> Any:
     """Render a validated Scene Graph to a Pillow image.
 
     Starter graphs carry an absolute ``design`` (pixel boxes, fitted font
     sizes, pre-placed winner dots, hidden flags already applied). It is
     passed through to the existing ``render_design`` primitive unchanged.
-    Primitive graphs (photo beds, pitch plates, generic data frames) are
-    rendered by the matching existing primitive for the frozen mode,
-    without any mode switching.
+    ``media`` maps a frozen ``media_slot`` id to the already-gated asset
+    payload (path/fit/focal/mask/min_source_px); the primitive paints it in
+    the authored region only. Unknown slots are ignored (they cannot exist
+    without a frozen layer). Primitive graphs (photo beds, pitch plates,
+    generic data frames) are rendered by the matching existing primitive
+    for the frozen mode, without any mode switching.
 
     Khi graph kèm theo ``overlays`` (đóng băng bởi builder; top-level
     trước, ``params`` fallback), executor vẽ mỗi overlay văn bản theo role
@@ -180,7 +184,7 @@ def render_scene_graph(
         if not isinstance(design, dict):
             raise ValueError("scene graph executor: starter graph lacks design")
         image = render_design(design, texts=texts, decor=decor,
-                              transparent=transparent)
+                              transparent=transparent, media=media)
     else:
         # Primitive: dispatch verbatim on the frozen mode. Each branch calls the
         # long-standing Pillow primitive with the frozen params; there is no
@@ -260,21 +264,27 @@ def render_scene_graph(
     return image
 
 
-def render_scene_graph_layers(graph: dict[str, Any]) -> tuple[Any, Any | None]:
+def render_scene_graph_layers(
+    graph: dict[str, Any],
+    *,
+    media: dict[str, dict[str, Any]] | None = None,
+) -> tuple[Any, Any | None]:
     """Background + text layers for kinetic video entrances.
 
     Mirrors the legacy bg/text split (plate lands first, type fades in at
     +0.6s) but both layers come from the same frozen absolute design.
+    ``media`` paints already-gated assets into their frozen media_slot
+    regions on the background layer only (the text layer is transparent).
     Returns (bg_image, text_image_or_None).
     """
     checked = _validate(graph)
     if checked.get("kind") != "starter" or not isinstance(checked.get("design"), dict):
-        image = render_scene_graph(checked)
+        image = render_scene_graph(checked, media=media)
         return image, None
     from apps.studio_templates.render_starters import render_design
 
     design = checked["design"]
-    bg = render_design(design, texts=False)
+    bg = render_design(design, texts=False, media=media)
     has_text = any(isinstance(c, dict) and c.get("type") == "text"
                    and c.get("showInExport") is not False
                    for c in design["pages"][0]["children"])

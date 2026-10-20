@@ -46,15 +46,26 @@ TPL = ROOT / "apps" / "studio_templates"
 # Released pack the graphs freeze against (read-only; never mutated).
 # Pinned by test to the resolved template manifest version: a pack bump
 # changes every graph_hash by design (same input + same version = same hash).
-TEMPLATE_VERSION_FALLBACK = "12.0.0"
+TEMPLATE_VERSION_FALLBACK = "12.1.0"
 
-# Modes whose reviewed graphic_data maps onto starter slots. Anything else
-# (charts, source cards, b-roll, tactical plates, ...) is a primitive graph;
-# the executor renders the frozen mode verbatim without slot mapping.
-STARTER_MODES = frozenset({
+# Frozen 12.0.0 starter-mode surface. Kept explicitly so the contract
+# generator can reproduce the immutable 12.0.0 artifact byte-for-byte after
+# source_card execution is extended in 12.1.0.
+STARTER_MODES_12_0_0 = frozenset({
     "hook_card", "score_card", "goal_card",
     "duel_columns", "stat_leader", "player_card",
+    # Portrait starters authored in apps/studio_templates; all three
+    # (C-04/MR-08/BP-03) carry the side-portrait bed and a declared
+    # player_portrait media slot in the 12.0.0 card-media contract.
+    "player_poster", "player_poster_side", "player_poster_top", "potm_card",
 })
+
+# Modes whose reviewed graphic_data maps onto starter slots. Anything else
+# (charts, b-roll, tactical plates, ...) is a primitive graph; the executor
+# renders the frozen mode verbatim without slot mapping. ``source_card`` is
+# composable here, but 12.1.0 executes it only for C-09 (see the contract's
+# per-card execution allowlist); BP-20/MR-12/U-08 stay legacy/non-ready.
+STARTER_MODES = STARTER_MODES_12_0_0 | {"source_card"}
 
 # Modes where a bound library image is the player's portrait (it lives in
 # roles.player_focus.portrait, never duplicated into hero_image). Mirrors
@@ -180,7 +191,8 @@ def _substitutions(mode: str, data: dict[str, Any], evidence: list[Any]) -> dict
         slots["claim"] = str(first.get("value", "")).strip()
         if len(stats) > 1 and isinstance(stats[1], dict):
             slots["support"] = ("%s %s" % (stats[1].get("value", ""), stats[1].get("label", ""))).strip().upper()
-    elif mode == "player_card":
+    elif mode in ("player_card", "player_poster", "player_poster_side",
+                  "player_poster_top", "potm_card"):
         if not str(data.get("player_name", "")).strip():
             return None
         stats = data.get("stats") if isinstance(data.get("stats"), list) else []
@@ -191,18 +203,22 @@ def _substitutions(mode: str, data: dict[str, Any], evidence: list[Any]) -> dict
         meta_v = ""
         if len(stats) > 1 and isinstance(stats[1], dict):
             meta_v = ("%s %s" % (stats[1].get("value", ""), stats[1].get("label", ""))).strip().upper()
-        # Fill BOTH starter vocabularies (profile-* and spot-*); only the
-        # slots of the chosen starter exist, the rest are ignored.
+        # Fill every portrait starter vocabulary (spot-*, profile-*, potm-*);
+        # only the slots of the chosen starter exist, the rest are ignored.
         slots["profile-name"] = name
         slots["spot-name"] = name
+        slots["potm-name"] = name
         slots["profile-stat"] = stat_v
         slots["spot-stat"] = stat_v
+        slots["potm-stat"] = stat_v
         if stat_l:
             slots["profile-tag"] = stat_l
             slots["spot-tag"] = stat_l
+            slots["potm-tag"] = stat_l
         if meta_v:
             slots["profile-meta"] = meta_v
             slots["spot-meta"] = meta_v
+            slots["potm-meta"] = meta_v
     else:
         return None
     if credit:
@@ -210,6 +226,184 @@ def _substitutions(mode: str, data: dict[str, Any], evidence: list[Any]) -> dict
     if not any(v for k, v in slots.items() if not k.startswith("__")):
         return None
     return slots
+
+
+# ---------------------------------------------------------------------------
+# Contract-driven starter composition (C7, schema 2.0)
+# ---------------------------------------------------------------------------
+
+def _contract_context(
+    data: dict[str, Any], evidence: list[Any]
+) -> dict[str, Any]:
+    """Resolve planner data once for the contract's source expressions."""
+    src, date = _source_date(evidence if isinstance(evidence, list) else [])
+    source = str(data.get("source", src) or src).strip()
+    date = str(data.get("date", date) or date).strip()
+    credit = f"{source} • {date}".strip(" •") if (source or date) else ""
+    score_slots: dict[str, str] = {}
+    if data.get("home") and data.get("away") and data.get("score"):
+        _fill_score(score_slots, data)
+    return {
+        "data": data,
+        "source": source,
+        "date": date,
+        "credit": credit,
+        "score": score_slots,
+    }
+
+
+def _contract_value(source: str, ctx: dict[str, Any]) -> str:
+    """Resolve one contract source expression to a stripped string."""
+    data = ctx["data"]
+    source = str(source)
+    if source == "credit":
+        return ctx["credit"]
+    if source == "source":
+        return ctx["source"]
+    if source == "date":
+        return ctx["date"]
+    if source in ("hook_text", "claim", "player_name", "home", "away",
+                  "score", "context", "competition"):
+        return str(data.get(source, "") or "").strip()
+    if source.startswith("crest:"):
+        side = source.split(":", 1)[1]
+        return _crest_monogram(str(data.get(side, "") or ""))
+    if source.startswith(("winner:", "loser:")):
+        which, field = source.split(":", 1)
+        key = {
+            "name": "home" if which == "winner" else "away",
+            "score": "score" if which == "winner" else "score-away",
+            "crest": "crest-winner" if which == "winner" else "crest-loser",
+        }.get(field)
+        return str(ctx["score"].get(key, "") if key else "").strip()
+    match = re.fullmatch(r"stats\[(\d+)\]\.(\w+)", source)
+    if match:
+        index, field = int(match.group(1)), match.group(2)
+        stats = data.get("stats") if isinstance(data.get("stats"), list) else []
+        item = stats[index] if index < len(stats) and isinstance(stats[index], dict) else {}
+        return str(item.get(field, "") or "").strip()
+    match = re.fullmatch(r"metrics\[(\d+)\]\.(\w+)", source)
+    if match:
+        index, field = int(match.group(1)), match.group(2)
+        metrics = data.get("metrics") if isinstance(data.get("metrics"), list) else []
+        item = metrics[index] if index < len(metrics) and isinstance(metrics[index], dict) else {}
+        return str(item.get(field, "") or "").strip()
+    return ""
+
+
+def _authored_text(raw: dict[str, Any], layer_id: str) -> str:
+    for child in raw.get("pages", [{}])[0].get("children") or []:
+        if isinstance(child, dict) and str(child.get("id")) == str(layer_id):
+            return str(child.get("text", ""))
+    return ""
+
+
+def _contract_slots(
+    card: dict[str, Any],
+    mode: str,
+    data: dict[str, Any],
+    evidence: list[Any],
+    raw: dict[str, Any],
+) -> tuple[dict[str, str] | None, list[str]]:
+    """Fill only slots the contract declares active for this mode.
+
+    Returns ``(slots, missing_required)``. ``None`` means a required planner
+    value is absent or violates a declared pattern; the caller must freeze a
+    fallback graph instead of composing a half-empty card.
+    """
+    ctx = _contract_context(data, evidence)
+    slots: dict[str, str] = {}
+    missing: list[str] = []
+    for slot in card["data_slots"]:
+        if mode not in slot["active_modes"]:
+            continue
+        joiner = slot.get("join")
+        value = ""
+        if joiner:
+            # A joined slot (for example source + date attribution) is
+            # complete only when every declared source is an explicit
+            # reviewed data value. Evidence fallback is deliberately not
+            # accepted here: an attribution card must name the source/date
+            # the writer reviewed, and never silently borrow a different
+            # evidence string. Never drop the date and call a partial credit
+            # line production-ready.
+            pieces = [
+                str(data.get(str(source), "") or "").strip()
+                for source in slot["sources"]
+            ]
+            if all(pieces):
+                value = str(joiner).join(pieces)
+            elif mode in slot["required_for_modes"]:
+                missing.append(slot["slot_id"])
+                continue
+        else:
+            for source in slot["sources"]:
+                value = _contract_value(source, ctx)
+                if value:
+                    break
+        if value and slot.get("transform") == "upper":
+            value = value.upper()
+        if not value and slot["fallback"] == "authored_text":
+            value = _authored_text(raw, slot["layer_id"])
+        if not value:
+            if mode in slot["required_for_modes"]:
+                missing.append(slot["slot_id"])
+            continue
+        pattern = (slot.get("validation") or {}).get("pattern")
+        if pattern and re.fullmatch(str(pattern), value) is None:
+            missing.append(slot["slot_id"])
+            continue
+        slots[str(slot["slot_id"])] = value
+    if missing:
+        return None, missing
+    return slots, []
+
+
+def _contract_bindings(
+    card: dict[str, Any], mode: str, composed: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Freeze every contract data slot, visible or hidden, for graph QA."""
+    by_layer = {
+        str(child.get("id")): child
+        for child in composed.get("pages", [{}])[0].get("children") or []
+        if isinstance(child, dict) and child.get("type") == "text"
+    }
+    bindings: list[dict[str, Any]] = []
+    for slot in card["data_slots"]:
+        child = by_layer.get(str(slot["layer_id"]))
+        visible = bool(child) and child.get("showInExport") is not False
+        value = str(child.get("text", "")) if visible and child else ""
+        bindings.append({
+            "slot_id": slot["slot_id"],
+            "layer_id": slot["layer_id"],
+            "value": value,
+            "visible": bool(visible and value.strip()),
+            "active": mode in slot["active_modes"],
+            "required": mode in slot["required_for_modes"],
+            "sources": list(slot["sources"]),
+            "fallback": slot["fallback"],
+        })
+    return bindings
+
+
+def _contract_meta(
+    card: dict[str, Any], status: str, reason: str | None = None
+) -> dict[str, Any]:
+    return {
+        "id": card["contract_id"],
+        "schema_version": card["contract_schema_version"],
+        "template_version": card["template_version"],
+        "sha256": card["contract_hash"],
+        "card_id": card["card_id"],
+        "starter_sha256": card["starter_sha256"],
+        "route": (
+            "starter_design"
+            if status == "contract"
+            else card["execution"]["route"]
+        ),
+        "status": status,
+        "reason": reason,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -608,6 +802,161 @@ def _asset_ref(
     }
 
 
+def _media_binding_eligibility(
+    asset_id: str,
+    asset_info: dict[str, Any] | None,
+    asset_type: str,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Decide whether a proposed library asset may be frozen as painted.
+
+    Fail-closed: the planner binds only a rights-verified, active record of
+    the slot's declared type whose persisted scope was granted by a human.
+    ``verified`` alone is never enough (same rule as the renderer gate).
+    Returns ``(asset_ref, None)`` when eligible, else ``(None, reason)``.
+    """
+    if not isinstance(asset_info, dict) or not asset_info:
+        return None, "asset record unavailable (registry row missing)"
+    info_type = str(asset_info.get("asset_type") or "").strip()
+    if info_type != asset_type:
+        return None, f"asset_type={info_type or 'unknown'} is not {asset_type}"
+    rights_state = str(asset_info.get("rights_state") or "").strip()
+    lifecycle_state = str(asset_info.get("lifecycle_state") or "").strip()
+    if rights_state != "verified" or lifecycle_state != "active":
+        return None, (
+            f"rights_state={rights_state or 'unknown'}/"
+            f"lifecycle_state={lifecycle_state or 'unknown'}"
+        )
+    ref = _asset_ref(asset_id, asset_info)
+    if ref.get("approval_status") != "approved":
+        return None, f"rights scope not human-granted ({ref.get('rights_scope')})"
+    return ref, None
+
+
+def _bind_card_media(
+    *,
+    card_id: str | None,
+    starter_id: str,
+    visual_mode: str,
+    media_asset_id: str | None,
+    asset_info: dict[str, Any] | None,
+    canvas: tuple[int, int],
+    template_version: str,
+) -> tuple[list[dict[str, Any]], list[tuple[dict[str, Any], str]], dict[str, Any] | None]:
+    """Freeze the card's declared media slots into bindings + design layers.
+
+    The contract (released Template Foundation 12.1.0) owns the region, fit,
+    focal point, mask, z-order and fallback. The planner may only bind an
+    asset that passes ``_media_binding_eligibility``; everything else is an
+    explicit fallback that leaves the authored pack artwork untouched.
+
+    Returns ``(bindings, [(layer, z_after_layer_id), ...], bound_portrait)``.
+    """
+    from apps.studio_templates.card_media import card_contract, media_layer, slot_box_px
+
+    if not isinstance(card_id, str) or not card_id.strip():
+        return [], [], None
+    card = card_contract(card_id, template_version)
+    if card is None:
+        return [], [], None
+    expected = f"{starter_id}.short.json"
+    if card.get("starter_file") != expected:
+        raise ValueError(
+            f"card media contract: card {card_id} declares starter "
+            f"{card.get('starter_file')!r}, but the graph froze {expected!r}"
+        )
+    if visual_mode not in card.get("modes", []):
+        return [], [], None
+    bindings: list[dict[str, Any]] = []
+    layers: list[tuple[dict[str, Any], str]] = []
+    bound_portrait: dict[str, Any] | None = None
+    for slot in copy.deepcopy(card.get("media_slots") or []):
+        slot_id = str(slot["slot_id"])
+        role = str(slot["role"])
+        # The planner supplies one portrait asset for these cards. Only the
+        # player_portrait slot consumes it; every other declared slot stays
+        # an explicit fallback until the planner gains a role-aware input.
+        proposed = (
+            media_asset_id.strip()
+            if role == "player_portrait"
+            and isinstance(media_asset_id, str)
+            and media_asset_id.strip()
+            else None
+        )
+        ref: dict[str, Any] | None = None
+        reason: str | None = None
+        if proposed is None:
+            reason = f"no planner asset proposed for slot role {role}"
+        else:
+            ref, reason = _media_binding_eligibility(
+                proposed, asset_info, str(slot["asset_type"])
+            )
+        status = "bound" if ref is not None else "fallback"
+        binding = {
+            "slot_id": slot_id,
+            "role": role,
+            "asset_type": str(slot["asset_type"]),
+            "layer_id": f"media-{slot_id}",
+            "box_norm": [float(value) for value in slot["box_norm"]],
+            "box_px": [int(value) for value in slot_box_px(slot, canvas)],
+            "fit": str(slot["fit"]),
+            "focal_point": [float(value) for value in slot["focal_point"]],
+            "mask": copy.deepcopy(slot["mask"]),
+            "min_source_px": [
+                int(value) for value in (slot.get("min_source_px") or [1, 1])
+            ],
+            "rights": copy.deepcopy(slot["rights"]),
+            "qa": copy.deepcopy(slot["qa"]),
+            "status": status,
+            "reason": reason,
+            "proposed_asset_id": proposed,
+            "asset": copy.deepcopy(ref) if ref is not None else None,
+        }
+        bindings.append(binding)
+        layers.append(
+            (media_layer(slot, canvas), str(slot["z_after_layer_id"]))
+        )
+        if status == "bound" and role == "player_portrait":
+            bound_portrait = copy.deepcopy(ref)
+    return bindings, layers, bound_portrait
+
+
+def _insert_media_layers(
+    design: dict[str, Any],
+    layers: list[tuple[dict[str, Any], str]],
+) -> None:
+    """Insert frozen media-slot layers at their authored z-order.
+
+    The anchor (``z_after_layer_id``) must exist in the starter; a contract
+    that points at a missing layer is a planner/template error, not a
+    condition to guess around. Mutates ``design``.
+    """
+    children = design["pages"][0]["children"]
+    inserted: set[str] = set()
+    for layer, anchor in layers:
+        layer_id = str(layer.get("id", ""))
+        if any(isinstance(child, dict) and child.get("id") == layer_id
+               for child in children):
+            raise ValueError(
+                f"card media: layer {layer_id!r} already exists in starter design"
+            )
+        position = next(
+            (index for index, child in enumerate(children)
+             if isinstance(child, dict) and child.get("id") == anchor),
+            None,
+        )
+        if position is None:
+            raise ValueError(
+                f"card media: z_after_layer_id {anchor!r} is missing from starter design"
+            )
+        position += 1
+        while position < len(children) and isinstance(children[position], dict) \
+                and children[position].get("id") in inserted:
+            position += 1
+        children.insert(position, layer)
+        inserted.add(layer_id)
+
+
+
 def _roles_for(
     *,
     visual_mode: str,
@@ -615,15 +964,26 @@ def _roles_for(
     evidence: list[Any],
     media_asset_id: str | None,
     asset_info: dict[str, Any] | None,
+    bound_portrait: dict[str, Any] | None = None,
+    starter_design: bool = False,
 ) -> dict[str, Any]:
     data = graphic_data if isinstance(graphic_data, dict) else {}
     player_name = str(data.get("player_name", "")).strip()
     player_focus: dict[str, Any] | None = None
     if player_name and visual_mode in PORTRAIT_MODES:
         portrait: dict[str, Any] | None = None
-        if media_asset_id:
+        if bound_portrait is not None:
+            # The card-media contract bound an eligible portrait: roles mirror
+            # exactly the ref the renderer will paint.
+            portrait = copy.deepcopy(bound_portrait)
+        elif media_asset_id and not starter_design:
+            # Primitive portrait path (no authored media slot): keep the
+            # planner's pending/approved ref so QA can gate it.
             portrait = _asset_ref(media_asset_id, asset_info)
         else:
+            # Starter design with no bound slot (no contract, no proposal or
+            # an ineligible proposal): the authored monogram remains; nothing
+            # is painted from the library.
             portrait = {
                 "asset_id": None,
                 "kind": "monogram_fallback",
@@ -635,6 +995,8 @@ def _roles_for(
         player_focus = {"player_name": player_name, "portrait": portrait}
     hero_image: dict[str, Any] | None = None
     if media_asset_id and visual_mode not in PORTRAIT_MODES:
+        # Non-portrait starter modes still record the cleared-but-unused ref
+        # (QA reports it); the frozen design only paints declared slots.
         hero_image = _asset_ref(media_asset_id, asset_info)
     return {
         "hero_image": hero_image,
@@ -765,20 +1127,114 @@ def build_scene_graph(
     design: dict[str, Any] | None = None
     segments: dict[str, list[dict[str, Any]]] = {}
     slots: dict[str, str] = {}
+    data_bindings: list[dict[str, Any]] = []
     fallback: str | None = None
+    media_bindings: list[dict[str, Any]] = []
+    bound_portrait: dict[str, Any] | None = None
+    contract_record: dict[str, Any] | None = None
+    contract_available = False
+    contract_status: str | None = None
+    contract_reason: str | None = None
+    no_contract = False
+
+    if starter_id:
+        from apps.studio_templates.card_media import card_contract, load_contract
+
+        contract_available = load_contract(version) is not None
+        contract_record = card_contract(starter_id, version)
 
     if (starter_id and content_type == "short" and visual_mode in STARTER_MODES):
         raw = _load_starter_design(starter_id)
         if raw is None:
             fallback = f"starter file missing/unreadable: {starter_id}"
+            if contract_record is not None:
+                if contract_record.get("aspect") != "short":
+                    contract_status = "legacy_non_ready"
+                    contract_reason = (
+                        f"card {starter_id} is authored for "
+                        f"{contract_record.get('aspect')} but the graph "
+                        "content_type is short; long-form execution is deferred"
+                    )
+                else:
+                    contract_status, contract_reason = "fallback", fallback
+        elif contract_record is not None:
+            if visual_mode not in contract_record["execution"]["modes"]:
+                contract_status = "legacy_non_ready"
+                contract_reason = (
+                    f"card {starter_id} is not contract-executable for "
+                    f"{visual_mode}: {contract_record['execution'].get('reason')}"
+                )
+                fallback = contract_reason
+            else:
+                mapped, missing = _contract_slots(
+                    contract_record, visual_mode, data, ev, raw
+                )
+                if mapped is None:
+                    fallback = (
+                        f"card {starter_id} missing required data for "
+                        f"{visual_mode}: {', '.join(missing)}"
+                    )
+                    contract_status, contract_reason = "fallback", fallback
+                else:
+                    slots = dict(mapped)
+                    composed, segments = _compose_design(raw, mapped)
+                    data_bindings = _contract_bindings(
+                        contract_record, visual_mode, composed
+                    )
+                    bad = [
+                        binding["slot_id"] for binding in data_bindings
+                        if binding["required"] and not binding["visible"]
+                    ]
+                    if bad:
+                        fallback = (
+                            f"card {starter_id} left required slots empty: "
+                            f"{', '.join(bad)}"
+                        )
+                        contract_status, contract_reason = "fallback", fallback
+                    else:
+                        # Freeze the card's declared media regions at their
+                        # authored z-order. The planner binds only an eligible
+                        # asset here; the renderer never picks a region, crop
+                        # or fallback by itself.
+                        media_bindings, media_layers, bound_portrait = _bind_card_media(
+                            card_id=starter_id,
+                            starter_id=starter_id,
+                            visual_mode=visual_mode,
+                            media_asset_id=media_asset_id,
+                            asset_info=asset_info if isinstance(asset_info, dict) else None,
+                            canvas=canvas,
+                            template_version=version,
+                        )
+                        if media_layers:
+                            _insert_media_layers(composed, media_layers)
+                        design = composed
+                        contract_status = "contract"
+        elif contract_available:
+            fallback = f"card contract has no record for starter {starter_id}"
+            contract_status, contract_reason = "fallback", fallback
         else:
+            # Older packs ship no per-card contract: keep the historical
+            # substitution path, but mark the graph no_contract so QA cannot
+            # treat it as contract-ready.
             mapped = _substitutions(visual_mode, data, ev)
             if mapped is None:
                 fallback = f"graphic_data does not fit starter {starter_id} for {visual_mode}"
             else:
                 slots = {k: v for k, v in mapped.items() if not k.startswith("__")}
                 composed, segments = _compose_design(raw, mapped)
+                media_bindings, media_layers, bound_portrait = _bind_card_media(
+                    card_id=starter_id,
+                    starter_id=starter_id,
+                    visual_mode=visual_mode,
+                    media_asset_id=media_asset_id,
+                    asset_info=asset_info if isinstance(asset_info, dict) else None,
+                    canvas=canvas,
+                    template_version=version,
+                )
+                if media_layers:
+                    _insert_media_layers(composed, media_layers)
                 design = composed
+                no_contract = True
 
     if design is not None:
         graph: dict[str, Any] = {
@@ -793,6 +1249,8 @@ def build_scene_graph(
             "design": design,
             "segments": segments,
             "slots": slots,
+            "data_bindings": data_bindings,
+            "media_bindings": media_bindings,
             "params": None,
             "fallback": None,
             "provenance": {
@@ -801,6 +1259,21 @@ def build_scene_graph(
                 "crest": "monogram-fallback",
             },
         }
+        if contract_record is not None and contract_status == "contract":
+            graph["provenance"]["card_contract"] = _contract_meta(
+                contract_record, "contract"
+            )
+        elif no_contract:
+            graph["provenance"]["card_contract"] = {
+                "id": "card-contract",
+                "template_version": version,
+                "card_id": starter_id,
+                "status": "no_contract",
+                "reason": (
+                    "template package ships no per-card contract; graph used "
+                    "the legacy substitution path"
+                ),
+            }
     else:
         if fallback is None:
             fallback = (
@@ -819,6 +1292,7 @@ def build_scene_graph(
             "design": None,
             "segments": {},
             "slots": {},
+            "data_bindings": [],
             "params": {
                 "graphic_data": copy.deepcopy(data),
                 "evidence": list(ev),
@@ -830,6 +1304,46 @@ def build_scene_graph(
                 "crest": "monogram-fallback",
             },
         }
+        if starter_id:
+            if contract_record is not None:
+                status = contract_status
+                reason = contract_reason
+                if status is None:
+                    if visual_mode not in contract_record["execution"]["modes"]:
+                        status = "legacy_non_ready"
+                        reason = (
+                            f"card {starter_id} is not contract-executable for "
+                            f"{visual_mode}: "
+                            f"{contract_record['execution'].get('reason')}"
+                        )
+                    else:
+                        status = "fallback"
+                        reason = fallback
+                graph["provenance"]["card_contract"] = _contract_meta(
+                    contract_record, status, reason
+                )
+            elif contract_available:
+                graph["provenance"]["card_contract"] = {
+                    "id": "card-contract",
+                    "template_version": version,
+                    "card_id": starter_id,
+                    "status": "missing_contract_record",
+                    "reason": (
+                        f"contract {version} has no record for starter "
+                        f"{starter_id}; graph fell back to the legacy path"
+                    ),
+                }
+            else:
+                graph["provenance"]["card_contract"] = {
+                    "id": "card-contract",
+                    "template_version": version,
+                    "card_id": starter_id,
+                    "status": "no_contract",
+                    "reason": (
+                        "template package ships no per-card contract; graph "
+                        "used the legacy path"
+                    ),
+                }
     if transition_in is None:
         transition: dict[str, str] = {"in": "clean_cut", "out": "clean_cut"}
         if int(index) > 0 and visual_mode in CHALK_CANDIDATE_MODES:
@@ -848,6 +1362,8 @@ def build_scene_graph(
         evidence=ev,
         media_asset_id=media_asset_id,
         asset_info=asset_info if isinstance(asset_info, dict) else None,
+        bound_portrait=bound_portrait,
+        starter_design=design is not None,
     )
     graph["motion"] = _motion_for(visual_mode, int(index))
     graph["transition"] = transition
@@ -1074,6 +1590,7 @@ from apps.scene_graph.schema import validate_scene_graph as validate
 
 __all__ = [
     "STARTER_MODES",
+    "STARTER_MODES_12_0_0",
     "PORTRAIT_MODES",
     "CHALK_CANDIDATE_MODES",
     "MAX_CHALK_PER_CLIP",

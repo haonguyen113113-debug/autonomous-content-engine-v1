@@ -93,7 +93,7 @@ def test_beat1_roles_motion_transition_provenance():
     assert graph["transition"] == {"in": "clean_cut", "out": "clean_cut"}
     provenance = graph["provenance"]
     assert provenance["starter_id"] == "C-03"
-    assert provenance["template_version"] == "12.0.0"
+    assert provenance["template_version"] == "12.1.0"
     assert len(provenance["graph_hash"]) == 64
     assert set(provenance["beat_intent"]) == {
         "image_goal", "focus_subject", "evidence_type", "emphasis_level"}
@@ -499,7 +499,12 @@ def test_pack_version_pin_matches_released_pack():
 
     package = resolve_template(Path("."), "allen-knows-ball.shortform-analyst",
                                allow_draft=True)
-    assert TEMPLATE_VERSION_FALLBACK == package.manifest["version"] == "12.0.0"
+    assert TEMPLATE_VERSION_FALLBACK == package.manifest["version"] == "12.1.0"
+    old = resolve_template(
+        Path("."), "allen-knows-ball.shortform-analyst", version="12.0.0",
+        allow_draft=True)
+    assert old.manifest["version"] == "12.0.0"
+    assert old.manifest["status"] == "released"
 
 
 def test_rejects_unknown_mode_and_bad_transition():

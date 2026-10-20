@@ -1,7 +1,7 @@
 """Card selector: beat_intent as a soft deterministic tie-break for visual_mode.
 
 Covers:
-- intent hint flips near-equal candidates to the hinted mode,
+- intent can select a contract grammar but never a legacy card,
 - hard constraints (beat-0 hook, player lock) still outrank intent,
 - missing/invalid intent leaves scoring unchanged and never crashes,
 - same input yields same output (deterministic).
@@ -35,12 +35,12 @@ def _seg(narration, mode=None, data=None, id="beat-1", beat_intent=None, visual=
     return segment
 
 
-def test_intent_tiebreak_flips_to_hinted_mode():
-    # "ban thang" triggers goal_card signal; "ti so" triggers score_card signal.
-    # graphic_data fully covers both (score_card: home/away/score; goal_card:
-    # hook_text derived from narration). Base scores tie at 70; intent
-    # show_evidence hints goal_card but not score_card, so goal_card wins the
-    # tie-break (index 1 so the beat-0 hook rule does not apply).
+def test_legacy_goal_intent_does_not_override_contract_score():
+    # "ban thang" used to trigger the legacy goal_card route. C7 12.0.0 has no
+    # contract goal card (MR-04 is partial and executes only score_card), so
+    # the planner must keep the contract score_card even when the semantic
+    # intent hints goal_card. Intent is advisory; contract eligibility and
+    # reviewed data are hard constraints.
     seg0 = _seg("mo dau", mode="hook_card", data={"hook_text": "X"}, id="beat-0")
     with_intent = _seg("ban thang ti so", mode=None,
                        data={"home": "A", "away": "B", "score": "1-0"},
@@ -50,8 +50,10 @@ def test_intent_tiebreak_flips_to_hinted_mode():
                           id="beat-1")
     out_with = select_cards([seg0, with_intent])
     out_without = select_cards([seg0, without_intent])
-    assert out_with["decisions"][1]["visual_mode"] == "goal_card"
+    assert out_with["decisions"][1]["visual_mode"] == "score_card"
     assert out_without["decisions"][1]["visual_mode"] == "score_card"
+    assert out_with["decisions"][1]["card_execution"] == "contract"
+    assert out_with["decisions"][1]["production_ready"] is True
 
 
 def test_intent_compare_numbers_consistent_with_signal_order():

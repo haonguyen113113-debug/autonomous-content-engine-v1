@@ -55,7 +55,7 @@ def _fetch_asset_infos(root: Path, media_ids: list[str]) -> dict[str, dict[str, 
             for row in conn.execute("PRAGMA table_info(assets)").fetchall()
         }
         wanted = [
-            "asset_id", "rights_state", "lifecycle_state",
+            "asset_id", "asset_type", "rights_state", "lifecycle_state",
             "license_type", "purpose_code",
         ]
         if "rights_scope_json" in columns:

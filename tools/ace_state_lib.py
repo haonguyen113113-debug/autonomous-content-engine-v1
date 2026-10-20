@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,7 +51,12 @@ def contracts() -> list[dict]:
         return out
     for path in sorted(cdir.glob("c*.md")):
         text = path.read_text(encoding="utf-8", errors="replace")
-        ver = "1.0" if "1.0" in text else "unknown"
+        heading = next((line for line in text.splitlines() if line.startswith("# ")), "")
+        match = re.search(r"\bv(\d+\.\d+)\b", heading)
+        if match:
+            ver = match.group(1)
+        else:
+            ver = "1.0" if "1.0" in text else "unknown"
         out.append({
             "id": path.stem,
             "version": ver,
