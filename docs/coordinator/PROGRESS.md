@@ -1,8 +1,8 @@
 # ACE Progress — auto-generated reference
 
-> Generated 2026-10-20T14:16:38+00:00. Workers read STATE.json; humans read this. Refresh with `python tools/ace_state.py --write`.
+> Generated 2026-10-21T08:48:07+00:00. Workers read STATE.json; humans read this. Refresh with `python tools/ace_state.py --write`.
 
-Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `main/48ecc65`
+Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `main/f8bae11`
 
 ## Tasks
 - P0-port-1200: **PACKET_READY**
@@ -32,7 +32,22 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 - 2556c12f9ba8: mp4=['full-render.mp4']
 
 ## Dirty files
-- clean
+- M apps/card_selector.py
+-  M apps/content_workflow.py
+-  M apps/measurement/render_qa.py
+-  M docs/ENGINE_STATE.md
+-  M docs/coordinator/PROGRESS.md
+-  M docs/coordinator/STATE.json
+-  M docs/coordinator/source-card-c9-12-1-0-2026-10-20.md
+-  M tests/test_card_contract.py
+-  M tests/test_shortform_news_fixture.py
+- ?? apps/measurement/content_review.py
+- ?? apps/measurement/review_records.py
+- ?? docs/coordinator/content-reviews.md
+- ?? docs/coordinator/content_reviews/
+- ?? docs/coordinator/review_records/
+- ?? tests/test_content_review.py
+- ?? tests/test_review_records.py
 
 ## Handoff prose (from docs/ENGINE_STATE.md, coordinator-owned)
 
@@ -80,8 +95,8 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 > ## Verified repository snapshot
 >
 > - Repository: `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1`
-> - Branch/commit: `main` / `8bac94d` (C-09/C7 checkpoint integrated with
->   latest `origin/main`, including C-11 and Hermes changes).
+> - Branch/commit: `main` / `f8bae11` (C-09/C7 checkpoint and machine-readable
+>   state pushed to `origin/main`, including C-11 and Hermes changes).
 > - Integration changes are committed; the checkpoint documentation is being
 >   finalized in a separate commit. Verify remote sync before starting another
 >   task.
@@ -258,10 +273,72 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >   `512dbbd9ccfc5bdcdecf584294bd8e7ad5a24c465e412778af8e701648e16bed`.
 >   The fixture's 82-character claim still fails text-fit; a short claim passes
 >   text-fit but remains non-ready pending rendered inspection and owner
->   approval. The pre-sync report recorded 587 full-suite passes. Both versioned
->   contract checks now pass, and the starter check reports 90 files with 0
->   errors. No C-09 render or visual approval was performed. See
+>   approval. On 2026-10-21 the owner inspected the synthetic C-09 PNG preview
+>   and approved its font, layout, and text fit (no overflow). This clears visual
+>   review for that static preview only; it does not verify the synthetic claim,
+>   source rights, other copy lengths, motion, or production readiness. The
+>   owner's decision is persisted in a scoped review record
+>   (`docs/coordinator/review_records/c09-source-card-12-1-0-2026-10-21.json`)
+>   and consumed by planner/QA: the C-09 static visual inspection is treated as
+>   approved only when the record matches card `C-09`, mode `source_card`, pack
+>   `12.1.0`. It does not verify the synthetic claim, grant asset rights, approve
+>   other copy lengths, clear motion, or clear other cards/modes or pack
+>   versions. Claim text-fit `FAIL`/`NEEDS_REVIEW` still blocks production
+>   readiness, and a short claim that passes text fit with visual approval still
+>   yields `production_ready=False` because no claim/source/date verification
+>   gate exists yet (`content_review: missing`). R4 remains `BLOCKED`. The pre-sync
+>   report recorded 587 full-suite passes. Both versioned contract checks now
+>   pass, and the starter check reports 90 files with 0 errors. See
 >   `docs/coordinator/source-card-c9-12-1-0-2026-10-20.md`.
+>
+> ## Content review (shared factual-claim gate)
+>
+> A shared content-review contract (`ace-content-review/1.0`) is implemented in
+> `apps/measurement/content_review.py` with records under
+> `docs/coordinator/content_reviews/`. Review is claim-scoped, not card-scoped:
+> a record matches only when claim text, `beat_id` and `semantics` all match
+> exactly (`claim` / `attribution` / `correction` / `fact_check` /
+> `match_source`). A record approves the claim with its evidence only; it does
+> not verify rights, visual layout, text fit, motion, other claims, or production
+> readiness by itself.
+>
+> **Source identity binding:** the planner extracts structured source identity
+> from the segment's optional `evidence_identity.sources` (URL/document_id,
+> publisher, publication date, quote/location) via
+> `apps/card_selector.py:_extract_evidence_sources`. Script normalization
+> (`apps/content_workflow.py:_clean_segment`) preserves `evidence_identity` on
+> input segments; `apply_script_fix` carries it over when regenerating a beat.
+> Credit display text (`graphic_data.source`, `graphic_data.date`, `credit`) is
+> never used as source identity. When no `evidence_identity` is present,
+> `sources=None` and the gate returns `missing` — never `approved`.
+>
+> **Credit attribution verification:** when a card prints source/date credit
+> and reviewed sources exist, the planner verifies that the credit attribution
+> maps to a reviewed source's publisher/publication date
+> (`apps/measurement/content_review.py:_credit_matches_reviewed_source`). Publisher
+> matching is exact after Unicode/diacritics/case normalization; substring
+> matching in either direction does not match, and no alias matching is
+> performed. If the credit cannot be confirmed, the review is invalidated
+> (`needs_review`). Changing credit attribution invalidates a prior review just
+> like changing claim, source ID, publisher, publication date, or quote/evidence.
+>
+> **Trust boundary:** no human-approval mechanism is wired yet
+> (`TRUSTED_REVIEW_MECHANISMS` is empty). A JSON record that merely says
+> `reviewer="owner"` and `review_status="approved"` is a self-assertion and is
+> NOT trusted as approved; it stays at `needs_review` until the owner plugs in a
+> real human-approval path. Content review is therefore `missing`/`needs_review`
+> for synthetic fixture claims, and `production_ready` stays `False`.
+>
+> Planner readiness for `source_card` (C-09, pack 12.1.0) now requires all
+> independent gates: contract execution, text fit `PASS`, visual approval, AND
+> content review `approved`. A missing/rejected/needs-review content review sets
+> `content_review` accordingly and keeps `production_ready=False`. Synthetic
+> fixture claims have no content-review record, so `content_review` is `missing`
+> and the source beat remains non-ready. `check_card_contract` does not declare
+> a factual claim correct. `legacy_non_ready`/`partial` cards (BP-20, MR-12,
+> U-08, LC-13, LC-16, C-05, etc.) may have a content-review status recorded but
+> remain non-ready. See `docs/coordinator/content-reviews.md`.
+>
 > - Rights: `verified` is necessary but never sufficient; `is_usable_for(asset,
 >   purpose)` is the use-scoped gate. Deny-default for YouTube/unknown
 >   source/license, expired/unclear expiry, and copyright exceptions (human
@@ -295,13 +372,38 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >
 > ## Next concrete action
 >
-> Produce a **short C-09 preview using pack 12.1.0** into a temporary
-> location outside the repository's `runtime/`, with a short representative
-> claim and explicit source/date. Ask the owner to inspect the actual rendered
-> frame and credit readability. Keep C-09 `NEEDS_REVIEW` and R4 `BLOCKED` until
-> that inspection is approved; graph/text-fit checks alone are not visual QA.
-> Then resume the remaining R3 blockers (S2.5 hook hierarchy, S3.5/S4.2 source
-> beat semantics, S4.1 owner-approved media/purpose, and S5.2 headline motion)
-> using `docs/coordinator/r3-r4-c6-c7-reconciliation-2026-10-20.md` and the R4
-> packet. Do not modify `runtime/` or run a long render without a separate owner
-> request.
+> Content-review plumbing is complete, but two upstream gates remain missing:
+>
+> **Completed:**
+> - `apps/content_workflow.py:_clean_segment` preserves the segment's
+>   `evidence_identity` field on input segments; `apply_script_fix` carries the
+>   old identity over when regenerating a beat.
+> - `apps/card_selector.py:_extract_evidence_sources` reads
+>   `evidence_identity.sources` and passes it to the content-review gate; credit
+>   display text (`graphic_data.source`/`graphic_data.date`) is verified against
+>   reviewed publisher/date but is never used as source identity.
+> - `apps/measurement/content_review.py` binds the review to claim + source
+>   identity and invalidates when claim, source ID, publisher, publication date,
+>   quote/evidence, or credit attribution changes.
+>
+> **Still missing (upstream source identity):**
+> - A trusted Hermes/research provider that reliably populates
+>   `evidence_identity` on script segments. The Hermes authenticated submit/
+>   status API and versioned Hermes payload are not implemented
+>   (`docs/hermes-engine-integration.md`), so no upstream component reliably
+>   supplies source identity. Until wired, the planner passes `sources=None`,
+>   content review stays `missing`, and `production_ready` stays `False`.
+>
+> **Still missing (trusted human approval):**
+> - A human-approval path for content review. `TRUSTED_REVIEW_MECHANISMS` in
+>   `apps/measurement/content_review.py` is empty; a self-asserted JSON record
+>   (`reviewer="owner"` + `review_status="approved"`) is NOT trusted and stays at
+>   `needs_review`. Content review cannot reach `approved`, and
+>   `production_ready` remains `False`, until this path exists.
+>
+> **R4 continues `BLOCKED`;** no readiness gate is widened and no final-gate
+> render is opened by this work. Resume the remaining R3 blockers (S2.5 hook
+> hierarchy, S3.5/S4.2 source beat, S4.1 owner-approved media/purpose, and S5.2
+> headline motion) using `docs/coordinator/r3-r4-c6-c7-reconciliation-2026-10-20.md`
+> and the R4 packet. Do not modify `runtime/` or run a long render without a
+> separate owner request.

@@ -1,0 +1,38 @@
+{
+  "schema_version": "ace-content-review/1.0",
+  "record_id": "EXAMPLE-content-review-schema-001",
+  "beat_id": "beat-source-1",
+  "claim": "EXAMPLE: Hà Nội thắng 2-0 trước TP.HCM tại trận đấu ngày 20/10/2026.",
+  "semantics": "claim",
+  "sources": [
+    {
+      "url": "https://example.com/official-match-report",
+      "document_id": "doc-1",
+      "publisher": "Example Sports Federation",
+      "published_at": "2026-10-20T22:00:00+07:00",
+      "accessed_at": "2026-10-21T08:00:00+07:00",
+      "quote_or_location": "Kết quả cuối cùng: Hà Nội 2 - 0 TP.HCM, phút 78 và phút 89.",
+      "supports_claim": true,
+      "notes": "Official match report from the federation website."
+    }
+  ],
+  "evidence_link": "Claim text matches the quoted score in source doc-1.",
+  "review_status": "approved",
+  "reviewer": "owner",
+  "reviewed_at": "2026-10-21",
+  "reason": "Claim verified against the official match report; quote matches claim text.",
+  "scope": {
+    "covers": [
+      "claim verification against cited source",
+      "source publisher and date attribution"
+    ],
+    "does_not_cover": [
+      "asset rights eligibility",
+      "visual layout / text fit",
+      "other claims in the same beat",
+      "other cards or pack versions",
+      "motion or timing",
+      "production readiness by itself"
+    ]
+  }
+}

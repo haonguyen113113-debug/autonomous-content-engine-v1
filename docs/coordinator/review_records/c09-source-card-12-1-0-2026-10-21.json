@@ -1,0 +1,37 @@
+{
+  "schema_version": "ace-review-record/1.0",
+  "record_id": "c09-source-card-12-1-0-2026-10-21",
+  "card_id": "C-09",
+  "mode": "source_card",
+  "template_version": "12.1.0",
+  "pack": "template_foundation/templates/allen-knows-ball/12.1.0",
+  "review_type": "visual_static_png",
+  "reviewed_at": "2026-10-21",
+  "reviewer": "owner",
+  "result": "approved",
+  "artifact": {
+    "kind": "static_png_preview",
+    "path": "C:/Users/Infomation Technolog/AppData/Local/Temp/opencode/c09-source-card-preview-2026-10-21/c09-source-card-12.1.0-preview.png",
+    "note": "temporary preview; may no longer exist on disk"
+  },
+  "scope": {
+    "covers": [
+      "visual inspection of the static C-09/source_card PNG preview",
+      "font correctness",
+      "layout reasonableness",
+      "text fit (no overflow)"
+    ],
+    "does_not_cover": [
+      "claim verification",
+      "source/date verification",
+      "asset rights eligibility",
+      "motion",
+      "other claim/credit lengths",
+      "other cards or modes",
+      "pack versions other than 12.1.0",
+      "production readiness by itself"
+    ]
+  },
+  "notes": "font đúng, bố cục hợp lý, không tràn chữ",
+  "r4": "BLOCKED"
+}

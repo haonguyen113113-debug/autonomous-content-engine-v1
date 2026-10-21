@@ -34,9 +34,13 @@ from typing import Any, Mapping
 from apps.content_workflow import VISUAL_MODES
 from apps.asset_library.rights_scope import is_usable_for, normalize_purpose
 from apps.measurement.render_qa import (
-    SOURCE_CARD_REVIEW_STATUS,
     measure_text_slot,
 )
+from apps.measurement.review_records import (
+    review_readiness_fields,
+    source_card_visual_approved,
+)
+from apps.measurement.content_review import content_review_readiness_fields
 from apps.scene_graph.intent import IMAGE_GOALS
 from apps.studio_templates.card_media import card_contract, load_contract
 
@@ -899,13 +903,45 @@ def _source_semantics(segment: dict[str, Any]) -> str:
     return "attribution"
 
 
-def _source_plan_fit(starter: str | None, data: dict[str, Any]) -> dict[str, Any]:
-    """Plan-time text fit for C-09 before production_ready is claimed.
+def _extract_evidence_sources(segment: dict[str, Any]) -> list[dict[str, Any]] | None:
+    """Extract structured source identity from a segment.
 
-    Mirrors the builder's claim-only ``src-body`` and joined source+date
-    ``credit``. It is not rendered visual QA; it only prevents a known
-    overflow/limit failure from being reported as production-ready.
+    Reads the optional ``evidence_identity`` field on the segment. This is
+    real source identity (URL/document_id, publisher, publication date,
+    quote/location) — NOT credit display text from ``graphic_data.source``/
+    ``graphic_data.date`` and not inferred from narration.
+
+    Returns a list of source dicts in the shape expected by
+    ``content_review_readiness_fields``, or None when no structured source
+    identity is present (fail-closed: content review stays ``missing``).
     """
+    identity = segment.get("evidence_identity")
+    if not isinstance(identity, dict):
+        return None
+    raw_sources = identity.get("sources")
+    if not isinstance(raw_sources, list) or len(raw_sources) == 0:
+        return None
+    sources: list[dict[str, Any]] = []
+    for item in raw_sources:
+        if not isinstance(item, dict):
+            continue
+        url_or_id = str(item.get("url", "") or item.get("document_id", "")).strip()
+        if not url_or_id:
+            continue
+        sources.append({
+            "url": item.get("url") or None,
+            "document_id": item.get("document_id") or None,
+            "publisher": str(item.get("publisher", "")).strip() or None,
+            "published_at": str(item.get("published_at", "")).strip() or None,
+            "accessed_at": str(item.get("accessed_at", "")).strip() or None,
+            "quote_or_location": str(item.get("quote_or_location", "")).strip(),
+            "supports_claim": bool(item.get("supports_claim", False)),
+            "role": str(item.get("role", "supporting")).strip() or "supporting",
+        })
+    return sources or None
+
+
+def _source_plan_fit(starter: str | None, data: dict[str, Any]) -> dict[str, Any]:
     record = card_contract(starter) if starter else None
     if record is None:
         return {
@@ -1455,9 +1491,19 @@ def select_cards(segments: list[dict[str, Any]],
         source_review_pending = False
         if best_mode == "source_card" and card_execution == CONTRACT_READY:
             source_fit = _source_plan_fit(starter, filled)
-            source_review_pending = not (
-                SOURCE_CARD_REVIEW_STATUS.get("rendered_inspection") == "approved"
-                and SOURCE_CARD_REVIEW_STATUS.get("owner_approved") is True
+            # C-09 is contract-executable only in pack 12.1.0. The static
+            # visual review record is scoped to card/mode/pack version and
+            # approves only the visual inspection of the static PNG. It does
+            # not verify the claim, source, or date, and no separate
+            # content/source verification gate exists yet. Production
+            # readiness therefore cannot be claimed from visual approval +
+            # text fit alone.
+            source_template_version = str(
+                (card_contract("C-09") or {}).get("template_version")
+                or "12.1.0"
+            )
+            source_review_pending = not source_card_visual_approved(
+                "C-09", "source_card", source_template_version
             )
             if source_fit["status"] == "FAIL":
                 warnings.append(
@@ -1472,16 +1518,73 @@ def select_cards(segments: list[dict[str, Any]],
                     "C-09 attribution contract is graph-level executable, but "
                     "rendered frame inspection and owner visual approval are "
                     "pending; source beat is not production-ready")
+            # The owner visual review record covers visual inspection only. A
+            # separate content/source/date verification gate decides whether the
+            # factual claim itself may be published.
+            #
+            # Source identity comes from the segment's optional
+            # ``evidence_identity`` field (structured source identity: URL /
+            # document_id, publisher, publication date, quote/location). It is
+            # NOT derived from ``graphic_data.source``/``graphic_data.date``
+            # (credit display text) or from narration. When the beat/run
+            # contract carries no stable source identity, ``sources`` is None
+            # and the gate stays at ``missing`` — never approved.
+            review_fields = review_readiness_fields(
+                "C-09", "source_card", source_template_version
+            )
+            content_sources = _extract_evidence_sources(segment)
+            # Credit display text from graphic_data.source / graphic_data.date
+            # is verified against reviewed sources (publisher / publication
+            # date) but is never used as source identity itself.
+            credit = {
+                "source": str(filled.get("source", "") or "").strip() or None,
+                "date": str(filled.get("date", "") or "").strip() or None,
+            }
+            credit = credit if (credit["source"] or credit["date"]) else None
+            content_review = content_review_readiness_fields(
+                claim=str(filled.get("claim", "") or ""),
+                beat_id=segment_id,
+                semantics=str(source_semantics or "attribution"),
+                sources=content_sources,
+                credit=credit,
+            )
+            # Production readiness for a source beat requires every independent
+            # gate: contract execution, text fit, visual approval, AND content
+            # review. A missing/rejected/needs-review content review blocks it.
+            content_approved = content_review["content_review"] == "approved"
+            content_status = str(content_review["content_review"])
+            if content_status == "missing":
+                warnings.append(
+                    "C-09 source beat has no claim/source/date verification "
+                    "gate; visual approval and text fit do not imply "
+                    "production readiness")
+            elif content_status == "needs_review":
+                warnings.append(
+                    f"C-09 content review needs owner review: "
+                    f"{content_review['content_review_detail']}")
+            elif content_status == "rejected":
+                warnings.append(
+                    f"C-09 content review was rejected: "
+                    f"{content_review['content_review_detail']}")
             source_readiness = {
                 "text_fit": source_fit["status"],
                 "text_fit_detail": source_fit["detail"],
                 "text_slots": source_fit["slots"],
-                "rendered_inspection": SOURCE_CARD_REVIEW_STATUS.get(
-                    "rendered_inspection"),
-                "owner_approved": SOURCE_CARD_REVIEW_STATUS.get("owner_approved"),
+                "rendered_inspection": review_fields["rendered_inspection"],
+                "owner_approved": review_fields["owner_approved"],
+                "content_review": content_review["content_review"],
+                "content_review_detail": content_review["content_review_detail"],
+                "content_review_invalidated": bool(
+                    content_review.get("content_review_invalidated")
+                ),
+                "content_review_record_id": content_review.get(
+                    "content_review_record_id", ""
+                ),
                 "production_ready": (
                     source_fit["status"] == "PASS"
-                    and not source_review_pending
+                    and review_fields["rendered_inspection"] == "approved"
+                    and review_fields["owner_approved"]
+                    and content_approved
                 ),
             }
         production_ready = (

@@ -246,7 +246,7 @@ def _clean_segment(item: Any) -> dict[str, Any] | None:
     beat_match = re.match(r"(?i)^beat-(\d+)$", str(item.get("id", "beat-1")).strip())
     if beat_match:
         beat_index = max(0, int(beat_match.group(1)) - 1)
-    return {
+    result: dict[str, Any] = {
         "id": str(item.get("id", "beat-1")),
         "narration": _normalise(narration),
         "visual": _normalise(str(item.get("visual", "Host analysis"))),
@@ -257,6 +257,17 @@ def _clean_segment(item: Any) -> dict[str, Any] | None:
         "graphic_data": graphic_data,
         "duration_seconds": duration,
     }
+    # Preserve structured source identity from the beat contract so the
+    # content-review gate can bind the claim to a specific source (URL /
+    # document_id, publisher, publication date). Credit display text
+    # (graphic_data.source / graphic_data.date) is never used as source
+    # identity. If upstream (Hermes or a research agent) does not supply
+    # evidence_identity, this key is simply absent and the gate stays
+    # fail-closed at "missing".
+    evidence_identity = item.get("evidence_identity")
+    if isinstance(evidence_identity, dict):
+        result["evidence_identity"] = evidence_identity
+    return result
 
 
 def _clean_asset_needs(items: Any) -> list[dict[str, Any]]:
@@ -936,6 +947,11 @@ def regenerate_beat(root: Path, run: dict[str, Any], beat_id: str, note: str) ->
     segment["id"] = beat_id
     segment["generation"] = {"mode": "owner_fix", "attempts": attempts,
                              "usage": usage, "note": note.strip()[:500]}
+    # Preserve structured source identity so the content-review gate can
+    # continue binding the claim to the same reviewed source across fixes.
+    old_identity = old.get("evidence_identity")
+    if isinstance(old_identity, dict):
+        segment["evidence_identity"] = old_identity
     dropped_media = bool(old.get("media_asset_id"))
     segments[index] = segment
     draft["segments"] = segments

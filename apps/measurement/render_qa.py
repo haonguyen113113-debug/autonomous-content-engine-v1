@@ -30,13 +30,14 @@ NEEDS_REVIEW = "NEEDS_REVIEW"
 
 VERDICTS = (PASS, FAIL, NEEDS_REVIEW)
 
-# C-09 attribution is graph-level executable in 12.1.0, but no rendered
-# source-card frame has been inspected or owner-approved. Keep every QA /
-# readiness claim below visual PASS until that separate review happens.
-SOURCE_CARD_REVIEW_STATUS: dict[str, Any] = {
-    "rendered_inspection": "pending",
-    "owner_approved": False,
-}
+# C-09 attribution is graph-level executable in 12.1.0. The owner's static
+# visual review is no longer a hard-coded flag: it lives in a scoped review
+# record under docs/coordinator/review_records/ and is consulted only when
+# card, mode AND pack version all match. The record approves the visual
+# inspection of the C-09 static PNG only; it does not verify the claim,
+# source/date, asset rights, motion, other cards/modes, other pack versions,
+# or production readiness by itself.
+from apps.measurement.review_records import source_card_visual_approved
 
 
 def readiness_verdict(report: dict[str, Any] | None) -> bool:
@@ -611,9 +612,8 @@ def check_card_contract(graph: dict[str, Any]) -> dict[str, Any]:
                     f"{card_id}/source_card must render a visible credit line "
                     "with both source and date; missing or partial attribution "
                     "is not contract-ready.")
-            review_pending = not (
-                SOURCE_CARD_REVIEW_STATUS.get("rendered_inspection") == "approved"
-                and SOURCE_CARD_REVIEW_STATUS.get("owner_approved") is True
+            review_pending = not source_card_visual_approved(
+                card_id, mode, version
             )
             if review_pending:
                 return _check(

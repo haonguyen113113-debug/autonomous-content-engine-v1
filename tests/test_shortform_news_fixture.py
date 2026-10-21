@@ -98,7 +98,9 @@ def test_synthetic_shortform_news_planner_table() -> None:
 
     # The fixture provides complete source/date/claim data. C-09 is
     # graph-level executable in 12.1.0, but the 82-character claim overflows
-    # its box at the shrink floor and rendered/owner review is pending.
+    # its box at the shrink floor and there is no claim/source/date
+    # verification gate, so the source beat remains non-ready even though the
+    # scoped owner review record clears the static visual inspection.
     source = decisions[4]
     assert source["graphic_data"]["source"] == "Synthetic Sports Desk (fixture)"
     assert source["graphic_data"]["date"] == "20/10/2026 20:00 (synthetic)"
@@ -106,10 +108,20 @@ def test_synthetic_shortform_news_planner_table() -> None:
     assert source["production_ready"] is False
     assert source["media_status"] == "not_applicable"
     assert source["readiness"]["text_fit"] == "FAIL"
-    assert source["readiness"]["rendered_inspection"] == "pending"
-    assert source["readiness"]["owner_approved"] is False
+    assert source["readiness"]["rendered_inspection"] == "approved"
+    assert source["readiness"]["owner_approved"] is True
+    # Visual inspection is cleared (scoped record matches), but content
+    # review is missing: no claim/source/date verification gate exists.
+    assert source["readiness"]["content_review"] == "missing"
     assert any("text fit FAIL" in warning for warning in source["warnings"])
-    assert any("inspection" in warning for warning in source["warnings"])
+    assert any(
+        "no claim/source/date verification" in warning
+        for warning in source["warnings"]
+    )
+    # No visual-approval warning remains: the scoped record covers C-09.
+    assert not any(
+        "visual approval are pending" in warning for warning in source["warnings"]
+    )
 
     plan = out["plan"]
     assert plan["production_ready"] is False
@@ -123,7 +135,8 @@ def test_synthetic_shortform_news_planner_table() -> None:
     assert plan["over_repeated_modes"] == {}
     assert plan["mode_counts"]["score_card"] == 2
     assert plan["source_text_fit"] == {"beat-source": "FAIL"}
-    assert plan["rendered_review_pending"] == ["beat-source"]
+    # Visual review is cleared for C-09, so it is no longer review-pending.
+    assert plan["rendered_review_pending"] == []
     assert "C-09" in plan["contract_starters"]
     assert "BP-16" in plan["contract_starters"]
     assert plan["legacy_starters"] == []
@@ -180,7 +193,11 @@ def test_synthetic_shortform_news_freeze_and_determinism() -> None:
     ]
     assert [child["id"] for child in text_layers] == ["val-5", "val-6", "val-9"]
     assert source_graph["media_bindings"] == []
-    assert check_card_contract(source_graph)["status"] == "NEEDS_REVIEW"
+    # The scoped owner review record (C-09 / source_card / 12.1.0) matches,
+    # and this starter graph executed the contract with visible claim + credit,
+    # so the card-contract check is PASS. Text-fit is a separate gate (FAIL for
+    # the fixture's long claim) and still blocks planner production readiness.
+    assert check_card_contract(source_graph)["status"] == "PASS"
     assert check_text_fit(source_graph)["status"] == "FAIL"
     assert "src-body" in check_text_fit(source_graph)["detail"]
 
@@ -196,7 +213,11 @@ def test_synthetic_shortform_news_freeze_and_determinism() -> None:
     ]
 
 
-def test_synthetic_source_short_claim_fits_but_review_stays_pending() -> None:
+def test_synthetic_source_short_claim_fits_but_content_review_missing_not_ready() -> None:
+    """Short claim passes text fit AND the scoped C-09 review record matches,
+    but production readiness is still False: the review record covers the
+    static visual inspection only and does not verify claim/source/date.
+    No content/source verification gate exists yet."""
     fixture = _fixture()
     fixture["segments"][-1]["graphic_data"]["claim"] = (
         "Dữ liệu minh họa, không phải kết quả thật.")
@@ -205,12 +226,19 @@ def test_synthetic_source_short_claim_fits_but_review_stays_pending() -> None:
     assert source["starter_id"] == "C-09"
     assert source["card_execution"] == "contract"
     assert source["readiness"]["text_fit"] == "PASS"
-    assert source["readiness"]["rendered_inspection"] == "pending"
-    assert source["readiness"]["owner_approved"] is False
-    assert source["production_ready"] is False
+    assert source["readiness"]["rendered_inspection"] == "approved"
+    assert source["readiness"]["owner_approved"] is True
+    # Visual approval + text fit do NOT imply production readiness:
+    # claim/source/date verification is missing.
+    assert source["readiness"]["content_review"] == "missing"
+    assert source["readiness"]["production_ready"] is False
     assert out["plan"]["source_text_fit"] == {"beat-source": "PASS"}
-    assert out["plan"]["rendered_review_pending"] == ["beat-source"]
+    assert out["plan"]["rendered_review_pending"] == []
     assert out["plan"]["production_ready"] is False
+    assert any(
+        "no claim/source/date verification" in warning
+        for warning in source["warnings"]
+    )
 
     segments_by_id = {str(segment["id"]): segment for segment in fixture["segments"]}
     graphs = build_clip_graphs(
@@ -218,9 +246,11 @@ def test_synthetic_source_short_claim_fits_but_review_stays_pending() -> None:
     source_graph = graphs[-1]
     validate_scene_graph(source_graph)
     assert check_text_fit(source_graph)["status"] == "PASS"
+    # check_card_contract can PASS on the contract/visual gate even though
+    # planner production readiness stays False.
     contract_check = check_card_contract(source_graph)
-    assert contract_check["status"] == "NEEDS_REVIEW"
-    assert "owner visual approval" in contract_check["detail"]
+    assert contract_check["status"] == "PASS"
+    assert "approval recorded" in contract_check["detail"]
 
 
 def test_source_claim_over_word_limit_needs_review_and_blocks_ready() -> None:
@@ -335,6 +365,11 @@ def test_source_credit_overflow_blocks_plan_readiness() -> None:
     )
     assert decision["production_ready"] is False
     assert out["plan"]["production_ready"] is False
+    # The scoped visual review clears C-09 visual inspection, but the credit
+    # text-fit FAIL is a separate gate that this approval does not clear.
+    assert decision["readiness"]["rendered_inspection"] == "approved"
+    assert decision["readiness"]["owner_approved"] is True
+    assert decision["production_ready"] is False
 
     segments_by_id = {str(item["id"]): item for item in fixture["segments"]}
     graph = build_clip_graphs(
@@ -355,7 +390,12 @@ def test_match_source_uses_c09_only_with_explicit_replacement_warning() -> None:
     assert decision["starter_id"] == "C-09"
     assert decision["card_execution"] == "contract"
     assert any("MR-12" in warning for warning in decision["warnings"])
+    # Short claim passes text fit and the scoped C-09 review record matches,
+    # but production readiness is still False: no claim/source/date
+    # verification gate exists. It still uses C-09's attribution grammar,
+    # not MR-12's legacy source grammar.
     assert decision["production_ready"] is False
+    assert decision["readiness"]["content_review"] == "missing"
 
 
 def test_old_graph_stays_pinned_to_12_0_0_legacy_source() -> None:

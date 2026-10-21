@@ -444,7 +444,9 @@ def test_c09_source_card_binds_claim_and_source_date_without_new_layers():
     ]
     assert [child["id"] for child in text_layers] == ["val-5", "val-6", "val-9"]
     assert check_text_fit(graph)["status"] == "PASS"
-    assert check_card_contract(graph)["status"] == "NEEDS_REVIEW"
+    # The scoped owner review record (C-09 / source_card / 12.1.0) matches,
+    # so the visual-inspection gate is cleared for this contract graph.
+    assert check_card_contract(graph)["status"] == "PASS"
 
 
 @pytest.mark.parametrize("missing", ["claim", "source", "date"])
