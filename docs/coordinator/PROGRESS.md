@@ -1,8 +1,8 @@
 # ACE Progress — auto-generated reference
 
-> Generated 2026-10-21T08:48:07+00:00. Workers read STATE.json; humans read this. Refresh with `python tools/ace_state.py --write`.
+> Generated 2026-10-21T08:52:30+00:00. Workers read STATE.json; humans read this. Refresh with `python tools/ace_state.py --write`.
 
-Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `main/f8bae11`
+Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `main/4755cd9`
 
 ## Tasks
 - P0-port-1200: **PACKET_READY**
@@ -32,22 +32,7 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 - 2556c12f9ba8: mp4=['full-render.mp4']
 
 ## Dirty files
-- M apps/card_selector.py
--  M apps/content_workflow.py
--  M apps/measurement/render_qa.py
--  M docs/ENGINE_STATE.md
--  M docs/coordinator/PROGRESS.md
--  M docs/coordinator/STATE.json
--  M docs/coordinator/source-card-c9-12-1-0-2026-10-20.md
--  M tests/test_card_contract.py
--  M tests/test_shortform_news_fixture.py
-- ?? apps/measurement/content_review.py
-- ?? apps/measurement/review_records.py
-- ?? docs/coordinator/content-reviews.md
-- ?? docs/coordinator/content_reviews/
-- ?? docs/coordinator/review_records/
-- ?? tests/test_content_review.py
-- ?? tests/test_review_records.py
+- clean
 
 ## Handoff prose (from docs/ENGINE_STATE.md, coordinator-owned)
 

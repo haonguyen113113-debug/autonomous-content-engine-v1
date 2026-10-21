@@ -1,36 +1,19 @@
 {
   "schema_version": "ace-state/1.0",
-  "generated_at": "2026-10-21T08:48:07+00:00",
+  "generated_at": "2026-10-21T08:52:30+00:00",
   "repo_root": "C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1",
   "git": {
     "branch": "main",
-    "commit": "f8bae11",
-    "full_commit": "f8bae11fbbe19cac36e675ffd69fff6b31600b72",
-    "dirty_files": [
-      "M apps/card_selector.py",
-      " M apps/content_workflow.py",
-      " M apps/measurement/render_qa.py",
-      " M docs/ENGINE_STATE.md",
-      " M docs/coordinator/PROGRESS.md",
-      " M docs/coordinator/STATE.json",
-      " M docs/coordinator/source-card-c9-12-1-0-2026-10-20.md",
-      " M tests/test_card_contract.py",
-      " M tests/test_shortform_news_fixture.py",
-      "?? apps/measurement/content_review.py",
-      "?? apps/measurement/review_records.py",
-      "?? docs/coordinator/content-reviews.md",
-      "?? docs/coordinator/content_reviews/",
-      "?? docs/coordinator/review_records/",
-      "?? tests/test_content_review.py",
-      "?? tests/test_review_records.py"
-    ],
+    "commit": "4755cd9",
+    "full_commit": "4755cd993cc9a2295d04f029ed6c7c7f94e93d7c",
+    "dirty_files": [],
     "worktrees": [
       "C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1"
     ],
     "recent_log": [
+      "4755cd9 feat: content-review gate with evidence_identity binding and tightened publisher matching",
       "f8bae11 docs: refresh machine-readable project checkpoint",
-      "48ecc65 docs: checkpoint C-09 and C-11 integration state",
-      "8bac94d merge: integrate upstream C-11 and Hermes updates"
+      "48ecc65 docs: checkpoint C-09 and C-11 integration state"
     ]
   },
   "goal": {
