@@ -689,6 +689,7 @@ def _design_children(graph: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _starter_children(record: dict[str, Any]) -> list[dict[str, Any]]:
+    from apps.file_digest import file_digest
     from apps.studio_templates.card_media import ROOT as media_root
 
     path = Path(media_root) / "apps" / "studio_templates" / record["starter_file"]
@@ -699,7 +700,7 @@ def _starter_children(record: dict[str, Any]) -> list[dict[str, Any]]:
         raise ValueError(
             f"scene graph: cannot read contract starter {path}: {error}"
         ) from error
-    if hashlib.sha256(payload).hexdigest() != record["starter_sha256"]:
+    if file_digest(path) != record["starter_sha256"]:
         raise ValueError(
             "scene graph: contract starter drifted from the frozen hash; "
             "rebuild instead of patching"

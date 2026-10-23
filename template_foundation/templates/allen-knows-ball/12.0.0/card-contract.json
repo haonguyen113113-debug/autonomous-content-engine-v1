@@ -18,7 +18,7 @@
   },
   "layout_grammar": {
     "path": "template_foundation/templates/allen-knows-ball/12.0.0/graphic-templates.json",
-    "sha256": "9b76518e6a8cc5af1ad3eb3b7cdc17cd16c6adc874c68f40ccab81d477511339"
+    "sha256": "3c371aafff9e7006f61c60c2ee6738ec0f7e4eb4fbf491bf28dd7003cb86488f"
   },
   "source_of_truth": {
     "card_index": "apps/studio_templates/card_registry.py",
@@ -38,7 +38,7 @@
         "height": 1920
       },
       "starter_file": "BP-01.short.json",
-      "starter_sha256": "388e049b547e35b24e77c3f75b1b0d1883808efb62c7bc489004cf3d788518b9",
+      "starter_sha256": "a823c0a444a6afd5fb2f0ee6adb2b83fd446274be610d5b67a1742f42e961316",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -239,7 +239,7 @@
         "height": 1920
       },
       "starter_file": "BP-02.short.json",
-      "starter_sha256": "af5900708c9295fa90993a972f32b6487bc963fb7918f68223b71ff4588d26d2",
+      "starter_sha256": "cb96f2e2aa95ad16696c4df8b5272c53e5717b93683a6ce70a684d55d4ae1ba0",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -440,7 +440,7 @@
         "height": 1920
       },
       "starter_file": "BP-03.short.json",
-      "starter_sha256": "fe0b3e4f4f13f2bdc2170bd5362f81a33e4f4fd4a458867e442ade4149fdc71e",
+      "starter_sha256": "8763be9a000450342911ab1eb3e56a45ffe133cd7d8928e0a7a358ab89cf406e",
       "template_version": "12.0.0",
       "modes": [
         "player_card",
@@ -778,7 +778,7 @@
         "height": 1920
       },
       "starter_file": "BP-04.short.json",
-      "starter_sha256": "2dff66807b1fb9d9dbadc2ffbabcad8537111cbfd9e76c2979f19c35efba4011",
+      "starter_sha256": "6719f5623026d2c75ca8ca63feee12cd02567b8785fe0ecb6fa152b16c466949",
       "template_version": "12.0.0",
       "modes": [
         "chart_timeline",
@@ -1119,7 +1119,7 @@
         "height": 1920
       },
       "starter_file": "BP-05.short.json",
-      "starter_sha256": "67660bfd06c47bba42f0af5c79a57cf0397bf88f2a793a263e20464d69fefc65",
+      "starter_sha256": "9bb80c2ba3c798ed55a35e1bb7bc2c2414face3cfe95b829e099145f6f90159e",
       "template_version": "12.0.0",
       "modes": [
         "chart_timeline",
@@ -1460,7 +1460,7 @@
         "height": 1920
       },
       "starter_file": "BP-06.short.json",
-      "starter_sha256": "e974a921327802f3a711d64d4dddcd85f63711c345b98c77eff9fe2101a345f8",
+      "starter_sha256": "e444cec608a2dba277a62df35ee1beed7cc2d8cff52ed413052fc8bfc6696699",
       "template_version": "12.0.0",
       "modes": [
         "stat_leader",
@@ -1712,7 +1712,7 @@
         "height": 1920
       },
       "starter_file": "BP-07.short.json",
-      "starter_sha256": "7cfa6d9e23685237af1d534a409f8d68c8ba9bcdb772dc6b7690cc50bb2c4a98",
+      "starter_sha256": "874490df1836141cab19a00533c028597e5738fd6b7c9cbf69e607ce563834ee",
       "template_version": "12.0.0",
       "modes": [
         "duel_columns"
@@ -2255,7 +2255,7 @@
         "height": 1920
       },
       "starter_file": "BP-08.short.json",
-      "starter_sha256": "02b8eec1f60bd435bf2be4657a0d6b0a334a9a5fb5b9e1aca72cb9a36cf5f9a8",
+      "starter_sha256": "39c1a39c7687589dff9a19a39619313d264257158e6cc6308317561eb0661195",
       "template_version": "12.0.0",
       "modes": [
         "stat_leader"
@@ -2504,7 +2504,7 @@
         "height": 1920
       },
       "starter_file": "BP-09.short.json",
-      "starter_sha256": "655a382d4d40766be5f42f15ccdc6a0fafeeb560619357b24d56294c185011cf",
+      "starter_sha256": "beeb4ba15afb85a4179c937abfb7980324f98f296d6ac0997b87657f7d8496b2",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -2705,7 +2705,7 @@
         "height": 1920
       },
       "starter_file": "BP-10.short.json",
-      "starter_sha256": "7b721ca6a3be64ad77b15d3e7e238fcbafa644eb884c5439a9d5a05c96acd8c4",
+      "starter_sha256": "db1d278bea2f5b58bdfe3e0714f56aaa46ebcc23f38c973b22c28d79955c3521",
       "template_version": "12.0.0",
       "modes": [
         "duel_columns"
@@ -3248,7 +3248,7 @@
         "height": 1920
       },
       "starter_file": "BP-11.short.json",
-      "starter_sha256": "7a30ad3b09c82171c970217f6aa3841ba38afe6596f19619726c81d87c4ac248",
+      "starter_sha256": "e39bb00d196adc13b1c5f9046140c6d0819bf0ac9c9530433e6fa175cbd94e9d",
       "template_version": "12.0.0",
       "modes": [
         "chart_timeline",
@@ -3589,7 +3589,7 @@
         "height": 1920
       },
       "starter_file": "BP-13.short.json",
-      "starter_sha256": "7e9bb73de6d33fb3dad90820371b1d40c0542b3a97787fc77c6f9d5990bfb2b7",
+      "starter_sha256": "f687a368117f26bc9ee8e6990f186a1b7ca565e301d2b2331a289f4bfe5f0f6a",
       "template_version": "12.0.0",
       "modes": [
         "quote_card"
@@ -3818,7 +3818,7 @@
         "height": 1920
       },
       "starter_file": "BP-14.short.json",
-      "starter_sha256": "c577422f2a7e3422bb225fb9dc4b86428954874f68c89e66c5c2d2069bc1ae47",
+      "starter_sha256": "f851687b41b1c00218520c7400e63aaa0b5f9817206ffc8ed53beed1df1019a5",
       "template_version": "12.0.0",
       "modes": [
         "duel_columns"
@@ -4361,7 +4361,7 @@
         "height": 1920
       },
       "starter_file": "BP-15.short.json",
-      "starter_sha256": "5a0e6332ebd02c00327e11ead4bc5119673846a9d72bf60ed26eb131506bfd19",
+      "starter_sha256": "711b5ee6c075c2ff80eb1ea152193a7ec5296f7db75454bc91e3853da0bcb3a2",
       "template_version": "12.0.0",
       "modes": [
         "duel_columns",
@@ -4745,7 +4745,7 @@
         "height": 1920
       },
       "starter_file": "BP-16.short.json",
-      "starter_sha256": "03e0d219a4f27f7601a1009b7f82e132746a8ffedde4594b310eef37d26e9348",
+      "starter_sha256": "2d82c197a9be74304bfa66f9450e35476d4ec272505d78becc808e7e1b881b0f",
       "template_version": "12.0.0",
       "modes": [
         "stat_leader"
@@ -4950,7 +4950,7 @@
         "height": 1920
       },
       "starter_file": "BP-17.short.json",
-      "starter_sha256": "3c7756d4e9d20a87a7d749f69f90e0afb64ee43513a4fe979e9718cbb82fe5c1",
+      "starter_sha256": "62f75dbc50fbd679bca540edeb50e585a0281a7059c4c758ca0033c677efc37b",
       "template_version": "12.0.0",
       "modes": [
         "chart_timeline",
@@ -5291,7 +5291,7 @@
         "height": 1920
       },
       "starter_file": "BP-18.short.json",
-      "starter_sha256": "d96ba2e38cee06bc30aba0eb5f1f935676cc5cb5464b46b178ac30a28ed546d7",
+      "starter_sha256": "7328ad892be896fd06ecf0cb256e1aa71a36c2498f539302699d6c7eb4556d08",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -5492,7 +5492,7 @@
         "height": 1920
       },
       "starter_file": "BP-19.short.json",
-      "starter_sha256": "27f293723ba992050769f8a523a89aa80d4f6acebdff664be2af717816f8dc4c",
+      "starter_sha256": "ef1660174a55a790be0c64f40e63021b8a76bed581a63e932a7a9e02411d3a46",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -5693,7 +5693,7 @@
         "height": 1920
       },
       "starter_file": "BP-20.short.json",
-      "starter_sha256": "9c2859b353ab098fd96f5c3af28cdfdcac19e8edc64df22c7b2bdef1b785ab00",
+      "starter_sha256": "ebb1a89b24ef9db30764087e5e294d5727f21c0bbcae6ab8076d6bc185ff1df0",
       "template_version": "12.0.0",
       "modes": [
         "source_card"
@@ -5855,7 +5855,7 @@
         "height": 1920
       },
       "starter_file": "C-01.short.json",
-      "starter_sha256": "29cb3590e1e5a841e3c0afc7c8a2c15dfc174b8848943127d5000acf4f83f04b",
+      "starter_sha256": "d18a6ebaf659bb643491292a9782888acd20c16ea99aeafdb18a6edde353dbdf",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -6004,7 +6004,7 @@
         "height": 1920
       },
       "starter_file": "C-02.short.json",
-      "starter_sha256": "c50ba1e02763d1f19fe0f998a657138200cfc7978d9b1f73d197a83fdcdc7398",
+      "starter_sha256": "25a03726ef8d5109d88380ddb1d5860469ff06532071ffd4d885f1a5b4fe9b5d",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -6205,7 +6205,7 @@
         "height": 1920
       },
       "starter_file": "C-03.short.json",
-      "starter_sha256": "6a87f5bd5902f528a007a6aed5076e5c2ef83329598895a84d2c21b8054b538b",
+      "starter_sha256": "fa1b3b9c27faf407bfa47ebdb9a8d4cb9bd2f3d91a15c2a2582ced17d2d41b89",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -6406,7 +6406,7 @@
         "height": 1920
       },
       "starter_file": "C-04.short.json",
-      "starter_sha256": "a7ffb37fcc86936c61b19d1fb6965ca619ff0ef41d7991a8df34b6373949180c",
+      "starter_sha256": "e1650339ad0b315f774750ead93b8a8cd43598fab68a279e7d816a1069aa4dfc",
       "template_version": "12.0.0",
       "modes": [
         "player_card",
@@ -6744,7 +6744,7 @@
         "height": 1920
       },
       "starter_file": "C-05.short.json",
-      "starter_sha256": "b929ffdebf5196f50973870fa37fb7bc69fccd743aa63ac26614f2f507c11ffb",
+      "starter_sha256": "87b593d756cc107161a504b507c2ccbe26097662d28003de3bc48bdd09914ced",
       "template_version": "12.0.0",
       "modes": [
         "quote_card"
@@ -6905,7 +6905,7 @@
         "height": 1920
       },
       "starter_file": "C-06.short.json",
-      "starter_sha256": "d971036646ada5ba213240bef0493dc78dc33e75e88f5f415e85696a9fdb85e8",
+      "starter_sha256": "7be09c0826ee09d62956445a7809d4c17b0e3dd2556eaa416d406f38ea1d4a00",
       "template_version": "12.0.0",
       "modes": [
         "chart_comparison",
@@ -7113,7 +7113,7 @@
         "height": 1920
       },
       "starter_file": "C-07.short.json",
-      "starter_sha256": "51cb581bd687f21aecfc747976384dabd1dd51974ced1a33b9c94f26ae3ba46a",
+      "starter_sha256": "ddaf20ca0e147ab9a4a35bc953809492140797e8d13c85d5508f3fe1ddaf8dee",
       "template_version": "12.0.0",
       "modes": [
         "comparison_duel",
@@ -7787,7 +7787,7 @@
         "height": 1920
       },
       "starter_file": "C-08.short.json",
-      "starter_sha256": "a4ca6e07d7c9df1e847d6697c304dc79e7c31173e57658b47e2d187700f105ce",
+      "starter_sha256": "15bb1985cf13eb31e8c8b7cdf90e8b6bcf95103169d025d83422456d29230722",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -8126,7 +8126,7 @@
         "height": 1920
       },
       "starter_file": "C-09.short.json",
-      "starter_sha256": "877543db73fa5383efd67da93e99622493eb512c168a4710cb141da3a379c99c",
+      "starter_sha256": "5f2a0e6d174e5660f2d0cd822b46140314436bb851872512d051657833fd337c",
       "template_version": "12.0.0",
       "modes": [
         "source_card"
@@ -8288,7 +8288,7 @@
         "height": 1920
       },
       "starter_file": "C-10.short.json",
-      "starter_sha256": "f334b19afad568b307de3d410900621116df7363a44ba49e6d9ab54e5af0c65e",
+      "starter_sha256": "ebb5209d3d02fb7c6a0441507e612a2e91c59b10b48036822e9c0d951f6a704f",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -8437,7 +8437,7 @@
         "height": 1920
       },
       "starter_file": "C-11.short.json",
-      "starter_sha256": "70b516fd07b9bf2ca47312d3dd8d0de135f827515eb44cfafa4d1808667bd7a0",
+      "starter_sha256": "0a83fbc30fcf04da65da708a2dc78072c3e3e1f314d9069f3a6d98c60adceaac",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -8516,7 +8516,7 @@
         "height": 1080
       },
       "starter_file": "LC-01.long.json",
-      "starter_sha256": "105ec692ca13bf1cac2693889a41b27cc873fc6d5f19c6a4df4d732a4d021365",
+      "starter_sha256": "a5bc65c14dcf19a11825a5925751f676bbd61952d1fb6d1c1ff9c53343a1a181",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -8797,7 +8797,7 @@
         "height": 1080
       },
       "starter_file": "LC-02.long.json",
-      "starter_sha256": "6c142108ec093844e1dbab0236a0fb3a8829768c8fa10646360027f66eb80f23",
+      "starter_sha256": "263aba342b4a8449d8dc2f30c913ac16a145004ce301f0409ceeea64bbe4be1e",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -9078,7 +9078,7 @@
         "height": 1080
       },
       "starter_file": "LC-03.long.json",
-      "starter_sha256": "2ec127283f2615757aebbb4f7d69159dec1987bbadd3e03d8e0adc5741e1eb35",
+      "starter_sha256": "044c483b169fa247e9f4199b9de3ec7d2582a98e968db8b8f1ccc80a9aa5ad31",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -9493,7 +9493,7 @@
         "height": 1080
       },
       "starter_file": "LC-04.long.json",
-      "starter_sha256": "430e0e228fd963aaad9aff2b298804d78856c476915a96a2bfa0e28273d45a04",
+      "starter_sha256": "c2488801214703bde63568b0ecd61460f4fa377a8fa9837663e155d7aec15368",
       "template_version": "12.0.0",
       "modes": [
         "duel_columns"
@@ -9958,7 +9958,7 @@
         "height": 1080
       },
       "starter_file": "LC-05.long.json",
-      "starter_sha256": "697db2778941d7c3562d33f03dfea94652b84d989a3e597eb0c0389107fa305f",
+      "starter_sha256": "d417effb63b83a87cc77106f058782fb33a68bcc001d4523bf1081bdf703649e",
       "template_version": "12.0.0",
       "modes": [
         "stat_leader"
@@ -10339,7 +10339,7 @@
         "height": 1080
       },
       "starter_file": "LC-06.long.json",
-      "starter_sha256": "1dd1a2b02a25a37b9e3017c20bcaf89b23343b830d7a5470dda1e7453ffe8cee",
+      "starter_sha256": "fc65c4e67f283d506e40450f44b5bcb2320282816ee31abbc8da1a341bf7be32",
       "template_version": "12.0.0",
       "modes": [
         "quote_card"
@@ -10568,7 +10568,7 @@
         "height": 1080
       },
       "starter_file": "LC-07.long.json",
-      "starter_sha256": "c2746b9a7f3b05ac9984358b316865e2d58c1baf065c22581305d43d313997ad",
+      "starter_sha256": "d49eededf1d7e6e0666eb4dd56a971dde09e8b8e4bb3ea8cc9baab6f385aecc9",
       "template_version": "12.0.0",
       "modes": [
         "stat_leader"
@@ -10817,7 +10817,7 @@
         "height": 1080
       },
       "starter_file": "LC-08.long.json",
-      "starter_sha256": "99b4ed343c7f608532d156a7da087c425227eb31c38d9bbf7905f4dc24038a0d",
+      "starter_sha256": "35ca7305e97e07040f634f4bad612c7a85f14e57176f9b2bd632a93c6a533b05",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -10966,7 +10966,7 @@
         "height": 1080
       },
       "starter_file": "LC-09.long.json",
-      "starter_sha256": "261587fe2edccc4ef530561de0499fcc84a4dc3025bd79bbfbb8bddb2063cb73",
+      "starter_sha256": "9c5e6e413d9c057e6ac67db9e2b7d94ad64afd13484b4fff9459ac64d0837df7",
       "template_version": "12.0.0",
       "modes": [
         "quote_card"
@@ -11195,7 +11195,7 @@
         "height": 1080
       },
       "starter_file": "LC-10.long.json",
-      "starter_sha256": "69c2df557ea1fd0e3d7f49e9539f76fdfa5b34e4a404a09e329cf806ad3d3c9a",
+      "starter_sha256": "1545d0ffec237b2568b9eebe86aaa29f205816d2c6b3ff7dd0909a27cbc059bd",
       "template_version": "12.0.0",
       "modes": [
         "duel_columns"
@@ -11538,7 +11538,7 @@
         "height": 1080
       },
       "starter_file": "LC-11.long.json",
-      "starter_sha256": "ebe92befd0e20655ce992e3b0eb7f50badd643690beaf51749f297cda55a502c",
+      "starter_sha256": "39ebfcd4af9b903f96e2a7c52804219d9f99794d503ec835aeca44cbe7940197",
       "template_version": "12.0.0",
       "modes": [
         "player_poster_side"
@@ -11839,7 +11839,7 @@
         "height": 1080
       },
       "starter_file": "LC-12.long.json",
-      "starter_sha256": "213fdc25618ff9d4be82d149058c674f11df11e3c29b26c9758859e585f1821a",
+      "starter_sha256": "8228737d3a97e7e13eba22c88524372105db28c134ca927c31f142223099e9e4",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -12120,7 +12120,7 @@
         "height": 1080
       },
       "starter_file": "LC-13.long.json",
-      "starter_sha256": "c3e1fcff3f13294fdbb4d1057fbc18bf3be53ca759bf85b3d5cc75caa04d85c6",
+      "starter_sha256": "df3ea4e4a211671089f81a240ce004ccbb857eb82b3bc8f059d0eea56920a427",
       "template_version": "12.0.0",
       "modes": [
         "source_card"
@@ -12349,7 +12349,7 @@
         "height": 1080
       },
       "starter_file": "LC-14.long.json",
-      "starter_sha256": "657eefefe549b0b2aca0e1d54b20fdb710771f6bafff6d2e5b4a3e388d374398",
+      "starter_sha256": "65692f9cb4cde29c66f60acfb093c555f24eb78ed1e3206d5092935f26570dd2",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -12422,7 +12422,7 @@
         "height": 1080
       },
       "starter_file": "LC-15.long.json",
-      "starter_sha256": "a2d6cbe43ac17edaf1ebd4ccd69ac53779055016d65dd2836ffba16654edd6db",
+      "starter_sha256": "3079d5674586ff0bd9a948c9fbb1eced882224766f678f0897037c13f3efe69d",
       "template_version": "12.0.0",
       "modes": [
         "fixture_card"
@@ -12756,7 +12756,7 @@
         "height": 1080
       },
       "starter_file": "LC-16.long.json",
-      "starter_sha256": "3745dccca10720982d6192213e5bc4dbb0aaab3bc60ed9f54290bea0734de443",
+      "starter_sha256": "edeef4910c0259085398f637c2e0c676c363889da4b50cd6ed56dba10bbc1648",
       "template_version": "12.0.0",
       "modes": [
         "source_card"
@@ -12985,7 +12985,7 @@
         "height": 1920
       },
       "starter_file": "MR-01.short.json",
-      "starter_sha256": "762aa2c5f9aee2d09bb031c25d8de8ad694461e6bb55d0180f13a69e74485d45",
+      "starter_sha256": "ac3c1d92fa93a6dea2d0b395925b06600cdd2e599ceda43bad0ed38d657293aa",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -13186,7 +13186,7 @@
         "height": 1920
       },
       "starter_file": "MR-02.short.json",
-      "starter_sha256": "c57880a415fb88dad599e412e1b9f050614fc7cbc1a2d4b938adb8f93bdb80d4",
+      "starter_sha256": "42cb23b70ad2194749dd4b7c9ab6ed861127970850fdbac330ac57157f1e88f6",
       "template_version": "12.0.0",
       "modes": [
         "score_card"
@@ -13563,7 +13563,7 @@
         "height": 1920
       },
       "starter_file": "MR-03.short.json",
-      "starter_sha256": "dcb88e19daa3ee9cbb41678997893ddf48d277ba0737df43b7d2248e24085c66",
+      "starter_sha256": "6b94b217bbca821482d14a1e4c4187d28cafafad12d2a494bfe34c1d61c76bcb",
       "template_version": "12.0.0",
       "modes": [
         "score_card"
@@ -13940,7 +13940,7 @@
         "height": 1920
       },
       "starter_file": "MR-04.short.json",
-      "starter_sha256": "9e2a9dd09c13e5c8a5460494b6ed7dea74ee36d657082fc20059258d175d4a07",
+      "starter_sha256": "c9703995fdaeead9fecf2fd4b85f7bf7ab0a9905386b09eb4e0d7e9ea08dbd74",
       "template_version": "12.0.0",
       "modes": [
         "goal_card",
@@ -14331,7 +14331,7 @@
         "height": 1920
       },
       "starter_file": "MR-05.short.json",
-      "starter_sha256": "2eeb23ec7f7b895db94976470e1a6467b267fab25b22b3f4504b804d89c95492",
+      "starter_sha256": "25bf7f85175a470f38f9b420a570e78c25d75d312e4b05646631e4701fd54513",
       "template_version": "12.0.0",
       "modes": [
         "chart_timeline",
@@ -14672,7 +14672,7 @@
         "height": 1920
       },
       "starter_file": "MR-06.short.json",
-      "starter_sha256": "35e02524fc41d486ec4a01ead4055848b9f773fced4d710a5719b9d50cff36db",
+      "starter_sha256": "0d31b8115064f0ce3149d4db761854446f774ceb49ab68af658738344f702fc1",
       "template_version": "12.0.0",
       "modes": [
         "chart_timeline",
@@ -15015,7 +15015,7 @@
         "height": 1920
       },
       "starter_file": "MR-07.short.json",
-      "starter_sha256": "30453fb8089cd503a97a0df7dbb8364c5f58a50092c222f4b675771d3cdea755",
+      "starter_sha256": "f710188d3f26707074e315ca8bb697f2100892a47eefbc87aaf5d3b0af359ffa",
       "template_version": "12.0.0",
       "modes": [
         "duel_columns",
@@ -15399,7 +15399,7 @@
         "height": 1920
       },
       "starter_file": "MR-08.short.json",
-      "starter_sha256": "62c9be2f8483fd2a360b06fa5d002da200a7d6a1803f117192a04429722be657",
+      "starter_sha256": "cc7fbf7cc89ea5eb33d745b2e1b82ffe4a6c50628fd58e238887a7b0ff2007d9",
       "template_version": "12.0.0",
       "modes": [
         "player_card",
@@ -15737,7 +15737,7 @@
         "height": 1920
       },
       "starter_file": "MR-09.short.json",
-      "starter_sha256": "a272c8440b9d2e69ee538c64ac2b582560cca6c90e22366a6fb046f8f4a54455",
+      "starter_sha256": "c5e1f4ebd8d42a833a25b248cf5194280b725a0c60656829effeec780e27909c",
       "template_version": "12.0.0",
       "modes": [
         "duel_columns",
@@ -16121,7 +16121,7 @@
         "height": 1920
       },
       "starter_file": "MR-10.short.json",
-      "starter_sha256": "68242007b58abb6fe2518a9e17a823d3cf5737767039140baf308272323885f5",
+      "starter_sha256": "090a1c02226f6cf13e4f86d3bd6fbf07bdfef90f2440b0e0f4949c1c315685e8",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -16322,7 +16322,7 @@
         "height": 1920
       },
       "starter_file": "MR-11.short.json",
-      "starter_sha256": "fac6e96bd8eb1df96ab417660b64aea5f37cb1e8fc22c4ed9ce5a320f3c481cd",
+      "starter_sha256": "5467ddffd3e3e7421b7cbef3d2eeb603d76122c43c8f8dd7c6226f850e2ea7c5",
       "template_version": "12.0.0",
       "modes": [
         "fixture_card",
@@ -16658,7 +16658,7 @@
         "height": 1920
       },
       "starter_file": "MR-12.short.json",
-      "starter_sha256": "8bf4d8a5c5676eeaddf903babd0f176259c8133a26574ded6c50da5e74ba43c8",
+      "starter_sha256": "ade7b81c2b09fede29426e800fac77a1f3b252f290faa1dda518ebb71545e1ae",
       "template_version": "12.0.0",
       "modes": [
         "source_card"
@@ -16820,7 +16820,7 @@
         "height": 1080
       },
       "starter_file": "TA-01.long.json",
-      "starter_sha256": "d6c810c4588075ca57c0fbffb5d2a14fd40b387a0bf9f29e0e1502ac98788b3a",
+      "starter_sha256": "d0a076c636afda75c62ac5b0e0895355c100dcd9bc3512218d60abab9675146c",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -17101,7 +17101,7 @@
         "height": 1080
       },
       "starter_file": "TA-02.long.json",
-      "starter_sha256": "ff7d7e686aca4fe92360f9ebd01cacfdd0e55086810e052e0ea73183f2e3ce33",
+      "starter_sha256": "c348f60e689b38a227cd3055f74f58e86cd56a7d40274d3f11a4d6f3184fc101",
       "template_version": "12.0.0",
       "modes": [
         "fixture_card",
@@ -17492,7 +17492,7 @@
         "height": 1080
       },
       "starter_file": "TA-03.long.json",
-      "starter_sha256": "48bb02d6980771d6f328ef2366379ac821503ff6d71f04028f5e4c7670e36d29",
+      "starter_sha256": "d8c156089b32e63468b8ca4c89abe6977c0961600a397e246f3f727919de3303",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -17717,7 +17717,7 @@
         "height": 1080
       },
       "starter_file": "TA-04.long.json",
-      "starter_sha256": "9c241d7ed4c50ed77d97bd01d72078c8a8965a15bfc0fc5494c1a956abae5318",
+      "starter_sha256": "ff7289108c625862ad9a05df064ac0f18edc794e4a8f2de0974320c3f4f2ae83",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -18208,7 +18208,7 @@
         "height": 1080
       },
       "starter_file": "TA-05.long.json",
-      "starter_sha256": "94632471f3d6ad518e35c57253fb704643399fb0cf83268cc15c510380d3382e",
+      "starter_sha256": "65e31f86cdd38e80ab601443c8ffa5a0095a04ede0700888a698f00f124ee12f",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -18433,7 +18433,7 @@
         "height": 1080
       },
       "starter_file": "TA-06.long.json",
-      "starter_sha256": "9a14d0181f2ff86b46fa5590037198e637641550950a5c972aee16dcb44fd9a6",
+      "starter_sha256": "ee30cbc0aac4313dd8e24fbf9f4b1eb191e66c5bdb47cd6eb5f4dc89d27c2dfb",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -18696,7 +18696,7 @@
         "height": 1080
       },
       "starter_file": "TA-07.long.json",
-      "starter_sha256": "8e77dd7f3c57fe3c94494d135f77bdfc6bd35b5f06b7717e10857f6c1f88e753",
+      "starter_sha256": "f2b96b9e701e1a13e63ce7f1ff1d50b1349c51b17d277f98d05e1e2888fc4a6a",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -18921,7 +18921,7 @@
         "height": 1080
       },
       "starter_file": "TA-08.long.json",
-      "starter_sha256": "ef45d9686bc857b5bae32180c2346810d220906fb978aaf696d1a66d3b12a011",
+      "starter_sha256": "407416b38602b6ac4bbce60a16c0341a4d9ea9cd87bd56d012aac9cdfa8b2ea9",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -19108,7 +19108,7 @@
         "height": 1080
       },
       "starter_file": "TA-09.long.json",
-      "starter_sha256": "1a9d8c6216b13e7e11861f2804f13074f79967bf303b106063313e4b273913ac",
+      "starter_sha256": "9ac0d199905fefe50669809bf7fe29c6c8d7dc39699c875555b100010da55ecb",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -19257,7 +19257,7 @@
         "height": 1080
       },
       "starter_file": "TA-10.long.json",
-      "starter_sha256": "2396e8014ca59774db877b7b0ff52c1a367f499dad5fc428df214a2efa4b7253",
+      "starter_sha256": "8b38bd9bd3fb5d04664383b934dc01e906bb0ef3d6f95715c806cb3d564c3d03",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -19444,7 +19444,7 @@
         "height": 1080
       },
       "starter_file": "TA-11.long.json",
-      "starter_sha256": "ba9dc1ecaeec7e4a19a13492149373a4ca21c58fbf720f4a871f83cda258b49f",
+      "starter_sha256": "146a1daae087435ea3bb3514ac618960ec1eeb09b1b32b74ed5cf8d9c79f0cc3",
       "template_version": "12.0.0",
       "modes": [
         "discipline_card",
@@ -19671,7 +19671,7 @@
         "height": 1080
       },
       "starter_file": "TA-12.long.json",
-      "starter_sha256": "18ea5dae2575958291fe41ddb48a1bf8b6ae88916aefed54eb3db01d96999f21",
+      "starter_sha256": "8d8c3e4db4571a395bc6412582a25808fd4d6b11d649e719634fb23308cb177b",
       "template_version": "12.0.0",
       "modes": [
         "chart_timeline",
@@ -20012,7 +20012,7 @@
         "height": 1080
       },
       "starter_file": "TA-13.long.json",
-      "starter_sha256": "3cf403ab0b22f864618f52679a8d10252c84e7b0e8fa533594bf05a7bb0dd2cd",
+      "starter_sha256": "9e46620ac1d9304361c27bf30fa16834cd61228e90d4be3c0b5ef288b7311dd2",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -20161,7 +20161,7 @@
         "height": 1080
       },
       "starter_file": "TA-14.long.json",
-      "starter_sha256": "ad7e9d692850f7fa1fcce2082bb5e01f8f0afe53915da0366b7537acb681f053",
+      "starter_sha256": "5b795b59196b72758a5212d3d4d8bd4fe4abfe7c71c8db01180439288ec608fe",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -20348,7 +20348,7 @@
         "height": 1080
       },
       "starter_file": "TA-15.long.json",
-      "starter_sha256": "7361cfb5ad6d84b52ca749c20ced78ef87d57fa5847da54ee8ba9b0ba9bdbe41",
+      "starter_sha256": "0cbd79d11257f367d66d800f9b9aaee07bedaf983499b9c3a86025e0ee3f64f0",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -20763,7 +20763,7 @@
         "height": 1080
       },
       "starter_file": "TA-16.long.json",
-      "starter_sha256": "6025ea84bd0278fb2c3a32e7a540b3f6a4bebac4dc44bcfee24be146c0460600",
+      "starter_sha256": "018ad537dc6267973272b21923f13aa76390933c02faeedd75f4ebcd9ab21e09",
       "template_version": "12.0.0",
       "modes": [
         "chart_comparison",
@@ -21146,7 +21146,7 @@
         "height": 1080
       },
       "starter_file": "TA-17.long.json",
-      "starter_sha256": "aa1ba29f06cacad874897162e67143b7c644831bf5359bd4d78186630b08b9bd",
+      "starter_sha256": "ab610567875485d6f01a65364bf4580d60ce1e34d82b90f148cd9f5dcc8d8ca2",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -21219,7 +21219,7 @@
         "height": 1080
       },
       "starter_file": "TA-18.long.json",
-      "starter_sha256": "4b9b3c441a7bc6e61e2e9c65e974ecf32206ae797edc49d263d85df286ca374f",
+      "starter_sha256": "d145de1a895a8ad9ba172bcfc35e1a96e4be7ff51e27b31350ef1d5423ca398c",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -21558,7 +21558,7 @@
         "height": 1080
       },
       "starter_file": "TA-19.long.json",
-      "starter_sha256": "d051a91261c363d67c91352d94eb0fd5b7ae224d3fb4cc03a0075d4d1d2acdcb",
+      "starter_sha256": "19c5a6df6a23414b68ede57215974601f0f9f004bf1242d01b48d0be5aaf7a9b",
       "template_version": "12.0.0",
       "modes": [
         "hook_card"
@@ -21839,7 +21839,7 @@
         "height": 1080
       },
       "starter_file": "TA-20.long.json",
-      "starter_sha256": "a0d8d26d9a19aa8f8f6d1ab9d7fb5e13e0179f33684dac0d0755976594339455",
+      "starter_sha256": "176e2b8d37cae5f4c72f3a71dc5f141a73cad64afc7126b36ca2d57565fda7be",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -22026,7 +22026,7 @@
         "height": 1080
       },
       "starter_file": "TA-21.long.json",
-      "starter_sha256": "5b44634339d58ce3dce125ec79d1d9fb163f555be3ab600b3b650e5159ff9427",
+      "starter_sha256": "d1052d86e1c40d45bc2747b621770aa7f8373965a39e95b293c0e2eaed216f45",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -22251,7 +22251,7 @@
         "height": 1080
       },
       "starter_file": "TA-22.long.json",
-      "starter_sha256": "952670a12171c427c37717122788c4e151239818fa96f48ac8af2fc92bb5391e",
+      "starter_sha256": "2528a4fb3f7ee9fb0023ce1fc84ad3a881e90d781c6697587a9c5998391aa8b7",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -22400,7 +22400,7 @@
         "height": 1080
       },
       "starter_file": "TA-23.long.json",
-      "starter_sha256": "eb1258762fc343f3f5d44cc170d9bb8ab1ca147dd7465787b1d446905d44a05a",
+      "starter_sha256": "b97aa208e747b3869db905571cffb0299333565c3b72789cc01fbcb035b8b5aa",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -22587,7 +22587,7 @@
         "height": 1080
       },
       "starter_file": "TA-24.long.json",
-      "starter_sha256": "e0db46525b0034159bd8c377d4753cd39087b859e7f03bb0865cb74aebbd758f",
+      "starter_sha256": "9bc49167bdf86813eb22c5226199bc0c006a5b9e87e83b1ce4d271d4707fc9e5",
       "template_version": "12.0.0",
       "modes": [
         "tactical_explainer"
@@ -22774,7 +22774,7 @@
         "height": 1920
       },
       "starter_file": "U-01.short.json",
-      "starter_sha256": "4112976c0c69f7124bfbd925ed8160424ddf7ae06997d809f86a0025154a0740",
+      "starter_sha256": "23132075bdf57d51c5c6d06df85a02b5e4394588be495cf65f4199fc455642a2",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -22923,7 +22923,7 @@
         "height": 1920
       },
       "starter_file": "U-02.short.json",
-      "starter_sha256": "6416cc433d0d0de0f4ac6ec855fc95db9827844e0d5a95f46ca1538aaf5a59de",
+      "starter_sha256": "cdf11ad6dc76fc90dda15548f79e2adfdf85e2272588f4e2febbabdccd3f8f00",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -23072,7 +23072,7 @@
         "height": 1920
       },
       "starter_file": "U-03.short.json",
-      "starter_sha256": "fe52be038fbfcc45df29ef4947a88fdc3d45a4e7935605c1bd537e107f95bfcc",
+      "starter_sha256": "408dca595dc379a04f465b5a7c3291aac455d26daafde9dea86efccb31eafe11",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -23221,7 +23221,7 @@
         "height": 1920
       },
       "starter_file": "U-04.short.json",
-      "starter_sha256": "4ff56c069f9a6ae235ad0e57c80b90de0a111ef231df3a299f6d9ec3c1e4270a",
+      "starter_sha256": "0b4cb8ec4f067c7f950a593feac0e7d6db198d5a4c537629f5b56c3a07a2063a",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -23370,7 +23370,7 @@
         "height": 1920
       },
       "starter_file": "U-05.short.json",
-      "starter_sha256": "aa7c0164fa2a0ed45c974e2671df4347a327f3adeae4eb02899367f06d4b2774",
+      "starter_sha256": "5fd9df3f9da5e66ebdbdf56cf910aacf03fc443e4f2e6806ffff4e1aec54513e",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -23519,7 +23519,7 @@
         "height": 1920
       },
       "starter_file": "U-06.short.json",
-      "starter_sha256": "71529baa3c56edf13ff3953b9631866d011a573a8ccf441fa3e4e4bb398a09b2",
+      "starter_sha256": "7452f78ba71f835c9c0d136efbd3e962312b4da7c21d9c28acd203d3e6430127",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -23668,7 +23668,7 @@
         "height": 1920
       },
       "starter_file": "U-07.short.json",
-      "starter_sha256": "77bf5b58fb392948064036bdd9362f59adea74e18e6b90ad6718ed02d46692cc",
+      "starter_sha256": "aa40b95c68d06fa8023390d6638d3366ca1b996a64b5bbfaa6675e049f282cd7",
       "template_version": "12.0.0",
       "modes": [
         "frame"
@@ -23741,7 +23741,7 @@
         "height": 1920
       },
       "starter_file": "U-08.short.json",
-      "starter_sha256": "40ee0d7689ff6802dc9be2faed3e9e3330aea16574a08fafa0008c4a08eed6c3",
+      "starter_sha256": "c571a14ae55f9b4a9a0bedb225877f904edaa8fde31352a110adc26f7e6866e1",
       "template_version": "12.0.0",
       "modes": [
         "source_card"
@@ -23894,5 +23894,5 @@
       "media_slots": []
     }
   ],
-  "contract_hash": "2fa0a5249a51b8b93654bfe366d4d035499effe756814aad4510daef9dc054f7"
+  "contract_hash": "9c4770bcb9cc029ffbdbdb77d5882a863928e0854bf1594c0b0f810c8a1c7d3c"
 }

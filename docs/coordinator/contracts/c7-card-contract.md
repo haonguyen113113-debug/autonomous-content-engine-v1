@@ -205,7 +205,8 @@ The renderer consumes the frozen graph:
   disclaimers or card-specific image painting for a contract graph. Those
   legacy paths are separate primitive routes and carry non-ready provenance.
 
-A missing contract graph with `ACE_SCENE_GRAPH_RENDER=1` still fails closed;
+A missing contract graph on the default Scene Graph path still fails closed
+(`ACE_SCENE_GRAPH_RENDER=0` is the explicit legacy opt-out);
 there is no silent legacy fallback in that mode.
 
 ## QA

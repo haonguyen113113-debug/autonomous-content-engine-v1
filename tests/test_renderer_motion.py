@@ -2,7 +2,9 @@ import wave
 
 import pytest
 
-from apps.video_renderer import _beat_fades, _ensure_voice_fits_script, _overlay_items
+from apps.video_renderer import (
+    _beat_fades, _beat_zoom_expr, _ensure_voice_fits_script, _overlay_items,
+)
 
 
 def _write_silent_wav(path, seconds, rate=22050):
@@ -67,3 +69,44 @@ def test_overlay_items_select_kinds_windows_and_limit():
     assert _overlay_items(events, 0, 10, limit=2)[0]["item_id"] == "cap-1"
     assert _overlay_items(events, 0, 10, kinds=("caption",))[0]["item_id"] == "cap-1"
     assert _overlay_items(events, 20, 30) == []
+
+
+# --- per-beat camera drift: `on` counts the whole video ------------------------
+
+
+def test_beat_zoom_expression_offsets_by_the_beat_start():
+    """A beat that starts late must not enter with its drift saturated.
+
+    All plates are fed from t=0 and advanced every frame, so zoompan's `on`
+    is a video-wide frame count. Without the offset, beat 2 (7 s -> frame 210)
+    starts at zoom 1.004 and hits the 1.0 floor 1.3 s later, freezing its
+    plate for the rest of the beat (measured on the R4 gate MP4).
+    """
+    first = _beat_zoom_expr(1, start=0.0, fps=30, punch=False)
+    second = _beat_zoom_expr(1, start=7.0, fps=30, punch=False)
+    third = _beat_zoom_expr(2, start=14.0, fps=30, punch=False)
+
+    assert first == "max(1.0,1.025-0.0001*on)"
+    assert second == "max(1.0,1.025-0.0001*max(0,on-210))"
+    assert third == "min(1.025,1+0.0001*max(0,on-420))"
+
+
+def test_beat_zoom_expression_keeps_punch_and_media_rates():
+    punch = _beat_zoom_expr(0, start=4.0, fps=30, punch=True, end=11.0)
+    media = _beat_zoom_expr(0, start=4.0, fps=30, punch=False, media=True)
+    assert punch.startswith("min(1.035,1+0.02*min(1,max(0,on-120)/12)")
+    assert "max(0,on-120)" in punch
+    assert media == "min(1.035,1+0.00002*max(0,on-120))"
+
+
+def test_punch_ramp_reaches_the_ceiling_at_the_end_of_the_beat():
+    """A punch beat must keep drifting for the whole beat, not freeze at 3.3 s.
+
+    The old single-rate ramp hit 1.035 after 100 frames and left the plate
+    pixel-identical for the remaining 3.3 s (freezedetect: 3.30-6.60 s).
+    """
+    expr = _beat_zoom_expr(0, start=0.0, fps=30, punch=True, end=7.0)
+    # 0.02 snap over 12 frames + drift over the remaining 198 frames = 1.035.
+    drift = float(expr.split("+0.02*min(1,on/12)+")[1].split("*max(0,on-12))")[0])
+    assert abs(1.0 + 0.02 + drift * 198 - 1.035) < 0.001
+    assert drift * 100 > 0.003  # still visibly moving late in the beat

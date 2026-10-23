@@ -38,6 +38,9 @@ SHORT_BUDGET_SECONDS = 540
 LONG_BUDGET_SECONDS = 1500
 VISUAL_MODES = {
     "tactical_explainer", "statline_scorecard", "source_card",
+    # 12.2.0: bounded takeaway card (C-13) and the tactical reading (C-12)
+    # are authored pack modes; the planner may emit both.
+    "conclusion",
     "chart_comparison", "chart_timeline", "hook_card", "player_card",
     "comparison_duel", "stat_leader", "player_poster",
     "goal_card", "fixture_card", "score_card",

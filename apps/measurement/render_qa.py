@@ -740,7 +740,9 @@ def fit_text_size(slot: dict[str, Any], value: str) -> int:
         if float(box[2] - box[0]) <= width + 2.0:
             break
         size -= 2
-    return size
+    # Mirror builder._shrink_to_fit exactly, including the floor clamp: QA must
+    # measure the size the builder actually freezes.
+    return max(size, floor)
 
 
 def measure_text_slot(
@@ -1008,13 +1010,43 @@ def qa_scene(
         try:
             bg = bg_image.convert("RGB")
             bw, bh = bg.size
+            # Probe where the glyphs actually are, not the whole declared box.
+            # A text element's box can be much taller than its one line of
+            # type; sampling at 85% of a 250 px box landed on the hook card's
+            # emblem and reported 1.32:1 for copy that measures 19:1 on its own
+            # ink band. The rendered image minus its background layer marks the
+            # ink, so probe inside that band and fall back to the box when no
+            # difference image is available.
+            ink_mask = None
+            if image is not None:
+                try:
+                    from PIL import ImageChops
+
+                    rendered = image.convert("RGB")
+                    if rendered.size == bg.size:
+                        tint = ImageChops.difference(rendered, bg).convert("L")
+                        ink_mask = tint.point(lambda v: 255 if v > 24 else 0)
+                except Exception:
+                    ink_mask = None
             weak: list[str] = []
             for layer in layers:
                 x, y, w, h = _layer_box(layer)
                 cx = min(bw - 1, max(0, int(x + w / 2)))
+                top, bottom = float(y), float(y + h)
+                if ink_mask is not None:
+                    try:
+                        x0 = max(0, min(bw, int(x)))
+                        y0 = max(0, min(bh, int(y)))
+                        x1 = max(x0 + 1, min(bw, int(x + w)))
+                        y1 = max(y0 + 1, min(bh, int(y + h)))
+                        box = ink_mask.crop((x0, y0, x1, y1)).getbbox()
+                        if box is not None:
+                            top, bottom = float(y0 + box[1]), float(y0 + box[3])
+                    except Exception:
+                        top, bottom = float(y), float(y + h)
                 ratios = []
                 for frac in (0.15, 0.5, 0.85):
-                    py = min(bh - 1, max(0, int(y + h * frac)))
+                    py = min(bh - 1, max(0, int(top + (bottom - top) * frac)))
                     bg_px = bg.getpixel((cx, py))
                     fg = _hex_rgb(str(layer.get("fill", "#F2F6FF")))
                     ratios.append(_contrast(fg, tuple(float(v) for v in bg_px)))

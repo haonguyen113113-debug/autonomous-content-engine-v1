@@ -180,3 +180,111 @@ def test_tactical_explainer_reads_spec_from_graph_not_legacy_storyboard(
     # storyboard (_specs()[index % 3]).
     assert captured["spec"] not in renderer._diagram_specs()
     assert image.size == (1920, 1080)
+
+
+# --- shrink-to-fit floor: contract floor is a hard stop ----------------------
+
+
+def test_shrink_to_fit_never_steps_below_the_contract_floor():
+    """A long value bottoms out AT min_size_px, never one step under it.
+
+    The contract declares ``fit.min_size_px`` and the schema rejects a frozen
+    design that undershoots it, so stepping 58 -> 28 for a 29px floor used to
+    make C-12 ungraphable (validate_scene_graph raised). Overflow at the floor
+    must surface as a text-fit FAIL instead.
+    """
+    from apps.scene_graph.builder import _shrink_to_fit
+
+    too_long = "Hai tiền vệ cánh dâng cao, khoảng trống mở ra sau lưng hậu vệ biên."
+    size = _shrink_to_fit(too_long, "Be Vietnam Pro", "semibold", 58, 900)
+    assert size == 29, size  # 58 // 2, clamped
+    assert size >= max(20, 58 // 2)
+
+    short = "Hai biên dâng cao, lộ khoảng trống sau lưng."
+    assert _shrink_to_fit(short, "Be Vietnam Pro", "semibold", 58, 900) > 29
+
+
+def test_qa_fit_size_matches_builder_and_respects_the_floor():
+    """QA measures the size the builder freezes, floor included."""
+    from apps.measurement.render_qa import fit_text_size
+    from apps.scene_graph.builder import _shrink_to_fit
+
+    too_long = "Hai tiền vệ cánh dâng cao, khoảng trống mở ra sau lưng hậu vệ biên."
+    slot = {
+        "font": {"family": "Be Vietnam Pro", "weight": "semibold", "size_px": 58},
+        "fit": {"mode": "shrink", "min_size_px": 29},
+        "box_px": [90, 420, 900, 400],
+    }
+    assert fit_text_size(slot, too_long) == _shrink_to_fit(
+        too_long, "Be Vietnam Pro", "semibold", 58, 900
+    ) == 29
+
+
+def test_c12_long_note_still_validates_and_reports_text_fit_fail():
+    """C-12 with an over-long note must freeze + validate (no ValueError).
+
+    The overflow is reported by check_text_fit (FAIL) — the honest signal —
+    instead of the builder/validator disagreeing one pixel below the floor.
+    """
+    from apps.measurement.render_qa import check_text_fit
+    from apps.scene_graph.builder import build_scene_graph
+    from apps.scene_graph.schema import validate_scene_graph
+
+    long_note = "Hai tiền vệ cánh dâng cao, khoảng trống mở ra sau lưng hậu vệ biên."
+    graph = build_scene_graph(
+        segment_id="beat-reading",
+        visual_mode="tactical_explainer",
+        starter_id="C-12",
+        graphic_data={
+            "note": long_note,
+            "source": "Synthetic Sports Desk (fixture)",
+            "date": "20/10/2026 (synthetic)",
+        },
+        evidence=[],
+        content_type="short",
+        start_seconds=0.0,
+        end_seconds=4.0,
+        index=0,
+    )
+    validate_scene_graph(graph)  # must not raise
+    sizes = {
+        (child.get("custom") or {}).get("slot"): child.get("fontSize")
+        for child in graph["design"]["pages"][0]["children"]
+        if child.get("type") == "text"
+    }
+    assert sizes["line"] == 29
+    assert check_text_fit(graph)["status"] == "FAIL"
+
+
+def test_contrast_probes_the_ink_band_not_the_whole_declared_box():
+    """Hook copy over its own glyph band is legible (≈19:1), not 1.32:1.
+
+    C-11's title box is 250 px tall for one line of type, so probing 85 % of
+    the box landed on the card's neon emblem and failed contrast for copy that
+    sits on near-black. QA must sample where the glyphs are.
+    """
+    from apps.measurement.render_qa import qa_scene
+    from apps.scene_graph.builder import build_scene_graph
+    from apps.scene_graph.executor import render_scene_graph_layers
+
+    graph = build_scene_graph(
+        segment_id="beat-hook",
+        visual_mode="hook_card",
+        starter_id="C-11",
+        graphic_data={"hook_text": "MỘT PHA BÓNG ĐỔI CẢ THẾ TRẬN"},
+        evidence=[],
+        content_type="short",
+        start_seconds=0.0,
+        end_seconds=4.0,
+        index=0,
+    )
+    bg, text = render_scene_graph_layers(graph)
+    assert text is not None
+    rendered = bg.convert("RGBA")
+    rendered.alpha_composite(text.convert("RGBA"))
+
+    report = qa_scene(graph, rendered, bg_image=bg)
+    contrast = next(
+        c for c in report["checks"] if c["criterion"] == "Contrast (sampled)"
+    )
+    assert contrast["status"] == "PASS", contrast["detail"]

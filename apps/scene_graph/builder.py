@@ -46,7 +46,7 @@ TPL = ROOT / "apps" / "studio_templates"
 # Released pack the graphs freeze against (read-only; never mutated).
 # Pinned by test to the resolved template manifest version: a pack bump
 # changes every graph_hash by design (same input + same version = same hash).
-TEMPLATE_VERSION_FALLBACK = "12.1.0"
+TEMPLATE_VERSION_FALLBACK = "12.2.0"
 
 # Frozen 12.0.0 starter-mode surface. Kept explicitly so the contract
 # generator can reproduce the immutable 12.0.0 artifact byte-for-byte after
@@ -60,12 +60,22 @@ STARTER_MODES_12_0_0 = frozenset({
     "player_poster", "player_poster_side", "player_poster_top", "potm_card",
 })
 
+# Frozen 12.1.0 surface: source_card becomes composable, executed for C-09
+# only (see the contract's per-card execution allowlist); BP-20/MR-12/U-08
+# stay legacy/non-ready.
+STARTER_MODES_12_1_0 = STARTER_MODES_12_0_0 | {"source_card"}
+
+# 12.2.0 authors the two missing short-form grammars: the tactical plate
+# (C-12) and the bounded takeaway (C-13). They are the first modes added
+# since 12.0.0 that close an R3 grammar gap rather than extending an existing
+# card family.
+STARTER_MODES_12_2_0 = STARTER_MODES_12_1_0 | {"tactical_explainer", "conclusion"}
+
 # Modes whose reviewed graphic_data maps onto starter slots. Anything else
-# (charts, b-roll, tactical plates, ...) is a primitive graph; the executor
-# renders the frozen mode verbatim without slot mapping. ``source_card`` is
-# composable here, but 12.1.0 executes it only for C-09 (see the contract's
-# per-card execution allowlist); BP-20/MR-12/U-08 stay legacy/non-ready.
-STARTER_MODES = STARTER_MODES_12_0_0 | {"source_card"}
+# (charts, b-roll, ...) is a primitive graph; the executor renders the frozen
+# mode verbatim without slot mapping. Version-scoped sets above stay frozen so
+# older contracts reproduce byte-identically.
+STARTER_MODES = STARTER_MODES_12_2_0
 
 # Modes where a bound library image is the player's portrait (it lives in
 # roles.player_focus.portrait, never duplicated into hero_image). Mirrors
@@ -157,7 +167,21 @@ def _substitutions(mode: str, data: dict[str, Any], evidence: list[Any]) -> dict
     date = str(data.get("date", date) or date).strip()
     credit = f"{src} • {date}".strip(" •") if (src or date) else ""
     slots: dict[str, str] = {}
-    if mode == "hook_card":
+    if mode == "tactical_explainer":
+        # 12.2.0/C-12: one authored reading, never invented by the renderer.
+        note = str(data.get("note", "")).strip()
+        if not note:
+            return None
+        slots["title"] = str(data.get("title", "")).strip() or "ĐỌC TRẬN"
+        slots["line"] = note
+    elif mode == "conclusion":
+        # 12.2.0/C-13: the bounded takeaway is reviewed copy, not a summary.
+        claim = str(data.get("claim", "")).strip()
+        if not claim:
+            return None
+        slots["title"] = str(data.get("title", "")).strip() or "KẾT LUẬN"
+        slots["claim"] = claim
+    elif mode == "hook_card":
         if not str(data.get("hook_text", "")).strip():
             return None
         # Keep *accent* markers: the executor draws two-tone (magenta).
@@ -263,7 +287,10 @@ def _contract_value(source: str, ctx: dict[str, Any]) -> str:
     if source == "date":
         return ctx["date"]
     if source in ("hook_text", "claim", "player_name", "home", "away",
-                  "score", "context", "competition"):
+                  "score", "context", "competition",
+                  # 12.2.0: C-12 tactical reading line. Plain reviewed copy,
+                  # never derived from narration inside the builder.
+                  "note"):
         return str(data.get(source, "") or "").strip()
     if source.startswith("crest:"):
         side = source.split(":", 1)[1]
@@ -281,7 +308,23 @@ def _contract_value(source: str, ctx: dict[str, Any]) -> str:
         index, field = int(match.group(1)), match.group(2)
         stats = data.get("stats") if isinstance(data.get("stats"), list) else []
         item = stats[index] if index < len(stats) and isinstance(stats[index], dict) else {}
-        return str(item.get(field, "") or "").strip()
+        value = str(item.get(field, "") or "").strip()
+        if value:
+            return value
+        if field == "summary":
+            # Several cards declare `stats[N].summary` while the planner's
+            # stat vocabulary is {label, value}. Without this fallback the slot
+            # hides itself and the card renders half-empty while every gate
+            # still PASSes (measured on BP-16: text_slots_hidden=["support"]).
+            # Compose from the reviewed value+label; never invent copy.
+            composed = " ".join(
+                part for part in (
+                    str(item.get("value", "") or "").strip(),
+                    str(item.get("label", "") or "").strip(),
+                ) if part
+            )
+            return composed
+        return ""
     match = re.fullmatch(r"metrics\[(\d+)\]\.(\w+)", source)
     if match:
         index, field = int(match.group(1)), match.group(2)
@@ -453,7 +496,10 @@ def _shrink_to_fit(text: str, family: str, weight: str, size: int, max_width: fl
         if box[2] - box[0] <= float(max_width) + 2:
             break
         size -= 2
-    return size
+    # Never step below the floor: the contract declares min_size_px and the
+    # schema rejects a frozen design that undershoots it. Overflow at the floor
+    # is a text-fit FAIL (honest), not a silently smaller font.
+    return max(size, floor)
 
 
 def _compose_design(data: dict[str, Any], slots: dict[str, str]) -> tuple[dict[str, Any], dict[str, list[dict[str, Any]]]]:
@@ -1591,6 +1637,8 @@ from apps.scene_graph.schema import validate_scene_graph as validate
 __all__ = [
     "STARTER_MODES",
     "STARTER_MODES_12_0_0",
+    "STARTER_MODES_12_1_0",
+    "STARTER_MODES_12_2_0",
     "PORTRAIT_MODES",
     "CHALK_CANDIDATE_MODES",
     "MAX_CHALK_PER_CLIP",

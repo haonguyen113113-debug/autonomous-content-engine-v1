@@ -120,16 +120,26 @@ CONTRACT_MODE_FALLBACK: dict[str, str] = {
     # 12.1.0: C-09 is the sole contract-executable source attribution card.
     # BP-20/MR-12/U-08 remain explicit legacy/non-ready suggestions.
     "source_card": "C-09",
+    # 12.2.0 authors the two grammars that had no contract card at all.
+    # They only resolve when the pinned pack ships them (see
+    # _contract_record_ready); older packs keep the explicit fallback path.
+    "tactical_explainer": "C-12",
+    "conclusion": "C-13",
 }
 
-# Roles that can be expressed by a C7 contract card. Roles absent here
-# (tactical, context, quote, timeline, discipline, takeaway) stay explicit
-# non-ready paths until a future pack authors a contract card for them. The
-# source role is attribution-only in 12.1.0; fact-check and correction
-# semantics are deliberately not mapped to C-09. Do not fabricate a mode to
-# make the grammar count look better.
+# Roles that can be expressed by a contract card. Roles absent here
+# (context, quote, timeline, discipline) stay explicit non-ready paths until a
+# later pack authors a contract card for them. The source role is
+# attribution-only; fact-check and correction semantics are deliberately not
+# mapped to C-09. Do not fabricate a mode to make the grammar count look
+# better.
+#
+# 12.2.0 closed the two gaps R3 reported: "tactical" now has C-12
+# (tactical_explainer) and "takeaway" has C-13 (conclusion).
 ROLE_CONTRACT_MODES: dict[str, tuple[str, ...]] = {
     "hook": ("hook_card",),
+    "tactical": ("tactical_explainer",),
+    "takeaway": ("conclusion",),
     "result": ("score_card", "stat_leader", "duel_columns"),
     "comparison": ("duel_columns", "stat_leader", "score_card"),
     "stat": ("stat_leader", "duel_columns", "score_card"),
@@ -166,7 +176,11 @@ REQUIRED_SLOTS: dict[str, list[str]] = {
     "score_card": ["home", "away", "score"],
     "quote_card": ["claim"],
     "source_card": ["source", "date", "claim"],
-    "tactical_explainer": [],
+    # 12.2.0: the tactical card carries a reviewed reading line; the
+    # conclusion card carries reviewed takeaway copy. Neither is derived from
+    # narration.
+    "tactical_explainer": ["note"],
+    "conclusion": ["claim"],
     "media_b_roll": [],
 }
 
@@ -336,7 +350,15 @@ def _score_candidate(mode: str, segment: dict[str, Any], data: dict[str, Any],
         reasons.append("; ".join(parts))
     required = REQUIRED_SLOTS.get(mode, [])
     missing = [k for k in required if not _present(data, k) and k not in derived]
-    if missing and mode != "tactical_explainer":
+    # The historical pitch-plate fallback tolerated missing tactical data
+    # because no card authored it. Now that 12.2.0 ships C-12, a tactical beat
+    # without its reviewed reading is scored down like every other card; the
+    # exemption only survives where no contract card exists.
+    tactical_ready = (
+        mode == "tactical_explainer"
+        and _contract_record_ready("C-12", mode) is not None
+    )
+    if missing and not tactical_ready:
         reasons.append(f"missing {','.join(missing)}")
     if mode in PORTRAIT_MODES and _present(data, "player_name"):
         hit = _match_portrait(str(data.get("player_name", "")), assets, purpose)
@@ -479,7 +501,17 @@ def _story_starter(mode: str, segment: dict[str, Any]) -> str | None:
 def _starter_for(mode: str, segment: dict[str, Any], content_type: str,
                  data: dict[str, Any]) -> str | None:
     if mode == "tactical_explainer":
+        # 12.2.0: the short-form tactical reading is the authored C-12 card.
+        # Only the pack that ships it can resolve it; older packs fall back to
+        # the long-form plate (or to None, which the planner records as
+        # non-ready).
+        if content_type == "short" and _contract_record_ready("C-12", mode):
+            return "C-12"
         return _tactical_starter(segment, content_type)
+    if mode == "conclusion":
+        if content_type == "short" and _contract_record_ready("C-13", mode):
+            return "C-13"
+        return None
     if mode == "statline_scorecard":
         hero = data.get("hero")
         if isinstance(hero, dict) and not data.get("metrics"):
@@ -632,6 +664,8 @@ def _declared_role(declared: str | None) -> str | None:
         return "timeline"
     if declared == "tactical_explainer":
         return "tactical"
+    if declared == "conclusion":
+        return "takeaway"
     if declared == "media_b_roll":
         return "media"
     return None
@@ -1372,7 +1406,26 @@ def select_cards(segments: list[dict[str, Any]],
             if best_mode == "tactical_explainer" and not starter:
                 best_why.append(
                     "deterministic pitch-plate fallback (no authored contract card)")
-            if grammar is not None and considered_modes:
+            # Distinguish "the contract has no card for this role" from "the
+            # card exists but the reviewed data is missing". Both fall back,
+            # but only the first is a template gap the owner must author for.
+            role_modes = ROLE_CONTRACT_MODES.get(grammar_role, ())
+            contracted = [
+                mode for mode in role_modes
+                if _contract_starter_for(mode, segment, content_type, filled)
+            ]
+            if contracted:
+                missing_keys = sorted({
+                    key for mode in contracted
+                    for key in REQUIRED_SLOTS.get(mode, [])
+                    if not _present(filled, key)
+                })
+                warnings.append(
+                    f"contract card(s) {', '.join(contracted)} cover role "
+                    f"'{grammar_role}', but reviewed graphic_data is missing "
+                    f"{missing_keys}; the planner will not invent it, so "
+                    f"selected '{best_mode}' stays fallback/non-ready")
+            elif grammar is not None and considered_modes:
                 warnings.append(
                     f"no eligible contract grammar for role '{grammar_role}' "
                     f"from considered modes {', '.join(considered_modes)}; "
@@ -1433,9 +1486,23 @@ def select_cards(segments: list[dict[str, Any]],
                     if contract_reason:
                         warnings.append(f"card contract: {contract_reason}")
             elif card_execution == CONTRACT_READY:
-                warnings.append(
-                    f"card {starter}/{best_mode} is contract-executable, but "
-                    "the grammar selection fell back; not production_ready")
+                missing_required = [
+                    key for key in REQUIRED_SLOTS.get(best_mode, [])
+                    if not _present(filled, key)
+                ]
+                if missing_required:
+                    # The card exists; the reviewed copy does not. Say which
+                    # field is missing instead of blaming the grammar.
+                    warnings.append(
+                        f"card {starter}/{best_mode} is contract-executable but "
+                        f"needs reviewed graphic_data {missing_required}; the "
+                        "planner will not derive it from narration, so this "
+                        "beat is not production_ready")
+                else:
+                    warnings.append(
+                        f"card {starter}/{best_mode} is contract-executable, "
+                        "but the grammar selection fell back; not "
+                        "production_ready")
 
         # Media binds only to a declared C7 media slot. Today those are the
         # player-portrait cards. Everything else drops the proposed binding.
@@ -1750,6 +1817,18 @@ def select_cards(segments: list[dict[str, Any]],
             f"{over_repeated}; no legacy mode was substituted merely to "
             "manufacture variety, so R3 S3.1 remains blocked where no "
             "contract-ready alternative exists")
+    # S3.1 is a gate, not an advisory metric. Once a repeated grammar is
+    # contract-executable (12.2.0 ships C-12/C-13), every beat can be
+    # individually ready while the SEQUENCE is still not shippable. A plan
+    # that violates the locked variety rule therefore cannot be production
+    # ready, no matter how clean the per-beat decisions are.
+    if over_repeated:
+        plan_warnings.append(
+            "sequence blocked by S3.1: every beat can be contract-ready and "
+            "the run is still not production-ready while one grammar runs "
+            f"{max(over_repeated.values())} beats in a row "
+            f"({', '.join(sorted(over_repeated))}). Give the story another "
+            "contract grammar or shorten the run.")
     plan = {
         "content_type": content_type,
         "purpose": purpose,
@@ -1771,15 +1850,21 @@ def select_cards(segments: list[dict[str, Any]],
         "source_contract_beats": source_contract_beats,
         "source_text_fit": source_text_fit,
         "rendered_review_pending": rendered_review_pending,
-        "production_ready": bool(decisions) and not non_ready,
+        "production_ready": (
+            bool(decisions) and not non_ready and not over_repeated
+        ),
+        "variety_blocked": bool(over_repeated),
         "non_ready_beats": [d["segment_id"] for d in non_ready],
         "non_ready_roles": non_ready_roles,
         "grammar": {
             "contract_beats": contract_beats,
             "partial_beats": partial_beats,
             "legacy_beats": legacy_beats,
-            "production_ready": bool(decisions) and not non_ready,
+            "production_ready": (
+                bool(decisions) and not non_ready and not over_repeated
+            ),
             "variety_ok": grammar_variety_ok,
+            "variety_blocks_production": bool(over_repeated),
             "mode_runs": mode_runs,
             "over_repeated_modes": over_repeated,
         },

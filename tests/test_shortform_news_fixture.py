@@ -5,10 +5,15 @@ metrics, sources or dates. It exercises the channel's short-form news shape
 (hook -> result -> event -> stat -> source) rather than tactical analysis.
 
 Expected current result: hook/result/event/stat are contract beats; the source
-beat resolves to C-09 in pack 12.1.0, but the long fixture claim fails text fit
-and rendered/owner review is pending, so it is not production-ready. The test
-must not "fix" that by inventing a contract card, forcing a tactical card,
+beat resolves to C-09 in the pinned pack, but the long fixture claim fails text
+fit and rendered/owner review is pending, so it is not production-ready. The
+test must not "fix" that by inventing a contract card, forcing a tactical card,
 deriving a claim from narration, or weakening the rights/data checks.
+
+Visual inspection is version-scoped: an owner review record for C-09 only
+clears the pack version it names. Assertions about approval are therefore
+derived from `source_card_visual_approved()` for the pinned pack instead of
+hard-coding a historical version.
 """
 
 from __future__ import annotations
@@ -19,7 +24,8 @@ from pathlib import Path
 
 from apps.card_selector import select_cards
 from apps.measurement.render_qa import check_card_contract, check_text_fit
-from apps.scene_graph.builder import build_clip_graphs
+from apps.measurement.review_records import source_card_visual_approved
+from apps.scene_graph.builder import TEMPLATE_VERSION_FALLBACK, build_clip_graphs
 from apps.scene_graph.schema import validate_scene_graph
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -34,6 +40,17 @@ def _fixture() -> dict:
 
 def _select(segments: list[dict]) -> dict:
     return select_cards(copy.deepcopy(segments), content_type="short")
+
+
+def _c09_visually_approved() -> bool:
+    """Whether an owner review record clears C-09/source_card for the pin."""
+    return source_card_visual_approved(
+        "C-09", "source_card", TEMPLATE_VERSION_FALLBACK
+    )
+
+
+def _expected_inspection() -> str:
+    return "approved" if _c09_visually_approved() else "pending"
 
 
 def test_synthetic_shortform_news_planner_table() -> None:
@@ -108,20 +125,24 @@ def test_synthetic_shortform_news_planner_table() -> None:
     assert source["production_ready"] is False
     assert source["media_status"] == "not_applicable"
     assert source["readiness"]["text_fit"] == "FAIL"
-    assert source["readiness"]["rendered_inspection"] == "approved"
-    assert source["readiness"]["owner_approved"] is True
-    # Visual inspection is cleared (scoped record matches), but content
-    # review is missing: no claim/source/date verification gate exists.
+    # Version-scoped: the shipped record covers 12.1.0 only, so on the pinned
+    # pack (12.2.0) inspection is pending until the owner reviews that pack.
+    assert source["readiness"]["rendered_inspection"] == _expected_inspection()
+    assert source["readiness"]["owner_approved"] is _c09_visually_approved()
+    # Even where visual approval exists, content review is missing: no
+    # claim/source/date verification gate exists.
     assert source["readiness"]["content_review"] == "missing"
     assert any("text fit FAIL" in warning for warning in source["warnings"])
     assert any(
         "no claim/source/date verification" in warning
         for warning in source["warnings"]
     )
-    # No visual-approval warning remains: the scoped record covers C-09.
-    assert not any(
+    # The pending visual-approval warning appears exactly when no record
+    # covers the pinned pack.
+    has_pending_warning = any(
         "visual approval are pending" in warning for warning in source["warnings"]
     )
+    assert has_pending_warning is not _c09_visually_approved()
 
     plan = out["plan"]
     assert plan["production_ready"] is False
@@ -135,8 +156,10 @@ def test_synthetic_shortform_news_planner_table() -> None:
     assert plan["over_repeated_modes"] == {}
     assert plan["mode_counts"]["score_card"] == 2
     assert plan["source_text_fit"] == {"beat-source": "FAIL"}
-    # Visual review is cleared for C-09, so it is no longer review-pending.
-    assert plan["rendered_review_pending"] == []
+    # Review-pending tracks the pinned pack: the shipped record covers 12.1.0
+    # only, so on 12.2.0 the beat is awaiting a fresh visual review.
+    assert plan["rendered_review_pending"] == (
+        [] if _c09_visually_approved() else ["beat-source"])
     assert "C-09" in plan["contract_starters"]
     assert "BP-16" in plan["contract_starters"]
     assert plan["legacy_starters"] == []
@@ -193,11 +216,11 @@ def test_synthetic_shortform_news_freeze_and_determinism() -> None:
     ]
     assert [child["id"] for child in text_layers] == ["val-5", "val-6", "val-9"]
     assert source_graph["media_bindings"] == []
-    # The scoped owner review record (C-09 / source_card / 12.1.0) matches,
-    # and this starter graph executed the contract with visible claim + credit,
-    # so the card-contract check is PASS. Text-fit is a separate gate (FAIL for
-    # the fixture's long claim) and still blocks planner production readiness.
-    assert check_card_contract(source_graph)["status"] == "PASS"
+    # This starter graph executed the contract with visible claim + credit. The
+    # card-contract verdict still depends on the version-scoped visual review:
+    # PASS when a record covers the pinned pack, NEEDS_REVIEW while it does not.
+    assert check_card_contract(source_graph)["status"] == (
+        "PASS" if _c09_visually_approved() else "NEEDS_REVIEW")
     assert check_text_fit(source_graph)["status"] == "FAIL"
     assert "src-body" in check_text_fit(source_graph)["detail"]
 
@@ -226,14 +249,15 @@ def test_synthetic_source_short_claim_fits_but_content_review_missing_not_ready(
     assert source["starter_id"] == "C-09"
     assert source["card_execution"] == "contract"
     assert source["readiness"]["text_fit"] == "PASS"
-    assert source["readiness"]["rendered_inspection"] == "approved"
-    assert source["readiness"]["owner_approved"] is True
+    assert source["readiness"]["rendered_inspection"] == _expected_inspection()
+    assert source["readiness"]["owner_approved"] is _c09_visually_approved()
     # Visual approval + text fit do NOT imply production readiness:
     # claim/source/date verification is missing.
     assert source["readiness"]["content_review"] == "missing"
     assert source["readiness"]["production_ready"] is False
     assert out["plan"]["source_text_fit"] == {"beat-source": "PASS"}
-    assert out["plan"]["rendered_review_pending"] == []
+    assert out["plan"]["rendered_review_pending"] == (
+        [] if _c09_visually_approved() else ["beat-source"])
     assert out["plan"]["production_ready"] is False
     assert any(
         "no claim/source/date verification" in warning
@@ -247,10 +271,15 @@ def test_synthetic_source_short_claim_fits_but_content_review_missing_not_ready(
     validate_scene_graph(source_graph)
     assert check_text_fit(source_graph)["status"] == "PASS"
     # check_card_contract can PASS on the contract/visual gate even though
-    # planner production readiness stays False.
+    # planner production readiness stays False -- but only when a version-
+    # scoped owner record covers the pinned pack.
     contract_check = check_card_contract(source_graph)
-    assert contract_check["status"] == "PASS"
-    assert "approval recorded" in contract_check["detail"]
+    if _c09_visually_approved():
+        assert contract_check["status"] == "PASS"
+        assert "approval recorded" in contract_check["detail"]
+    else:
+        assert contract_check["status"] == "NEEDS_REVIEW"
+        assert "still pending" in contract_check["detail"]
 
 
 def test_source_claim_over_word_limit_needs_review_and_blocks_ready() -> None:
@@ -365,10 +394,10 @@ def test_source_credit_overflow_blocks_plan_readiness() -> None:
     )
     assert decision["production_ready"] is False
     assert out["plan"]["production_ready"] is False
-    # The scoped visual review clears C-09 visual inspection, but the credit
-    # text-fit FAIL is a separate gate that this approval does not clear.
-    assert decision["readiness"]["rendered_inspection"] == "approved"
-    assert decision["readiness"]["owner_approved"] is True
+    # Visual review is version-scoped and the credit text-fit FAIL is a
+    # separate gate that no visual approval clears.
+    assert decision["readiness"]["rendered_inspection"] == _expected_inspection()
+    assert decision["readiness"]["owner_approved"] is _c09_visually_approved()
     assert decision["production_ready"] is False
 
     segments_by_id = {str(item["id"]): item for item in fixture["segments"]}
@@ -431,7 +460,7 @@ def test_old_graph_stays_pinned_to_12_0_0_legacy_source() -> None:
     assert old["provenance"]["template_version"] == "12.0.0"
     assert old["kind"] == "primitive"
     assert old["provenance"]["card_contract"]["status"] == "legacy_non_ready"
-    assert new["provenance"]["template_version"] == "12.1.0"
+    assert new["provenance"]["template_version"] == TEMPLATE_VERSION_FALLBACK
     assert new["kind"] == "starter"
     assert new["provenance"]["card_contract"]["status"] == "contract"
     assert old["provenance"]["graph_hash"] != new["provenance"]["graph_hash"]

@@ -202,9 +202,11 @@ def test_declared_media_b_roll_has_no_contract_path():
         _seg("Ket luan", mode="media_b_roll", id="beat-2"),
     ])
     second = out["decisions"][1]
+    # media_b_roll itself never binds: it has no contract card and no media
+    # slot. The beat falls back to the tactical grammar, which now has an
+    # authored card (C-12) but no reviewed reading, so it is still not ready.
     assert second["visual_mode"] == "tactical_explainer"
     assert second["media_asset_id"] is None
-    assert second["card_execution"] == "none"
     assert second["production_ready"] is False
     assert any("no C7 media slot" in w for w in second["warnings"])
 
@@ -287,7 +289,14 @@ def test_long_pressing_maps_to_ta06():
     assert out["decisions"][1]["starter_id"] == "TA-06"
 
 
-def test_short_tactical_scene_does_not_claim_section_divider_starter():
+def test_short_tactical_scene_uses_the_authored_tactical_card_only():
+    """A tactical beat resolves to C-12 (12.2.0), never to a hook/divider card.
+
+    Before 12.2.0 no card authored the grammar, so the beat had no starter at
+    all. The guard being tested stays the same: the planner must not borrow a
+    different grammar's card to look complete. Without a reviewed reading line
+    the beat is still non-ready, because the planner never derives it.
+    """
     out = select_cards([
         _seg("Mo dau", mode="hook_card",
              data={"hook_text": "Cau hoi chien thuat"}, id="beat-1"),
@@ -295,7 +304,25 @@ def test_short_tactical_scene_does_not_claim_section_divider_starter():
     ])
     tactical = out["decisions"][1]
     assert tactical["visual_mode"] == "tactical_explainer"
-    assert tactical.get("starter_id") is None
+    assert tactical["starter_id"] == "C-12"
+    assert tactical["starter_id"] not in {"C-11", "C-03", "C-10", "C-01"}
+    assert tactical["production_ready"] is False
+    assert any("reviewed graphic_data" in w and "note" in w
+               for w in tactical["warnings"])
+
+
+def test_short_tactical_scene_is_ready_with_a_reviewed_reading():
+    out = select_cards([
+        _seg("Mo dau", mode="hook_card",
+             data={"hook_text": "Cau hoi chien thuat"}, id="beat-1"),
+        _seg("Doi hinh pressing tam cao", mode="tactical_explainer",
+             data={"note": "Tien ve dang cao, lo khoang trong sau lung",
+                   "source": "VPF", "date": "20/10/2026"}, id="beat-2"),
+    ])
+    tactical = out["decisions"][1]
+    assert tactical["starter_id"] == "C-12"
+    assert tactical["card_execution"] == "contract"
+    assert tactical["production_ready"] is True
 
 
 def test_long_tactical_signals_map_to_sprint2():
@@ -375,9 +402,14 @@ def test_supported_modes_immune_to_layout_modes_mutation():
 
 
 def test_registry_slots_match_package():
+    from template_foundation import resolve_template
+
+    # Compare against the pinned (latest released) pack: a hard-coded
+    # historical version silently diverges as soon as a pack ships.
+    resolved = resolve_template(ROOT, "allen-knows-ball.shortform-analyst",
+                                allow_draft=True)
     package = json.loads(
-        (ROOT / "template_foundation/templates/allen-knows-ball/12.0.0"
-         / "graphic-templates.json").read_text(encoding="utf-8"))
+        (resolved.root / "graphic-templates.json").read_text(encoding="utf-8"))
     package_required = {}
     for layout in package["layouts"]:
         keys = [r.split("graphic_data.", 1)[1] for r in layout.get("required_data", [])
@@ -1002,29 +1034,57 @@ def test_money_stat_uses_contract_money_starter():
 
 
 def test_tactical_only_script_reports_variety_blocker_without_fake_cards():
+    """Five tactical beats in a row are never production-ready.
+
+    12.2.0 authors the grammar (C-12), so the blocker stops being "no card" and
+    becomes "the sequence repeats": every beat can be individually ready while
+    the run is still blocked by S3.1. The planner must not invent a reading
+    line to fill the card, and must not swap in a legacy mode for variety.
+    """
     segments = [
         _seg("Hang thu sap do toi nay", mode="hook_card",
              data={"hook_text": "Hang thu sap do toi nay"}, id="beat-1"),
-        _seg("Be day chien thuat cua huan luyen vien",
-             mode="tactical_explainer", id="beat-2"),
-        _seg("Tuyen giua di chuyen tao khoang trong",
-             mode="tactical_explainer", id="beat-3"),
-        _seg("Hau ve canh cao doi mat", mode="tactical_explainer", id="beat-4"),
-        _seg("Tien dao ep cao gay suc ep", mode="tactical_explainer", id="beat-5"),
-        _seg("Ket luan ve the tran", mode="tactical_explainer", id="beat-6"),
     ]
+    for index in range(2, 7):
+        segments.append(_seg(
+            f"Be day chien thuat so {index}", mode="tactical_explainer",
+            data={"note": f"Tuyen giua di chuyen tao khoang trong so {index}",
+                  "source": "VPF", "date": "20/10/2026"},
+            id=f"beat-{index}"))
+
     out = select_cards(segments)
     decisions = out["decisions"]
     assert [d["visual_mode"] for d in decisions[1:]] == [
         "tactical_explainer"] * 5
-    assert all(not d["production_ready"] for d in decisions[1:])
+    assert all(d["starter_id"] == "C-12" for d in decisions[1:])
+    assert all(d["card_execution"] == "contract" for d in decisions[1:])
+    # Every beat is individually executable...
+    assert all(d["production_ready"] for d in decisions[1:])
+    # ...but the sequence is not shippable, and the plan says so loudly.
     assert out["plan"]["grammar_variety_ok"] is False
     assert out["plan"]["over_repeated_modes"] == {"tactical_explainer": 5}
-    assert out["plan"]["non_ready_roles"] == ["tactical"]
-    assert any("no contract-ready card grammar for role 'tactical'"
-               in w for w in decisions[1]["warnings"])
-    assert any("R3 S3.1 cannot be cleared" in w
+    assert out["plan"]["variety_blocked"] is True
+    assert out["plan"]["production_ready"] is False
+    assert any("S3.1" in w and "sequence" in w
                for w in out["plan"]["warnings"])
+
+
+def test_tactical_without_reviewed_reading_is_not_ready_and_not_derived():
+    """No card data -> the beat stays non-ready; narration is never turned
+    into a tactical reading."""
+    out = select_cards([
+        _seg("Hang thu sap do toi nay", mode="hook_card",
+             data={"hook_text": "Hang thu sap do toi nay"}, id="beat-1"),
+        _seg("Be day chien thuat cua huan luyen vien",
+             mode="tactical_explainer", id="beat-2"),
+    ])
+    tactical = out["decisions"][1]
+    assert tactical["starter_id"] == "C-12"
+    assert tactical["production_ready"] is False
+    assert tactical["graphic_data"].get("note", "") == ""
+    assert out["plan"]["non_ready_roles"] == ["tactical"]
+    assert any("reviewed graphic_data" in w and "note" in w
+               for w in tactical["warnings"])
 
 
 def test_select_cards_is_deterministic_for_same_inputs():
@@ -1073,8 +1133,15 @@ def test_hook_text_never_derived_from_narration():
                              mode="hook_card", id="beat-1")])
     first = out["decisions"][0]
     assert first["graphic_data"].get("hook_text", "") == ""
-    assert not any("hook_text" in w and "narration" in w
-                   for w in first["warnings"] + first["reasons"])
+    # Precise intent: the planner never records hook_text as derived from
+    # narration. (Warning text may mention narration while explaining that the
+    # planner will NOT invent copy.)
+    notes = first["warnings"] + first["reasons"]
+    assert not any("hook_text derived from narration" in w for w in notes)
+    assert not any(
+        "hook_text normalized/capped from graphic_data" in w for w in notes
+    )
+    assert any("reviewed graphic_data" in w and "hook_text" in w for w in notes)
 
 
 def test_hook_text_normalized_from_graphic_data_not_narration():

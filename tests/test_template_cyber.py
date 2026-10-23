@@ -70,8 +70,16 @@ def test_cyber_registry_slots_match_package():
 
     from apps.card_selector import REQUIRED_SLOTS
 
-    package = json.loads((ROOT / "template_foundation/templates/allen-knows-ball/12.0.0"
-                          / "graphic-templates.json").read_text(encoding="utf-8"))
+    from template_foundation import resolve_template
+
+    # Compare against the pack the engine actually pins, not a hard-coded
+    # historical version: a new released pack is the new source of truth.
+    resolved = resolve_template(
+        ROOT, "allen-knows-ball.shortform-analyst", allow_draft=True
+    )
+    package = json.loads(
+        (resolved.root / "graphic-templates.json").read_text(encoding="utf-8")
+    )
     package_required = {}
     for layout in package["layouts"]:
         keys = [r.split("graphic_data.", 1)[1] for r in layout.get("required_data", [])

@@ -1,0 +1,64 @@
+name: tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install FFmpeg and ffprobe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Contract generator matches the released packs
+        run: |
+          python tools/build_card_contract.py --check --version 12.0.0
+          python tools/build_card_contract.py --check --version 12.1.0
+
+      - name: Static starter gate
+        run: python apps/studio_templates/check_starters.py
+
+      - name: Test suite
+        env:
+          # A checkout without FFmpeg must fail instead of skipping the real
+          # render test; this environment installs it explicitly above.
+          ACE_REQUIRE_RENDER_TESTS: "1"
+        run: python -m pytest tests -q
+
+      - name: LF checkout must validate the frozen contracts
+        # Guards the regression this workflow was added for: pins computed over
+        # raw bytes passed on Windows (CRLF) and failed on every LF checkout.
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from apps.file_digest import file_digest
+          from apps.studio_templates.card_media import load_contract
+          from apps.scene_graph.schema import validate_scene_graph
+
+          for version in ("12.0.0", "12.1.0"):
+              contract = load_contract(version)
+              assert contract, version
+              for card in contract["cards"]:
+                  path = Path("apps/studio_templates") / card["starter_file"]
+                  assert file_digest(path) == card["starter_sha256"], card["card_id"]
+          print("contracts validate on this checkout")
+          PY
