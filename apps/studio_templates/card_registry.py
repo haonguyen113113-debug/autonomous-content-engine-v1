@@ -12,10 +12,38 @@ Renderer paths:
   <mode> (aliases resolve inside _write_editorial_data_scene).
 - ("frame", None): neutral data frame (heading + source footer).
 
-Status: "built" (JSON exists in apps/studio_templates). All 90 cards built.
+Status: "built" (JSON exists in apps/studio_templates). All cards are built.
+
+Pack membership: a card released in a later pack carries ``since="<version>"``.
+Older packs must keep validating against exactly the cards they shipped, so
+every consumer filters through :func:`cards_for_version` instead of reading
+``CARDS`` directly. A card without ``since`` belongs to every pack.
 """
 
 from __future__ import annotations
+
+BASELINE_VERSION = "12.0.0"
+
+
+def _version_tuple(value: str) -> tuple[int, ...]:
+    parts: list[int] = []
+    for chunk in str(value).strip().split("."):
+        try:
+            parts.append(int(chunk))
+        except ValueError:
+            parts.append(0)
+    return tuple(parts)
+
+
+def card_since(card: dict) -> str:
+    return str(card.get("since") or BASELINE_VERSION)
+
+
+def cards_for_version(version: str) -> list[dict]:
+    """Cards that exist in pack ``version`` (``since`` <= version)."""
+    target = _version_tuple(version)
+    return [card for card in CARDS if _version_tuple(card_since(card)) <= target]
+
 
 CARDS = [
     # ---- Sprint 1 short: Core ----
@@ -297,10 +325,27 @@ CARDS = [
     dict(id="LC-16", aspect="long", family="narrative", status="built",
          purpose="Correction/update slip",
          slots=["source", "date"], renderer=("generic", "source_card")),
+    # ---- 12.2.0 short: grammar completion ----
+    # Two authored cards close the R3 S3.1 grammar gap: the tactical plate and
+    # the bounded takeaway had no contract card. They are new cards, so they
+    # are scoped to pack 12.2.0 and later; the 12.0.0/12.1.0 contracts keep
+    # validating against exactly the 90 cards they shipped.
+    dict(id="C-12", aspect="short", family="core", status="built",
+         purpose="Tactical reading: one shape/run/press explanation on the "
+                 "authored pitch plate",
+         slots=["title", "note", "source", "date"],
+         renderer=("generic", "tactical_explainer"), since="12.2.0"),
+    dict(id="C-13", aspect="short", family="core", status="built",
+         purpose="Bounded takeaway that lands the story before the end card",
+         slots=["title", "claim", "source", "date"],
+         renderer=("generic", "conclusion"), since="12.2.0"),
 ]
 
 BY_ID = {c["id"]: c for c in CARDS}
 BUILT = [c["id"] for c in CARDS if c["status"] == "built"]
 PLANNED = [c["id"] for c in CARDS if c["status"] == "planned"]
 
-__all__ = ["CARDS", "BY_ID", "BUILT", "PLANNED"]
+__all__ = [
+    "BASELINE_VERSION", "CARDS", "BY_ID", "BUILT", "PLANNED",
+    "card_since", "cards_for_version",
+]

@@ -5,13 +5,16 @@ workstream nay dua tren `docs/build-audit-protocol.md` (gates),
 `docs/template-build-manual.md` §6-7 (gates/release) + §8 (audit log),
 `runtime/renders/6cebedb10a9f/render-report.json` (mau `quality_checks`).
 
-## 1. Render path moi (flag-gated)
+## 1. Render path moi (mac dinh tu M2)
 
 `apps/video_renderer.py` + section "Scene Graph execution path":
 
-- Bat bang `ACE_SCENE_GRAPH_RENDER=1` + `draft["scene_graphs"]` (1 graph/segment,
-  validate up front). Tat flag = legacy byte-identical (toan bo nhanh moi nam
-  sau `sg_graphs is None`, khong doi dong legacy nao).
+- **Mac dinh BAT tu roadmap M2 (2026-10-23)**: khong can env; moi render
+  build 1 graph/segment va validate up front (`_attach_scene_graphs`). Legacy
+  la opt-in tuong minh `ACE_SCENE_GRAPH_RENDER=0` (byte-identical, giu de doi
+  chieu). Gia tri flag khong hop le -> ValueError, khong doan.
+- Preview/visual-benchmark dung CUNG duong graph voi final render (preview
+  ap card plan trong bo nho truoc); preview cua draft rong chi ve vo template.
 - `_scene_graph_clip()` — validate tung graph (version/mode/canvas/layers/hash
   qua `apps.scene_graph.schema.validate_scene_graph`); unknown mode, hash mismatch,
   thieu/du beat deu raise. Khong bao gio remap.
@@ -91,9 +94,9 @@ Clip render (`_render` SG mode) extend `quality_checks` hinh `render-report.json
   (qa_scene/qa_clip + render-report.json `scene_graph_qa`) la
   `(verdict == PASS)`. Co NEEDS_REVIEW -> `ready` la False, khong bao
   PASS vi chi biet asset/overlay co mat trong input.
-- Fail-closed flag: `ACE_SCENE_GRAPH_RENDER=1` + thieu `scene_graphs`
+- Fail-closed: duong graph (mac dinh) + thieu `scene_graphs`
   (missing/empty) -> raise ValueError, khong fallback legacy. Legacy chi
-  khi flag tat (mac dinh), byte-identical.
+  khi opt-out tuong minh `ACE_SCENE_GRAPH_RENDER=0`, byte-identical.
 - Overlay metadata van co timebase CLIP-RELATIVE va duoc `graph_hash` bao ve,
   nhung renderer khong paint free-standing overlay. Khong co frozen slot
   binding -> `Overlay rendered` FAIL, bat ke text/timing co hop le hay khong.
@@ -137,7 +140,7 @@ Clip render (`_render` SG mode) extend `quality_checks` hinh `render-report.json
 - **Renderer (video_renderer):** duong path SG doc overlay CHI tu
   `sg_graphs[index]["overlays"]`, chuan bi lenh ve drawtext/filter boi role preset
   co dinh (type + role), KHONG doc lai `timeline_events`/segment va KHONG tu suy
-  toa/hinh overlay. Flag `ACE_SCENE_GRAPH_RENDER` tat -> legacy byte-identical,
+  toa/hinh overlay. `ACE_SCENE_GRAPH_RENDER=0` -> legacy byte-identical,
   khong xay dung overlay.
 - **Ws1 (rights):** planner goi `is_usable_for()` voi intent that truoc khi freeze
   (renderer chi assert lai); migration-4 boc `ensure_rights_scope_schema`

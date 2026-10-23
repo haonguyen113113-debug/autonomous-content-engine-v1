@@ -290,21 +290,28 @@ remain non-ready. See `docs/coordinator/content-reviews.md`.
   purpose)` is the use-scoped gate. Deny-default for YouTube/unknown
   source/license, expired/unclear expiry, and copyright exceptions (human
   review only; an LLM cannot clear them).
-- Scene Graph: fail-closed when `ACE_SCENE_GRAPH_RENDER=1` + missing graph;
-  `graph_hash` = sha256 canonical JSON minus itself; renderer executes
-  verbatim, no remap.
+- Scene Graph: **default render path since M2 (2026-10-23)**. Every render
+  builds one frozen graph per segment and fails closed when a graph is
+  missing; legacy is an explicit opt-in (`ACE_SCENE_GRAPH_RENDER=0`) kept only
+  for byte-identical comparison. Any unrecognised flag value raises instead of
+  guessing. `graph_hash` = sha256 canonical JSON minus itself; renderer
+  executes verbatim, no remap.
 
 ## Remaining work
 
-1. **R4 is blocked; fix the R3 aesthetic/planner/template blockers before a
-   final-gate render.** `docs/coordinator/r3-r4-c6-c7-reconciliation-2026-10-20.md`
-   records that C7 closes card text/media execution (90/90 records) but does
-   not clear S2.5 hook hierarchy, S3.5/S4.2 source beat, S4.1 owner-approved
-   media/purpose or S5.2 headline motion. The S3.1 planner is now contract-first
-   and reports variety honestly. C-09 closes only short-form attribution
-   grammar in 12.1.0; it does not clear tactical/context roles or the remaining
-   R3 visual blockers. The
-   2026-10-19 diagnostic clip `1caa81740bdd` also still needs owner review.
+1. **R4 ran twice on 2026-10-23; render layer now clear, verdict still not
+   PASS — see `docs/coordinator/reviews/R4-final-gate.md`.** The second run
+   fixed the three code-level defects the first one found: motion no longer
+   stalls inside beats (`on` was video-global, so later beats entered
+   saturated); contrast passes after a credit scrim plus ink-band sampling
+   (C-11's copy measures 19:1 on its glyph band, not the 1.32:1 the box
+   sampler reported); and `stats[N].summary` now composes from `value+label`,
+   so BP-16 no longer ships half-empty. Current gate: 37 PASS, 1 FAIL
+   (`Asset Library media` — no real media, S4.1), clip QA NEEDS_REVIEW
+   because the voice is a silent WAV. Contrast is now measured on the encoded
+   frames: 15.07 / 4.31 / 6.60 against floors 4.5 / 3.0 / 4.5. Blocking a PASS now: owner-signed C-09
+   review for 12.2.0, a rights-scoped real asset + upload purpose, and a
+   human on the contact sheet/MP4.
 2. **Close or explicitly accept the legacy surface before claiming the short
    slice is contract-ready**: 63 `legacy_non_ready` cards and 7 partial cards
    with named legacy modes remain (generic/frame/long, source/quote/timeline/
@@ -315,7 +322,9 @@ remain non-ready. See `docs/coordinator/content-reviews.md`.
 3. Minor cleanups: extra `duel_columns.short.json` is unregistered;
    `_check_asset_ref` messages still say "roles." for binding refs;
    `_write_scene_graph_beat` retains unused `root`/`scene_number` params.
-4. Keep R4 blocked until rendered review and remaining R3 gates are addressed.
+4. Do not re-run R4 for a PASS until F1–F5 in the verdict package are fixed and
+   a human has opened the contact sheet and MP4. A green test suite is not a
+   substitute for that review.
 
 ## Next concrete action
 

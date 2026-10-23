@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "lock_mode": "locked",
+  "palette": {
+    "void": "#060913",
+    "panel": "#0D1424",
+    "neon_cyan": "#00E5FF",
+    "pulse_magenta": "#FF3D81",
+    "amber": "#FFB03A",
+    "paper": "#F2F6FF",
+    "slate": "#8296BE",
+    "ink": "#060913",
+    "chalk": "#F2F6FF",
+    "paper_white": "#F2F6FF",
+    "accent_orange": "#FF3D81",
+    "muted": "#8296BE",
+    "kit_red": "#FF3D81",
+    "kit_dark_red": "#060913",
+    "orange": "#FF3D81",
+    "navy": "#0D1424",
+    "winner_lime": "#00E5FF",
+    "signal_lime": "#00E5FF",
+    "signal_orange": "#FF3D81",
+    "team_home": "#00E5FF",
+    "team_away": "#FF3D81",
+    "pitch_line": "#00E5FF",
+    "deep_pitch": "#0D1424"
+  },
+  "typography": {
+    "display": {
+      "family": "Tektur",
+      "weights": [
+        500
+      ],
+      "use": "Vietnamese names, headers, claims. Precomposed glyphs, clean at all sizes."
+    },
+    "numeral": {
+      "family": "Tektur",
+      "weights": [
+        500
+      ],
+      "use": "Scores, stats, minutes. Techno digits match display."
+    },
+    "body": {
+      "family": "Be Vietnam Pro",
+      "weights": [
+        400,
+        600,
+        700
+      ],
+      "use": "Vietnamese context labels, micro provenance."
+    },
+    "rules": [
+      "1 frame = 1 boss; max 3 type sizes.",
+      "Neon edges carry structure; magenta marks winners/accents; color never carries meaning alone.",
+      "Amber micro on dark; slate secondary on dark; paper boss type.",
+      "Provenance whisper on every evidence plate."
+    ]
+  },
+  "layout": {
+    "safe_area_percent": {
+      "top": 9,
+      "bottom": 13,
+      "left": 7,
+      "right": 7
+    },
+    "caption_anchor": "No persistent subtitles; labels only when informative.",
+    "hook_card": "Frame 0: 5-8 word claim, punched in, legible at 350px."
+  },
+  "motion": {
+    "default_easing": "ease-out cubic cubic-bezier(0.23,1,0.32,1), decisive stop.",
+    "scene_enter": "Slide in from the right over 0.3s.",
+    "count_up_steps": 6,
+    "hook_stagger_seconds": 0.18,
+    "ticker": "No tickers; LED dot rows carry rhythm."
+  },
+  "audio": {
+    "narration": "Primary; music ducks under speech."
+  },
+  "prohibited_effects": [
+    "glitch",
+    "screen shake",
+    "rapid flashing",
+    "fake scoreboard branding",
+    "unlicensed club crests",
+    "uncited stat graphics",
+    "synthesized faces",
+    "orange body text",
+    "floating unbordered identity"
+  ],
+  "version": "11.0.0",
+  "template_version": "11.0.0"
+}

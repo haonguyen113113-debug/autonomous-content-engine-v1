@@ -1,0 +1,12 @@
+# Development / verification dependencies.
+#
+# The engine itself is stdlib-first: a production install needs only
+# requirements-renderer.txt (Pillow) plus a local FFmpeg/ffprobe binary.
+# Everything here is for running the test suite and the contract gates.
+#
+#   python -m venv .venv && . .venv/bin/activate
+#   pip install -r requirements-dev.txt
+#   python -m pytest tests -q
+
+pytest==8.3.4
+Pillow==12.3.0

@@ -1,0 +1,47 @@
+# Contract artifacts pin SHA-256 over newline-normalised bytes
+# (apps/file_digest.py). Declaring LF for text and binary for media keeps a
+# Windows checkout and an LF checkout byte-identical for everything the engine
+# hashes, so a contract generated on one machine validates on every machine.
+#
+# Without this file the contract was implicitly CRLF-pinned and failed closed
+# on Linux/macOS/CI ("starter_sha256 drifted"), which broke the planner,
+# selector, renderer and QA on every non-Windows checkout.
+
+* text=auto eol=lf
+
+*.py    text eol=lf
+*.json  text eol=lf
+*.jsonl text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.toml  text eol=lf
+*.html  text eol=lf
+*.css   text eol=lf
+*.js    text eol=lf
+*.svg   text eol=lf
+*.srt   text eol=lf
+*.vtt   text eol=lf
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binary assets are hashed verbatim; never let Git touch their bytes.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+*.mp3   binary
+*.wav   binary
+*.ogg   binary
+*.mp4   binary
+*.mov   binary
+*.pdf   binary
+*.zip   binary

@@ -42,15 +42,27 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "apps" / "studio_templates"))
 
-from card_registry import CARDS  # noqa: E402
+from apps.file_digest import digest_bytes, file_digest  # noqa: E402
+from card_registry import CARDS, cards_for_version  # noqa: E402
 from apps.card_selector import STARTERS_LONG, STARTERS_SHORT  # noqa: E402
 from apps.scene_graph.builder import (  # noqa: E402
     STARTER_MODES,
     STARTER_MODES_12_0_0,
+    STARTER_MODES_12_1_0,
+    STARTER_MODES_12_2_0,
 )
 from apps.studio_templates.render_starters import font_for  # noqa: E402
 
-TEMPLATE_VERSION = "12.1.0"
+TEMPLATE_VERSION = "12.2.0"
+
+# Frozen per-pack starter-mode surfaces. Each released contract must be
+# reproducible byte-for-byte, so the tool never uses the live STARTER_MODES
+# set for an older version.
+STARTER_MODES_BY_VERSION: dict[str, frozenset[str]] = {
+    "12.0.0": STARTER_MODES_12_0_0,
+    "12.1.0": STARTER_MODES_12_1_0,
+    "12.2.0": STARTER_MODES_12_2_0,
+}
 PACK = (
     ROOT / "template_foundation" / "templates" / "allen-knows-ball"
     / TEMPLATE_VERSION
@@ -74,6 +86,26 @@ GRAPHIC_TEMPLATES = PACK / "graphic-templates.json"
 CONTRACT_MODE_CARD_ALLOWLIST: dict[str, set[str]] = {
     "source_card": {"C-09"},
 }
+
+
+def _at_least(version: str, floor: str) -> bool:
+    """True when pack ``version`` is ``floor`` or newer.
+
+    Contract behaviour must never be pinned to one exact pack string: a
+    later pack inherits every earlier authoring rule unless it explicitly
+    changes it. (Exact equality here silently reverted C-09's attribution
+    mapping -- source name replacing the claim -- as soon as 12.2.0 shipped.)
+    """
+    def parts(value: str) -> tuple[int, ...]:
+        out: list[int] = []
+        for chunk in str(value).strip().split("."):
+            try:
+                out.append(int(chunk))
+            except ValueError:
+                out.append(0)
+        return tuple(out)
+
+    return parts(version) >= parts(floor)
 
 
 def _pack(template_version: str | None = None) -> Path:
@@ -199,7 +231,8 @@ def _contract_hash(document: dict[str, Any]) -> str:
 
 
 def _sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Canonical digest: text artifacts are newline-normalised."""
+    return file_digest(path)
 
 
 def _starter_path(card: dict[str, Any]) -> Path:
@@ -310,6 +343,29 @@ def _spec(
     The 12.1.0 source mapping is scoped to C-09; other source cards keep the
     historical mapping and remain non-ready.
     """
+    if mode == "tactical_explainer" and _at_least(template_version, "12.2.0"):
+        # 12.2.0/C-12. The reading is the required reviewed line; the heading
+        # and provenance are authored/optional. No tactical vector or player
+        # list is authored here, so the card never invents a diagram.
+        if slot_id == "title":
+            return {"sources": [], "required": False, "fallback": "authored_text"}
+        if slot_id == "line":
+            return {"sources": ["note"], "required": True, "fallback": "hide"}
+        if slot_id == "credit":
+            return {"sources": ["credit"], "required": False, "fallback": "hide"}
+        return None
+
+    if mode == "conclusion" and _at_least(template_version, "12.2.0"):
+        # 12.2.0/C-13. Bounded takeaway copy only: the card does not summarize
+        # narration, and it never carries a claim without its provenance.
+        if slot_id == "title":
+            return {"sources": [], "required": False, "fallback": "authored_text"}
+        if slot_id == "claim":
+            return {"sources": ["claim"], "required": True, "fallback": "hide"}
+        if slot_id == "credit":
+            return {"sources": ["credit"], "required": False, "fallback": "hide"}
+        return None
+
     if mode == "hook_card":
         if slot_id == "claim":
             return {"sources": ["hook_text"], "required": True, "fallback": "hide"}
@@ -464,7 +520,7 @@ def _spec(
         return None
 
     if mode == "source_card":
-        if template_version == "12.1.0" and card_id == "C-09":
+        if _at_least(template_version, "12.1.0") and card_id == "C-09":
             # C-09 is attribution-only: the body carries the reviewed claim,
             # and the credit line always carries both source and date. The
             # authored heading NGUỒN stays authored text. No source name is
@@ -525,8 +581,21 @@ def _spec(
     return None
 
 
+# Cards authored for pack 12.2.0 and later. Kept out of STARTERS_SHORT (which
+# the frozen 12.0.0/12.1.0 contracts have already hashed) so older packs keep
+# reproducing exactly.
+SINCE_12_2_0_MODES: dict[str, str] = {
+    "C-12": "tactical_explainer",
+    "C-13": "conclusion",
+}
+
+
 def _modes_for(card: dict[str, Any]) -> set[str]:
     modes: set[str] = set()
+    if card.get("since"):
+        since_mode = SINCE_12_2_0_MODES.get(str(card["id"]))
+        if since_mode:
+            modes.add(since_mode)
     renderer = card.get("renderer") or ("generic", None)
     if renderer[0] == "generic" and renderer[1]:
         modes.add(str(renderer[1]))
@@ -756,18 +825,17 @@ def _static_layer(child: dict[str, Any]) -> dict[str, Any]:
 
 def build(template_version: str | None = None) -> dict[str, Any]:
     version = str(template_version or TEMPLATE_VERSION).strip()
-    if version not in {"12.0.0", "12.1.0"}:
+    if version not in STARTER_MODES_BY_VERSION:
         raise SystemExit(f"unsupported template version for contract: {version}")
     graphic_templates = _graphic_templates(version)
     layout_required = _layout_required(version)
-    starter_modes = (
-        STARTER_MODES_12_0_0 if version == "12.0.0" else STARTER_MODES
-    )
-    by_id = {str(card["id"]): card for card in CARDS}
-    if len(by_id) != len(CARDS):
+    starter_modes = STARTER_MODES_BY_VERSION.get(version, STARTER_MODES)
+    pack_cards = cards_for_version(version)
+    by_id = {str(card["id"]): card for card in pack_cards}
+    if len(by_id) != len(pack_cards):
         raise SystemExit("registry has duplicate card ids")
     cards_out: list[dict[str, Any]] = []
-    for card in sorted(CARDS, key=lambda item: str(item["id"])):
+    for card in sorted(pack_cards, key=lambda item: str(item["id"])):
         card_id = str(card["id"])
         aspect = str(card["aspect"])
         path = _starter_path(card)
@@ -849,7 +917,7 @@ def build(template_version: str | None = None) -> dict[str, Any]:
             "family": card.get("family"),
             "canvas": canvas,
             "starter_file": path.name,
-            "starter_sha256": hashlib.sha256(raw_bytes).hexdigest(),
+            "starter_sha256": digest_bytes(raw_bytes, normalise=True),
             "template_version": version,
             "modes": sorted(modes),
             "renderer_route": {

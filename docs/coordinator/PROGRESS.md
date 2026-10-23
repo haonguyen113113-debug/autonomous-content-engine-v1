@@ -328,7 +328,7 @@ Repo `C:/Users/Infomation Technolog/Desktop/autonomous-content-engine-v1` @ `mai
 >   purpose)` is the use-scoped gate. Deny-default for YouTube/unknown
 >   source/license, expired/unclear expiry, and copyright exceptions (human
 >   review only; an LLM cannot clear them).
-> - Scene Graph: fail-closed when `ACE_SCENE_GRAPH_RENDER=1` + missing graph;
+> - Scene Graph: default render path since M2; fail-closed on a missing graph;
 >   `graph_hash` = sha256 canonical JSON minus itself; renderer executes
 >   verbatim, no remap.
 >

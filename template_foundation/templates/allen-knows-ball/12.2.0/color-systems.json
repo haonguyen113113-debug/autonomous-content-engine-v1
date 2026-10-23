@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "identity_neutrals": {
+    "void": "#060913",
+    "paper": "#F2F6FF"
+  },
+  "colorways": [
+    {
+      "id": "cyber-pitch",
+      "name": "Cyber pitch",
+      "tokens": {
+        "ground": "#060913",
+        "zone": "#0D1424",
+        "edge": "#00E5FF",
+        "accent": "#FF3D81",
+        "micro": "#FFB03A"
+      }
+    }
+  ],
+  "selection_rules": [
+    "Neon edges carry structure; magenta marks winners and accents.",
+    "No club crests or competition marks; identity slots ship HUD panels with monograms."
+  ]
+}

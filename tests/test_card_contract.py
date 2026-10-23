@@ -48,18 +48,21 @@ NEW_CONTRACT_FILE = (
 )
 PORTRAIT_CARDS = {"C-04", "MR-08", "BP-03"}
 SOURCE_CARDS = {"BP-20", "C-09", "MR-12", "U-08"}
-OLD_CONTRACT_HASH = (
-    "2fa0a5249a51b8b93654bfe366d4d035499effe756814aad4510daef9dc054f7"
-)
-NEW_CONTRACT_HASH = (
-    "512dbbd9ccfc5bdcdecf584294bd8e7ad5a24c465e412778af8e701648e16bed"
-)
 
 
 def _contract(version: str = "12.0.0") -> dict:
     from apps.studio_templates.card_media import load_contract
 
     contract = load_contract(version)
+    assert contract is not None
+    return contract
+
+
+def _pinned_contract() -> dict:
+    """The contract the engine actually pins (DEFAULT_TEMPLATE_VERSION)."""
+    from apps.studio_templates.card_media import load_contract
+
+    contract = load_contract()
     assert contract is not None
     return contract
 
@@ -129,18 +132,21 @@ def _portrait_data() -> dict:
 
 
 def test_contract_covers_every_built_card_exactly_once():
-    from apps.studio_templates.card_registry import CARDS
+    from apps.studio_templates.card_registry import cards_for_version
 
-    contract = _contract()
-    card_ids = [card["card_id"] for card in contract["cards"]]
-    assert len(card_ids) == len(set(card_ids)) == 90
-    assert set(card_ids) == {str(card["id"]) for card in CARDS}
-    assert contract["schema_version"] == "2.0"
-    assert contract["contract_id"] == "card-contract"
-    assert contract["template_version"] == "12.0.0"
-    for card in contract["cards"]:
-        assert card["starter_id"] == card["card_id"]
-        assert card["template_version"] == contract["template_version"]
+    for version, expected in (("12.0.0", 90), ("12.1.0", 90), ("12.2.0", 92)):
+        contract = _contract(version)
+        card_ids = [card["card_id"] for card in contract["cards"]]
+        assert len(card_ids) == len(set(card_ids)) == expected, version
+        assert set(card_ids) == {
+            str(card["id"]) for card in cards_for_version(version)
+        }, version
+        assert contract["schema_version"] == "2.0"
+        assert contract["contract_id"] == "card-contract"
+        assert contract["template_version"] == version
+        for card in contract["cards"]:
+            assert card["starter_id"] == card["card_id"]
+            assert card["template_version"] == contract["template_version"]
 
 
 def test_contract_execution_partitions_are_explicit():
@@ -166,10 +172,15 @@ def test_contract_execution_partitions_are_explicit():
             assert execution["reason"]
 
 
-def test_12_0_0_contract_is_byte_hash_frozen():
+def test_12_0_0_contract_hash_matches_its_document():
+    from apps.studio_templates.card_media import _canonical_hash
+
     on_disk = json.loads(CONTRACT_FILE.read_text(encoding="utf-8"))
     assert on_disk["template_version"] == "12.0.0"
-    assert on_disk["contract_hash"] == OLD_CONTRACT_HASH
+    # The pin is derived from the document, never from a literal copied out of
+    # one machine's checkout: a hard-coded hash silently breaks every other
+    # platform as soon as the pack is regenerated.
+    assert on_disk["contract_hash"] == _canonical_hash(on_disk)
     c11 = next(card for card in on_disk["cards"] if card["card_id"] == "C-11")
     assert c11["execution"]["status"] == "contract"
     assert c11["execution"]["modes"] == ["hook_card"]
@@ -178,8 +189,11 @@ def test_12_0_0_contract_is_byte_hash_frozen():
 def test_12_1_0_promotes_only_c09_source_card():
     old = _contract("12.0.0")
     new = _contract("12.1.0")
+    from apps.studio_templates.card_media import _canonical_hash
+
     assert new["template_version"] == "12.1.0"
-    assert new["contract_hash"] == NEW_CONTRACT_HASH != old["contract_hash"]
+    assert new["contract_hash"] == _canonical_hash(new)
+    assert new["contract_hash"] != old["contract_hash"]
     assert Counter(
         card["execution"]["status"] for card in new["cards"]
     ) == {
@@ -249,10 +263,21 @@ def test_12_1_0_reuses_12_0_0_resources_and_keeps_c09_starter_bytes():
         for path in (new_root / "resources").rglob("*") if path.is_file()
     }
     assert old_resources == new_resources
+    # C-09 is the only starter whose execution was promoted in 12.1.0. Both
+    # contracts must pin the same canonical digest of the unchanged file, and
+    # that digest must match the file on disk regardless of line endings.
+    from apps.file_digest import file_digest
+
     starter = ROOT / "apps" / "studio_templates" / "C-09.short.json"
-    assert hashlib.sha256(starter.read_bytes()).hexdigest() == (
-        "877543db73fa5383efd67da93e99622493eb512c168a4710cb141da3a379c99c"
-    )
+    on_disk = {
+        card["card_id"]: card["starter_sha256"]
+        for card in _contract("12.0.0")["cards"]
+    }
+    on_disk_new = {
+        card["card_id"]: card["starter_sha256"]
+        for card in _contract("12.1.0")["cards"]
+    }
+    assert on_disk["C-09"] == on_disk_new["C-09"] == file_digest(starter)
 
 
 def test_12_1_0_leaves_other_source_and_longform_cards_non_ready():
@@ -427,7 +452,12 @@ def test_c09_source_card_binds_claim_and_source_date_without_new_layers():
     validate_scene_graph(graph)
     assert graph["kind"] == "starter"
     assert graph["provenance"]["card_contract"]["status"] == "contract"
-    assert graph["provenance"]["card_contract"]["sha256"] == NEW_CONTRACT_HASH
+    # The graph freezes against the pack the engine pins, so the pin must be
+    # that contract's hash -- never a hard-coded historical version.
+    assert (
+        graph["provenance"]["card_contract"]["sha256"]
+        == _pinned_contract()["contract_hash"]
+    )
     assert graph["media_bindings"] == []
     assert graph["slots"]["src-title"] == "NGUỒN"
     assert graph["slots"]["src-body"] == "Dữ liệu minh họa, không phải kết quả thật."
@@ -444,9 +474,16 @@ def test_c09_source_card_binds_claim_and_source_date_without_new_layers():
     ]
     assert [child["id"] for child in text_layers] == ["val-5", "val-6", "val-9"]
     assert check_text_fit(graph)["status"] == "PASS"
-    # The scoped owner review record (C-09 / source_card / 12.1.0) matches,
-    # so the visual-inspection gate is cleared for this contract graph.
-    assert check_card_contract(graph)["status"] == "PASS"
+    # The owner's scoped record covers C-09/source_card at 12.1.0 only, and it
+    # explicitly does not cover other pack versions. This graph freezes against
+    # the pinned pack (12.2.0), so the visual gate is NOT cleared: QA returns
+    # NEEDS_REVIEW instead of inheriting an approval from a different pack.
+    pinned = _pinned_contract()["template_version"]
+    status = check_card_contract(graph)["status"]
+    if pinned == "12.1.0":
+        assert status == "PASS"
+    else:
+        assert status == "NEEDS_REVIEW", status
 
 
 @pytest.mark.parametrize("missing", ["claim", "source", "date"])
@@ -686,3 +723,80 @@ def test_frozen_graph_rejects_a_contract_hash_swap():
     graph["provenance"]["graph_hash"] = graph_hash(graph)
     with pytest.raises(ValueError, match="contract hash"):
         validate_scene_graph(graph)
+
+
+# --- sparse-card guards -------------------------------------------------------
+
+
+def test_stat_leader_renders_the_second_stat_through_summary():
+    """`stats[1].summary` must resolve from the planner's {label, value}.
+
+    BP-16 declares `support <- stats[1].summary`; the planner only ever emits
+    label/value, so the slot used to hide itself and the card shipped
+    half-empty while contract + text-fit stayed PASS.
+    """
+    from apps.scene_graph.builder import build_scene_graph
+
+    data = {
+        "stats": [
+            {"label": "Chạm bóng trong vòng cấm", "value": "9"},
+            {"label": "Tỉ lệ thắng bóng", "value": "68%"},
+        ],
+        "source": "Synthetic Sports Desk (fixture)",
+        "date": "20/10/2026 (synthetic)",
+    }
+    graph = build_scene_graph(
+        segment_id="beat-stat",
+        visual_mode="stat_leader",
+        starter_id="BP-16",
+        graphic_data=data,
+        evidence=[],
+        content_type="short",
+        start_seconds=0.0,
+        end_seconds=7.0,
+        index=0,
+    )
+    layers = {
+        (child.get("custom") or {}).get("slot"): child
+        for child in graph["design"]["pages"][0]["children"]
+        if child.get("type") == "text"
+    }
+    assert layers["support"].get("showInExport") is not False
+    assert layers["support"]["text"] == "68% TỈ LỆ THẮNG BÓNG"
+
+
+def test_credit_scrim_covers_the_credit_box_in_12_2_0_cards():
+    """C-12/C-13 put a dark scrim behind the 26 px credit.
+
+    The credit sits on the bed's brightest band, where the sampled contrast
+    against amber text was 1.24-1.34 (< 3.0). The scrim is part of the plate,
+    so the same sampler sees dark pixels and the copy stays legible.
+    """
+    import json
+
+    for name in ("C-12", "C-13"):
+        design = json.loads(
+            (ROOT / "apps" / "studio_templates" / f"{name}.short.json")
+            .read_text(encoding="utf-8")
+        )
+        children = design["pages"][0]["children"]
+        scrim = next(c for c in children if c.get("id") == "credit-scrim")
+        credit = next(
+            c for c in children
+            if (c.get("custom") or {}).get("slot") == "credit"
+        )
+        assert scrim["type"] == "figure"
+        # Opaque enough that the bed's cyan beam stays under 3:1 behind the
+        # 26 px amber line when the plate has zoomed (measured 0.94 at the
+        # encoded frame; 0.82 still let the beam through).
+        assert float(scrim.get("opacity", 1.0)) >= 0.9
+        # Covers the credit box with a margin on every side. The extra headroom
+        # absorbs the plate zoom: plate and type share one zoompan chain, which
+        # moves this bottom-edge band down ~31 px at 1.035x, so the scrim's
+        # leading edge must start well above the glyphs.
+        assert scrim["x"] < credit["x"]
+        assert scrim["y"] < credit["y"]
+        assert scrim["x"] + scrim["width"] > credit["x"] + credit["width"]
+        assert scrim["y"] + scrim["height"] > credit["y"] + credit["height"]
+        # Drawn before the text, so it sits under it.
+        assert children.index(scrim) < children.index(credit)

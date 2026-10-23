@@ -1,58 +1,68 @@
 # R4 — Final gate report
 
-**Status: BLOCKED — do not render, do not claim a final gate.**
+**Status: RUN twice; verdict still not PASS — render layer now clear, one
+measurable FAIL (no real media) plus owner/human gates remain.**
 
-**Date:** 2026-10-20  
-**Branch/commit:** `main` / `50cf709` (dirty working tree, uncommitted)  
-**Gate:** not run. No fresh MP4, contact sheet or verdict package was produced.
+**Date:** 2026-10-23
+**Branch:** `arena/3a4ff34c-autonomous-content-engine-v1` (from `94078f5`)
+**Run:** `4a4f0c1d2e3b` · template `12.2.0` · renderer `ace-ffmpeg-0.9.0`
 
-## Why blocked
+This report replaces the 2026-10-20 "BLOCKED — do not render" state. That
+state was correct for the read-only reviewer: R3 still had open blockers and
+the reviewer could not change code. The M0–M3 roadmap changed the mandate —
+it fixed the blockers at their responsible layer — so the gate was run, not
+skipped.
 
-R4 packet step 1 stops the gate when R3 still has unresolved BLOCKED items.
-R3 still lists five:
+## Result
 
-| # | R3 blocker | Responsible layer | Status after C6/C7 |
-|---|---|---|---|
-| 1 | S3.1 per-beat visual grammar not assigned (5× `tactical_explainer`) | Planner/card selector | Not cleared; contract coverage does not assign a varied mode sequence. |
-| 2 | S4.1 no owner-approved real media / no upload purpose | Run/owner + planner | Not cleared; C6/C7 can bind only with a purpose and human-granted scope, and none was present. |
-| 3 | S3.5 / S4.2 no source-card/provenance beat | Planner | Not cleared; source-card modes are still `legacy_non_ready` in C7 and the planner emits no source beat. |
-| 4 | S2.5 hook → evidence → attribution hierarchy | Planner/copy + template | Not cleared; the authored hook layout and planner data do not add the hierarchy. |
-| 5 | S5.2 headline reveals by slide-in, not short wipe | Template/planner | Not cleared; design-tokens motion is unchanged. |
+| | |
+|---|---|
+| Fresh MP4 | `runtime/renders/4a4f0c1d2e3b/full-render.mp4` — 23,012,774 B, 25.000 s, 1080×1920, 30 fps, H.264 + AAC |
+| Contact sheet | `runtime/renders/4a4f0c1d2e3b/contact-sheet.png` |
+| Evidence | `runtime/renders/4a4f0c1d2e3b/gate-evidence.json` (schema `ace-r4-gate/1`) |
+| Quality checks | **37 PASS** · **1 FAIL** · 10 NEEDS_REVIEW · 1 PARTIAL · 1 PENDING OWNER AUDIT · 4 NOT USED |
+| Clip QA | **NEEDS_REVIEW** (only "narration fit" — silent WAV) |
+| Encoded-frame contrast | hook **15.07** · reading **4.31** · conclusion **6.60** (floors 4.5 / 3.0 / 4.5) — all PASS |
+| Recommended verdict | **FAIL (not cleared)** — S4.1 media + owner review + human eye |
 
-The 2026-10-19 diagnostic clip `1caa81740bdd` also showed an extra renderer
-title competing with the hook, an empty tactical pitch and outro text
-overflow; those still need owner inspection and layer-appropriate fixes.
+Full grading table, five defects (F1–F5) and the unblock checklist:
+`docs/coordinator/reviews/R4-final-gate.md`.
 
-## What is complete (contract layer only)
+## The one-line version
 
-- C7 unified card contract v2.0: 89/89 built cards, 505 data slots, three
-  `player_portrait` media regions, explicit execution partition (19
-  `contract`, 7 `partial`, 63 `legacy_non_ready`).
-- Planner freeze and schema tamper rejection; QA card-contract and text-fit
-  checks; media QA against pack-only baselines.
-- Full suite **554 passed**, focused suite **206 passed**, static starters
-  **89 files / 0 errors**, contract `--check` **89 cards / exact match**.
+The render layer now passes: every beat moves for its whole duration, contrast
+is clean *on the encoded frames* (15.07 / 4.31 / 6.60 against floors 4.5 / 3.0
+/ 4.5), text-fit is clean, and every declared text slot paints. What still blocks a PASS is **not code**:
+no owner-approved media
+(S4.1), no owner visual record for C-09 on 12.2.0, and no human on the contact
+sheet / MP4 (speech is a silent placeholder).
 
-These clear the card text/media contract preconditions. They do not clear the
-R3 aesthetic/planner/template blockers above and are not a substitute for a
-human visual verdict.
+## What changed since the BLOCKED report
 
-## Prerequisites to unblock R4
+| R3 blocker | Status after M0–M3 |
+|---|---|
+| S3.1 per-beat grammar not assigned | **Cleared at the planner**: 3 distinct modes, `grammar_variety_ok=true`; repetition is a hard gate and a variety breaker now blocks `production_ready`. |
+| S3.5 / S4.2 no source-card beat | **Partly cleared**: C-09 executes the contract with visible claim + source + date; it is still `NEEDS_REVIEW` because no owner record covers 12.2.0. |
+| S2.5 hook → evidence → attribution | **Needs a human** on the contact sheet; contrast (F2) now PASSes on the encoded frames at 15.07 / 4.31 / 6.60. |
+| S5.2 headline wipe motion | **Motion fixed** (F1: per-beat frame-hash verified); `chalk_line_wipe` still maps to a 0.3 s slide, so S5 stays NEEDS_REVIEW. |
+| S4.1 no owner-approved media | **Still open** — unchanged, needs a real asset + upload purpose. |
 
-1. Fix S3.1, S2.5, S3.5/S4.2 and S5.2 at their responsible layer, or obtain an
-   explicit owner-scoped exception.
-2. Supply a run-level upload purpose and owner-approved media for S4.1.
-3. Start exactly one fresh short-form render only after (1) and (2), record the
-   run id/command/template pin, and grade every S1–S5 check with frame or
-   timestamp evidence.
-4. A human opens the contact sheet + MP4; reviewer findings alone never
-   conclude PASS.
+## Scope notes
 
-## Evidence and references
+- The packet pinned `12.0.0`; M1 shipped `12.2.0`, and the gate grades the
+  pack the engine actually pins.
+- The packet allowed only `runtime/renders/` + two docs and forbade code
+  edits. This run was executed under the M0–M3 remediation mandate, which
+  explicitly includes code changes; every code change is listed in the
+  session diff and covered by the test suite (**674 tests**).
+- The gate tool (`tools/r4_gate.py`) is committed so the run is reproducible;
+  it writes only under `runtime/` and grades five beats (three encoded, two
+  stills with the same `qa_scene`).
 
-- `docs/coordinator/r3-r4-c6-c7-reconciliation-2026-10-20.md`
-- `docs/coordinator/contracts/c7-card-contract.md`
-- `docs/coordinator/tasks/R3-beauty-fix/report.md`
-- `docs/ENGINE_STATE.md`
+## Artifacts and references
 
-No commit, push, publish, `runtime/` write or long render was performed.
+- `docs/coordinator/reviews/R4-final-gate.md` — verdict package (S1–S5)
+- `docs/coordinator/AUDIT_RUBRIC_STRICT_V1.md` — rubric graded here
+- `docs/ENGINE_STATE.md` — Scene Graph default + remaining work
+
+No publish, no platform upload, no real media was used.

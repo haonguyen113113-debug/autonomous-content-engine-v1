@@ -138,19 +138,48 @@ def font_for(family: str, weight: str, size: int) -> ImageFont.FreeTypeFont:
         return ImageFont.load_default()
 
 
+_SHORT_PACK_CACHE: dict[tuple[int, int], Path] = {}
+
+
+def _short_pack_root(width: int, height: int) -> Path:
+    """Root of the short-form pack that supplies beds and pack art.
+
+    Resolved from the catalog instead of a literal version: hard-coding 12.0.0
+    silently ignored every asset added by a later pack. Falls back to 12.0.0
+    when the catalog cannot be read so the offline proofs keep working.
+    """
+    key = (width, height)
+    cached = _SHORT_PACK_CACHE.get(key)
+    if cached is not None:
+        return cached
+    root = ROOT / "template_foundation" / "templates" / "allen-knows-ball" / "12.0.0"
+    try:
+        from template_foundation import resolve_template
+
+        root = resolve_template(
+            ROOT, "allen-knows-ball.shortform-analyst", allow_draft=True
+        ).root
+    except Exception:  # pragma: no cover - catalog missing/corrupt offline
+        pass
+    _SHORT_PACK_CACHE[key] = root
+    return root
+
+
 def _beds_dir(width: int, height: int) -> Path:
-    base = ROOT / "template_foundation" / "templates" / "allen-knows-ball"
     if (width, height) == (1920, 1080):
+        base = ROOT / "template_foundation" / "templates" / "allen-knows-ball"
         return base / "longform-12.0.0" / "resources" / "beds"
-    return base / "12.0.0" / "resources" / "beds"
+    return _short_pack_root(width, height) / "resources" / "beds"
 
 
 def _art_file(width: int, height: int, src: str) -> Path:
     name = Path(src).name
     if "/resources/pack/" in src:
-        base = ROOT / "template_foundation" / "templates" / "allen-knows-ball"
-        pack = base / ("longform-12.0.0" if (width, height) == (1920, 1080) else "12.0.0")
-        return pack / "resources" / "pack" / name
+        if (width, height) == (1920, 1080):
+            base = (ROOT / "template_foundation" / "templates"
+                    / "allen-knows-ball" / "longform-12.0.0")
+            return base / "resources" / "pack" / name
+        return _short_pack_root(width, height) / "resources" / "pack" / name
     return _beds_dir(width, height) / name
 
 

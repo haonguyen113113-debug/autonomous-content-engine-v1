@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 4,
+  "width": 1080,
+  "height": 1920,
+  "fonts": [],
+  "pages": [
+    {
+      "id": "p1",
+      "background": "#060913",
+      "children": [
+        {
+          "id": "bed-90",
+          "type": "image",
+          "x": 0,
+          "y": 0,
+          "width": 1080,
+          "height": 1920,
+          "src": "/template-foundation/resources/pack/short-takes.jpg",
+          "selectable": false,
+          "draggable": false,
+          "resizable": false,
+          "removable": false
+        },
+        {
+          "id": "val-1",
+          "type": "text",
+          "x": 76,
+          "y": 250,
+          "width": 928,
+          "height": 96,
+          "text": "KẾT LUẬN",
+          "fontSize": 88,
+          "fontFamily": "Be Vietnam Pro",
+          "fontWeight": "bold",
+          "fill": "#F2F6FF",
+          "align": "center",
+          "draggable": false,
+          "resizable": false,
+          "removable": false,
+          "styleEditable": false,
+          "contentEditable": true,
+          "custom": {
+            "slot": "title"
+          }
+        },
+        {
+          "id": "rule-1",
+          "type": "figure",
+          "subType": "rect",
+          "x": 440,
+          "y": 368,
+          "width": 200,
+          "height": 8,
+          "fill": "#FF3D81",
+          "selectable": false,
+          "draggable": false,
+          "resizable": false,
+          "removable": false
+        },
+        {
+          "id": "val-2",
+          "type": "text",
+          "x": 90,
+          "y": 520,
+          "width": 900,
+          "height": 520,
+          "text": "Allen chốt lại điều đáng nhớ sau trận",
+          "fontSize": 76,
+          "fontFamily": "Be Vietnam Pro",
+          "fontWeight": "bold",
+          "fill": "#F2F6FF",
+          "align": "center",
+          "draggable": false,
+          "resizable": false,
+          "removable": false,
+          "styleEditable": false,
+          "contentEditable": true,
+          "custom": {
+            "slot": "claim"
+          }
+        },
+        {
+          "id": "credit-scrim",
+          "type": "figure",
+          "subType": "rect",
+          "x": 55,
+          "y": 1770,
+          "width": 970,
+          "height": 108,
+          "fill": "#05080F",
+          "opacity": 0.94,
+          "selectable": false,
+          "draggable": false,
+          "resizable": false,
+          "removable": false
+        },
+        {
+          "id": "val-3",
+          "type": "text",
+          "x": 75,
+          "y": 1820,
+          "width": 930,
+          "height": 40,
+          "text": "Nguồn • ngày",
+          "fontSize": 26,
+          "fontFamily": "Be Vietnam Pro",
+          "fontWeight": "normal",
+          "fill": "#FFB03A",
+          "align": "center",
+          "draggable": false,
+          "resizable": false,
+          "removable": false,
+          "styleEditable": false,
+          "contentEditable": true,
+          "custom": {
+            "slot": "credit"
+          }
+        }
+      ]
+    }
+  ]
+}

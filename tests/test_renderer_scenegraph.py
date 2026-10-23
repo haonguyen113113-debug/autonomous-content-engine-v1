@@ -253,17 +253,55 @@ def test_sg_flag_on_empty_scene_graphs_raises(monkeypatch):
         _scene_graph_clip({"scene_graphs": []}, False, [])
 
 
-def test_sg_flag_off_missing_scene_graphs_returns_none(monkeypatch):
-    from apps.video_renderer import _scene_graph_clip
+def test_sg_flag_defaults_on_when_unset(monkeypatch):
+    # Roadmap M2: Scene Graph is the default render path. A missing graph is
+    # refused instead of silently falling back to legacy.
+    from apps.video_renderer import _scene_graph_clip, scene_graph_render_enabled
 
     monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    assert scene_graph_render_enabled() is True
+    with pytest.raises(ValueError, match="missing/empty"):
+        _scene_graph_clip({}, False, [])
+
+
+def test_sg_flag_blank_value_still_means_on(monkeypatch):
+    from apps.video_renderer import scene_graph_render_enabled
+
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "   ")
+    assert scene_graph_render_enabled() is True
+
+
+@pytest.mark.parametrize("value", ["0", "false", "OFF", "no", "legacy"])
+def test_sg_flag_explicit_opt_out_disables_graph_path(monkeypatch, value):
+    from apps.video_renderer import _scene_graph_clip, scene_graph_render_enabled
+
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", value)
+    assert scene_graph_render_enabled() is False
     assert _scene_graph_clip({}, False, []) is None
+
+
+@pytest.mark.parametrize("value", ["1", "true", "ON", "yes", "graph"])
+def test_sg_flag_explicit_opt_in_enables_graph_path(monkeypatch, value):
+    from apps.video_renderer import scene_graph_render_enabled
+
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", value)
+    assert scene_graph_render_enabled() is True
+
+
+@pytest.mark.parametrize("value", ["2", "maybe", "scene-graph", "y"])
+def test_sg_flag_rejects_unknown_value(monkeypatch, value):
+    # A typo must never flip the render path silently.
+    from apps.video_renderer import scene_graph_render_enabled
+
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", value)
+    with pytest.raises(ValueError, match="not a recognised value"):
+        scene_graph_render_enabled()
 
 
 def test_sg_flag_off_preview_returns_none(monkeypatch):
     from apps.video_renderer import _scene_graph_clip
 
-    monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "0")
     assert _scene_graph_clip({}, True, []) is None
 
 
@@ -504,6 +542,8 @@ def test_short_form_render_full_run_skips_opening(monkeypatch, tmp_path):
     import template_foundation
     from pathlib import Path
 
+    # Legacy opt-out: this test exercises the pre-M2 preview/opening render path.
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "0")
     run = _make_run(tmp_path, "aaaaaaaaaaaa")
     run["draft"]["duration_target_seconds"] = 20
     run["voice_preview"] = {"path": "preview.wav"}
@@ -689,8 +729,73 @@ def test_render_full_run_builds_and_attaches_scene_graphs_flag_on(tmp_path, monk
     assert stored["draft"]["scene_graphs"] == graphs
 
 
-def test_render_full_run_skips_build_flag_off(tmp_path, monkeypatch):
+def test_render_full_run_builds_scene_graphs_by_default(tmp_path, monkeypatch):
+    # No env var at all: M2 default builds and attaches graphs.
     monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    graphs = [{"segment_id": "beat-1"}, {"segment_id": "beat-2"}]
+    calls = _install_fake_pipeline(monkeypatch, graphs)
+    renderer = _mock_render_deps(monkeypatch)
+
+    run = _make_run(tmp_path)
+    result = renderer.render_full_run(tmp_path, run["run_id"])
+
+    assert result["rendered"] is True
+    assert len(calls) == 1
+    # render_full_run re-reads the run from disk, so the persisted draft is
+    # the one carrying the frozen graphs.
+    stored = json.loads(
+        (tmp_path / "runtime" / "runs" / f"{run['run_id']}.json").read_text(encoding="utf-8")
+    )
+    assert stored["draft"]["scene_graphs"] == graphs
+
+
+def test_render_template_preview_uses_scene_graph_by_default(tmp_path, monkeypatch):
+    # Preview must draw the same path as the final render: no env var -> graphs.
+    monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    graphs = [{"segment_id": "beat-1"}, {"segment_id": "beat-2"}]
+    calls = _install_fake_pipeline(monkeypatch, graphs)
+    renderer = _mock_render_deps(monkeypatch)
+
+    run = _make_run(tmp_path, "dddddddddddd")
+    result = renderer.render_template_preview(tmp_path, run["run_id"])
+
+    assert result["rendered"] is True
+    assert len(calls) == 1
+
+
+def test_render_template_preview_without_segments_renders_empty_shell(tmp_path, monkeypatch):
+    # Preview-only allowance: an empty draft has no beats to freeze.
+    monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    calls = _install_fake_pipeline(monkeypatch, [])
+    renderer = _mock_render_deps(monkeypatch)
+    (tmp_path / "runtime" / "runs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "runtime" / "runs" / "eeeeeeeeeeee.json").write_text(
+        json.dumps({"run_id": "eeeeeeeeeeee", "draft": {"content_type": "short"}},
+                   ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    result = renderer.render_template_preview(tmp_path, "eeeeeeeeeeee")
+
+    assert result["rendered"] is True
+    assert calls == []
+
+
+def test_render_template_preview_opt_out_keeps_legacy(tmp_path, monkeypatch):
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "0")
+    graphs = [{"segment_id": "beat-1"}, {"segment_id": "beat-2"}]
+    calls = _install_fake_pipeline(monkeypatch, graphs)
+    renderer = _mock_render_deps(monkeypatch)
+
+    run = _make_run(tmp_path, "ffffffffffff")
+    result = renderer.render_template_preview(tmp_path, run["run_id"])
+
+    assert result["rendered"] is True
+    assert calls == []
+
+
+def test_render_full_run_skips_build_flag_off(tmp_path, monkeypatch):
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "0")
     graphs = [{"segment_id": "beat-1"}, {"segment_id": "beat-2"}]
     calls = _install_fake_pipeline(monkeypatch, graphs)
     renderer = _mock_render_deps(monkeypatch)
@@ -702,7 +807,7 @@ def test_render_full_run_skips_build_flag_off(tmp_path, monkeypatch):
     assert calls == []
     assert "scene_graphs" not in run.get("draft", {})
 
-    # Legacy path: flag tắt -> _scene_graph_clip trả None, không rơi vào fail-closed.
+    # Legacy path (explicit opt-out) -> _scene_graph_clip trả None, không rơi vào fail-closed.
     from apps.video_renderer import _scene_graph_clip
     assert _scene_graph_clip(run["draft"], False, [(0, 9), (9, 18)]) is None
 
@@ -845,7 +950,7 @@ def test_render_full_run_real_pipeline_flag_on_attaches_graphs(tmp_path, monkeyp
 
 
 def test_render_full_run_real_pipeline_flag_off_no_graphs(tmp_path, monkeypatch):
-    monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "0")
     renderer, render_calls = _mock_full_render_deps(monkeypatch)
     run = _make_full_run(tmp_path, "bbbbbbbbbbbb",
                          [_HOOK_DECISION, _SCORE_DECISION], _SEGMENTS[:2])
@@ -1026,9 +1131,9 @@ def test_sg_overlay_clip_relative_on_nonzero_beat_not_rejected(monkeypatch):
 
 
 def test_sg_flag_off_legacy_does_not_read_graph_overlay(monkeypatch):
-    # Flag tắt -> _scene_graph_clip từ chối scene_graphs (None) và không đi
-    # vào đường dẫn vẽ overlay từ graph.
-    monkeypatch.delenv("ACE_SCENE_GRAPH_RENDER", raising=False)
+    # Opt-out tường minh -> _scene_graph_clip từ chối scene_graphs (None) và
+    # không đi vào đường dẫn vẽ overlay từ graph.
+    monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "0")
     from apps.video_renderer import _scene_graph_clip
     assert _scene_graph_clip({"scene_graphs": [_ol_graph()]}, False, [(0.0, 9.0)]) is None
 
@@ -1106,3 +1211,28 @@ def test_qa_clip_overlay_without_template_slot_fails():
     assert statuses["Overlay rendered"] == "FAIL"
     assert report["verdict"] == "FAIL"
     assert report["ready"] is False
+
+
+# --- low-memory render knob (ACE_RENDER_FILTER_THREADS) ----------------------
+
+
+def test_render_thread_flags_are_opt_in(monkeypatch):
+    from apps.video_renderer import _render_thread_flags
+
+    monkeypatch.delenv("ACE_RENDER_FILTER_THREADS", raising=False)
+    assert _render_thread_flags() == []
+    monkeypatch.setenv("ACE_RENDER_FILTER_THREADS", "  ")
+    assert _render_thread_flags() == []
+    monkeypatch.setenv("ACE_RENDER_FILTER_THREADS", "1")
+    assert _render_thread_flags() == [
+        "-filter_complex_threads", "1", "-threads", "1"
+    ]
+
+
+@pytest.mark.parametrize("value", ["0", "-2", "many", "1.5"])
+def test_render_thread_flags_reject_invalid_values(monkeypatch, value):
+    from apps.video_renderer import _render_thread_flags
+
+    monkeypatch.setenv("ACE_RENDER_FILTER_THREADS", value)
+    with pytest.raises(ValueError, match="positive integer"):
+        _render_thread_flags()

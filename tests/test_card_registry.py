@@ -8,7 +8,13 @@ file checks but must still declare purpose, slots and a valid path.
 from pathlib import Path
 
 from apps.content_workflow import VISUAL_MODES
-from apps.studio_templates.card_registry import BUILT, BY_ID, CARDS, PLANNED
+from apps.studio_templates.card_registry import (
+    BUILT,
+    BY_ID,
+    CARDS,
+    PLANNED,
+    cards_for_version,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 TPL = ROOT / "apps" / "studio_templates"
@@ -17,10 +23,25 @@ RENDER_MODES = set(VISUAL_MODES) | {"media_b_roll"}
 
 
 def test_registry_counts():
-    assert len(CARDS) == 90
-    assert len(BUILT) == 90
+    # 90 baseline cards + the two 12.2.0 grammar cards (C-12/C-13).
+    assert len(CARDS) == 92
+    assert len(BUILT) == 92
     assert len(PLANNED) == 0
-    assert len(BY_ID) == 90
+    assert len(BY_ID) == 92
+    # Released packs keep validating against exactly the cards they shipped.
+    assert len(cards_for_version("12.0.0")) == 90
+    assert len(cards_for_version("12.1.0")) == 90
+    assert len(cards_for_version("12.2.0")) == 92
+
+
+def test_new_cards_are_scoped_to_their_pack():
+    assert {card["id"] for card in cards_for_version("12.1.0")} & {
+        "C-12", "C-13"
+    } == set()
+    for card_id in ("C-12", "C-13"):
+        card = BY_ID[card_id]
+        assert card["since"] == "12.2.0"
+        assert (TPL / f"{card_id}.short.json").is_file()
 
 
 def test_registry_entries_well_formed():

@@ -32,9 +32,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from apps.file_digest import file_digest
+
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_FILENAME = "card-contract.json"
-DEFAULT_TEMPLATE_VERSION = "12.1.0"
+DEFAULT_TEMPLATE_VERSION = "12.2.0"
 CONTRACT_SCHEMA_VERSION = "2.0"
 CONTRACT_ID = "card-contract"
 STARTER_DIR = ROOT / "apps" / "studio_templates"
@@ -158,7 +160,12 @@ def _canonical_hash(document: dict[str, Any]) -> str:
 
 
 def _sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Canonical digest: text artifacts are newline-normalised (see file_digest).
+
+    Contract pins must not depend on the checkout's line endings, otherwise a
+    contract generated on Windows fails every validation on an LF checkout.
+    """
+    return file_digest(path)
 
 
 def _starter_box(child: dict[str, Any]) -> list[int]:
@@ -656,9 +663,12 @@ def _validate_against_starter(card: dict[str, Any]) -> None:
 
 
 def _validate_against_registry(card: dict[str, Any], index: int) -> None:
-    from apps.studio_templates.card_registry import CARDS
+    from apps.studio_templates.card_registry import cards_for_version
 
-    registry = {str(item["id"]): item for item in CARDS}
+    registry = {
+        str(item["id"]): item
+        for item in cards_for_version(str(card.get("template_version") or ""))
+    }
     card_id = card["card_id"]
     if card_id not in registry:
         raise ValueError(
@@ -767,9 +777,12 @@ def validate_contract(data: Any, *, check_drift: bool = True) -> dict[str, Any]:
             _validate_against_starter(card)
 
     if check_drift:
-        from apps.studio_templates.card_registry import CARDS
+        from apps.studio_templates.card_registry import cards_for_version
 
-        expected = {str(item["id"]) for item in CARDS}
+        expected = {
+            str(item["id"])
+            for item in cards_for_version(str(contract.get("template_version") or ""))
+        }
         if seen_cards != expected:
             missing = sorted(expected - seen_cards)
             extra = sorted(seen_cards - expected)

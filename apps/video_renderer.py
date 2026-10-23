@@ -2023,6 +2023,76 @@ def _overlay_items(events: list[Any], start: float, end: float, *,
     return picked
 
 
+RENDER_FILTER_THREADS_ENV = "ACE_RENDER_FILTER_THREADS"
+
+
+def _beat_zoom_expr(
+    index: int,
+    *,
+    start: float,
+    fps: int,
+    punch: bool,
+    media: bool = False,
+    end: float | None = None,
+) -> str:
+    """Zoompan expression measured in *beat-relative* frames.
+
+    Every scene plate is a ``-loop 1`` input that starts at t=0 and is consumed
+    by its overlay from the first frame, whether or not the beat is visible.
+    ``on`` therefore counts frames since the start of the VIDEO, not since the
+    beat appeared: a beat at 7 s already had ~210 frames of drift applied
+    before its first visible frame, so its zoom was saturated and its plate
+    froze for the whole beat (measured: frames at 9.0 s, 10.0 s and 12.0 s
+    byte-identical). Subtracting the beat's start frame gives every beat the
+    full authored drift.
+    """
+    offset = int(round(float(start) * int(fps)))
+    rel = f"max(0,on-{offset})" if offset > 0 else "on"
+    if media:
+        return f"min(1.035,1+0.00002*{rel})"
+    if punch:
+        # A 0.4 s snap to 1.02, then a slow drift that lands on the 1.035
+        # ceiling exactly at the end of the beat. The old single-rate ramp hit
+        # the ceiling after ~3.3 s and froze the plate for the rest of the
+        # beat (freezedetect caught 3.30-6.60 s on the hook).
+        frames = max(1, int(round((float(end) - float(start)) * int(fps)))) if end else 250
+        snap = max(1, int(round(0.4 * int(fps))))
+        drift = (0.035 - 0.02) / max(1, frames - snap)
+        return (
+            f"min(1.035,1+0.02*min(1,{rel}/{snap})"
+            f"+{drift:.6f}*max(0,{rel}-{snap}))"
+        )
+    if index % 2 == 0:
+        return f"min(1.025,1+0.0001*{rel})"
+    return f"max(1.0,1.025-0.0001*{rel})"
+
+
+def _render_thread_flags() -> list[str]:
+    """Cap FFmpeg's filter/encoder threads, or nothing by default.
+
+    The multi-overlay graph holds several full-canvas 1080x1920 frames in
+    flight, so peak RSS scales with the filter thread count. On a small
+    machine (or a CI box without swap) that is enough to get the process
+    OOM-killed with an empty stderr, which looks like a code bug. Setting
+    ``ACE_RENDER_FILTER_THREADS=1`` keeps the render inside a ~4 GB budget at
+    the cost of speed; unset means FFmpeg's own default (unchanged behavior).
+    """
+    raw = os.environ.get(RENDER_FILTER_THREADS_ENV, "").strip()
+    if not raw:
+        return []
+    try:
+        value = int(raw)
+    except ValueError:
+        raise ValueError(
+            f"{RENDER_FILTER_THREADS_ENV} must be a positive integer, got {raw!r}."
+        ) from None
+    if value < 1:
+        raise ValueError(
+            f"{RENDER_FILTER_THREADS_ENV} must be a positive integer, got {raw!r}."
+        )
+    return ["-filter_complex_threads", str(value), "-threads", str(value)]
+
+
 def _render(
     root: Path,
     run: dict[str, Any],
@@ -2361,6 +2431,7 @@ def _render(
         beat_enable = f"between(t,{start:.3f},{end:.3f})"
     command = [
         ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+        *_render_thread_flags(),
         "-loop", "1", "-framerate", str(fps), "-i", str(backdrop_path),
     ]
     audio_path = None
@@ -2514,8 +2585,11 @@ def _render(
                 media_fades += f",fade=t=in:st={start:.3f}:d=0.45:alpha=1"
             if sg_graphs is not None and fade_out:
                 media_fades += f",fade=t=out:st={max(start, end - 0.45):.3f}:d=0.45:alpha=1"
+            media_zoom = _beat_zoom_expr(
+                index, start=start, fps=fps, punch=False, media=True, end=end
+            )
             chains.append(
-                f"[{scene_idx}:v]zoompan=z='min(1.035,zoom+0.00002)':"
+                f"[{scene_idx}:v]zoompan=z='{media_zoom}':"
                 f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
                 f"s={media_width}x{media_height}:fps={fps},format=rgba{media_fades}[{media_layer}]"
             )
@@ -2524,13 +2598,18 @@ def _render(
             # Keep camera motion within the template's generous safe margins.
             # The former 1.07/1.12 zoom cropped baked headline glyphs.
             motion_label = f"scenemotion{index}"
+            # zoompan's `zoom` variable restarts for every input frame when
+            # d=1 (a looped still image feeds one frame at a time), so the
+            # former "zoom+step" expressions never accumulated and same-beat
+            # frames came out pixel-identical. Drive the drift from `on`
+            # (output frame count) instead, but offset it by the beat's start
+            # frame: `on` counts the whole video, so without the offset every
+            # beat after the first starts with its drift already saturated.
             if index in punch_beats:
-                zoom_expr = "min(1.035,zoom+0.00035)"
                 punch_used += 1
-            elif index % 2 == 0:
-                zoom_expr = "min(1.025,zoom+0.0001)"
-            else:
-                zoom_expr = "if(eq(on,0),1.025,max(zoom-0.0001,1.0))"
+            zoom_expr = _beat_zoom_expr(
+                index, start=start, fps=fps, punch=index in punch_beats, end=end
+            )
             motion_chain = (
                 f"[{scene_idx}:v]zoompan=z='{zoom_expr}':"
                 f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:"
@@ -2558,9 +2637,9 @@ def _render(
             # Type entrances after the plate lands: same drift as its
             # background, fade in at +0.6s, out with the beat.
             tidx = text_input_index[index]
-            tzoom = ("min(1.035,zoom+0.00035)" if index in punch_beats else
-                     ("min(1.025,zoom+0.0001)" if index % 2 == 0 else
-                      "if(eq(on,0),1.025,max(zoom-0.0001,1.0))"))
+            tzoom = _beat_zoom_expr(
+                index, start=start, fps=fps, punch=index in punch_beats, end=end
+            )
             tin = min(start + 0.6, end - 1.0)
             chains.append(
                 f"[{tidx}:v]zoompan=z='{tzoom}':"
@@ -2639,7 +2718,10 @@ def _render(
         )
         current = "opened"
     # Free-standing text overlays and kinetic copy are intentionally absent.
-    chains.append(f"[{current}]{','.join(filters)}[vout]")
+    # An empty filter list would emit "[label][vout]" -- two inputs and no
+    # filter, which FFmpeg rejects ("No such filter: ''"). The terminal chain
+    # therefore always carries at least one real filter.
+    chains.append(f"[{current}]{','.join(filters or ['null'])}[vout]")
     if sound is not None:
         chains.append(audio_mix[0])
     filter_complex = ";".join(chains)
@@ -2859,13 +2941,50 @@ def _render(
     }
 
 
+def _attach_scene_graphs(
+    root: Path,
+    run: dict[str, Any],
+    *,
+    plan_cards: bool = False,
+    allow_empty: bool = False,
+) -> bool:
+    """Freeze one Scene Graph per segment onto the run (default render path).
+
+    Returns True when graphs were attached. ``allow_empty`` is preview-only: a
+    draft with no segments renders the empty template shell, which has no beats
+    to freeze. A production render keeps failing closed on an empty draft.
+    Every other failure propagates: the graph path never degrades to legacy.
+    """
+    if not scene_graph_render_enabled():
+        return False
+    draft = run.get("draft") if isinstance(run.get("draft"), dict) else {}
+    segments = draft.get("segments")
+    if allow_empty and (not isinstance(segments, list) or not segments):
+        return False
+    if plan_cards:
+        from apps.card_selector import apply_card_plan
+
+        apply_card_plan(root, run)
+    from apps.scene_graph.pipeline import build_run_scene_graphs
+
+    build_run_scene_graphs(root, run)  # raises on any gap; no legacy fallback
+    return True
+
+
 def render_template_preview(root: Path, run_id: str) -> dict[str, Any]:
+    """Fast template preview.
+
+    Uses the same frozen graphs as the final render: a preview that drew a
+    different path would misrepresent the output. The card plan is applied in
+    memory first because a preview may run before the operator saves one.
+    """
     if not _safe_run_id(run_id):
         raise ValueError("Production run ID is invalid.")
     path = root / "runtime/runs" / f"{run_id}.json"
     if not path.is_file():
         raise ValueError("Production run was not found.")
     run = json.loads(path.read_text(encoding="utf-8"))
+    _attach_scene_graphs(root, run, plan_cards=True, allow_empty=True)
     return _render(root, run, preview=True, output_name="template-preview.mp4")
 
 
@@ -2885,6 +3004,7 @@ def render_visual_only_run(root: Path, run_id: str) -> dict[str, Any]:
     from apps.card_selector import apply_card_plan
 
     apply_card_plan(root, run)
+    _attach_scene_graphs(root, run)
     return _render(root, run, preview=False, visual_only=True, output_name="visual-benchmark-silent.mp4")
 
 
@@ -2933,12 +3053,11 @@ def render_full_run(root: Path, run_id: str) -> dict[str, Any]:
 
     apply_card_plan(root, run)
     # Scene Graph production path: build + gắn frozen graphs trước khi render.
-    # Flag tắt: giữ legacy path byte-identical, không build graphs. Flag bật:
+    # Mặc định BẬT (kể từ roadmap M2): graph là đường render chính. Legacy chỉ
+    # chạy khi opt-in rõ ràng qua ACE_SCENE_GRAPH_RENDER=0. Trên graph path,
     # build_run_scene_graphs gắn run["draft"]["scene_graphs"]; raise rõ nếu
     # không thể build/validate (fail closed, không rơi về legacy).
-    if os.environ.get("ACE_SCENE_GRAPH_RENDER") == "1":
-        from apps.scene_graph.pipeline import build_run_scene_graphs
-        build_run_scene_graphs(root, run)  # mutate run["draft"]["scene_graphs"]; raise nếu fail
+    _attach_scene_graphs(root, run)
     result = _render(root, run, preview=False, output_name="full-render.mp4")
     run["render"] = {
         "path": "full-render.mp4",
@@ -2978,12 +3097,39 @@ def render_full_run(root: Path, run_id: str) -> dict[str, Any]:
 # suppressed). Anything outside this table is a planner/builder gap, and
 # QA NEEDS_REVIEWs it instead of the renderer inventing motion.
 #
-# Gated by ACE_SCENE_GRAPH_RENDER=1 plus draft["scene_graphs"] (one graph
-# per segment, validated up front). Default off: legacy behavior is
-# byte-identical when the flag is unset.
+# Enabled by DEFAULT since roadmap M2: every full render builds one frozen
+# graph per segment and validates them up front. Legacy rendering is an
+# explicit opt-in (ACE_SCENE_GRAPH_RENDER=0) kept only for byte-identical
+# comparison with pre-M2 outputs; it is not a silent fallback.
 # ---------------------------------------------------------------------------
 
 SCENE_GRAPH_RENDER_ENV = "ACE_SCENE_GRAPH_RENDER"
+
+# Accepted spellings. Anything else raises: a typo must never flip the render
+# path silently. Unset/blank means "on" (the M2 default).
+_SCENE_GRAPH_ON = frozenset({"1", "true", "on", "yes", "graph", "scene_graph"})
+_SCENE_GRAPH_OFF = frozenset({"0", "false", "off", "no", "legacy"})
+
+
+def scene_graph_render_enabled() -> bool:
+    """Whether rendering executes frozen Scene Graphs (default: yes).
+
+    ACE_SCENE_GRAPH_RENDER=1 (or unset) -> Scene Graph path.
+    ACE_SCENE_GRAPH_RENDER=0            -> legacy path (explicit opt-in).
+    Any other value raises ValueError instead of guessing.
+    """
+    raw = os.environ.get(SCENE_GRAPH_RENDER_ENV)
+    if raw is None or not raw.strip():
+        return True
+    value = raw.strip().lower()
+    if value in _SCENE_GRAPH_ON:
+        return True
+    if value in _SCENE_GRAPH_OFF:
+        return False
+    raise ValueError(
+        f"{SCENE_GRAPH_RENDER_ENV}={raw!r} is not a recognised value; use 1/0 "
+        "(or true/false, on/off, graph/legacy)."
+    )
 
 
 def _scene_graph_clip(
@@ -2993,17 +3139,19 @@ def _scene_graph_clip(
 ) -> list[dict[str, Any]] | None:
     """Validate the draft's frozen Scene Graphs, or None for legacy path.
 
-    Flag-off (ACE_SCENE_GRAPH_RENDER != "1") is the ONLY legacy path —
-    preview does not gate scene-graph mode. When the flag is "1" and the
-    draft carries no frozen scene_graphs, the renderer refuses to fall back
-    to legacy and raises ValueError (fail-closed).
+    The Scene Graph path is the default; explicit opt-out
+    (ACE_SCENE_GRAPH_RENDER=0) is the ONLY legacy path — preview does not gate
+    scene-graph mode. On the default path a draft that carries no frozen
+    scene_graphs is refused with ValueError rather than silently rendered by
+    the legacy path (fail-closed).
     """
-    if os.environ.get(SCENE_GRAPH_RENDER_ENV) != "1":
+    if not scene_graph_render_enabled():
         return None
     graphs = draft.get("scene_graphs")
     if not graphs:
         raise ValueError(
-            "ACE_SCENE_GRAPH_RENDER=1 but draft.scene_graphs is missing/empty — refusing legacy fallback."
+            f"{SCENE_GRAPH_RENDER_ENV} is on (default) but draft.scene_graphs "
+            "is missing/empty — refusing legacy fallback."
         )
     if not isinstance(graphs, list):
         raise ValueError("draft scene_graphs must be a list of Scene Graphs.")

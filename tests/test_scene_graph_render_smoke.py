@@ -19,6 +19,7 @@ and confirms free-standing overlay copy is not painted.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -111,10 +112,15 @@ def test_scene_graph_short_render_smoke(tmp_path, monkeypatch):
     monkeypatch.setenv("ACE_SCENE_GRAPH_RENDER", "1")
     monkeypatch.setenv("SOUNDPACK_ENABLED", "false")
 
-    ffmpeg = shutil.which("ffmpeg")
-    ffprobe = shutil.which("ffprobe")
+    ffmpeg = shutil.which(os.environ.get("FFMPEG_PATH") or "ffmpeg")
+    ffprobe = shutil.which(os.environ.get("FFPROBE_PATH") or "ffprobe")
     if ffmpeg is None or ffprobe is None:
-        pytest.skip("FFmpeg/ffprobe không có sẵn trên PATH; bỏ qua test render thật.")
+        message = "FFmpeg/ffprobe không có sẵn trên PATH; bỏ qua test render thật."
+        # A release/CI environment must not go green by silently skipping the
+        # only test that renders real pixels.
+        if os.environ.get("ACE_REQUIRE_RENDER_TESTS") == "1":
+            pytest.fail(f"{message} ACE_REQUIRE_RENDER_TESTS=1 nên không được skip.")
+        pytest.skip(message)
 
     run_id = FIXTURE_RUN["run_id"]
     run = json.loads(json.dumps(FIXTURE_RUN))  # deep copy, không tác động original
@@ -194,12 +200,17 @@ def test_scene_graph_short_render_smoke(tmp_path, monkeypatch):
     assert before_ending != ending_frame, "fixed template ending card was not shown"
 
     # 7. Fixed brand scenes are built from the template pack and free-standing
-    #    copy is suppressed; ensure both rendered plates are present.
+    #    copy is suppressed. Short form opens directly on the authored C-11
+    #    hook card: no C-01 opening plate may be rendered, while the fixed
+    #    ending card and the first beat plate must exist.
     work_dir = tmp_path / "runtime" / "renders" / run_id / "work"
-    opening = work_dir / "opening-scene.png"
     ending = work_dir / "ending-scene.png"
-    assert opening.is_file() and opening.stat().st_size > 0
     assert ending.is_file() and ending.stat().st_size > 0
+    assert not (work_dir / "opening-scene.png").exists(), (
+        "short form must not render the C-01 opening plate over the C-11 hook"
+    )
+    first_beat_plate = work_dir / "tactical-scene-0.png"
+    assert first_beat_plate.is_file() and first_beat_plate.stat().st_size > 0
 
     # 8. scene graphs đóng băng gắn vào run (đọc lại từ disk vì render_full_run
     #    ghi run JSON sau khi render)
